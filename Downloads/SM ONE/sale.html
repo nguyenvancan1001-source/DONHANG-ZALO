@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>SM ONE</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const _SB_URL = 'https://vwzntitcdjznhvmmvpce.supabase.co';
+const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3em50aXRjZGp6bmh2bW12cGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzA0MzksImV4cCI6MjA4OTg0NjQzOX0.7wfRtdxJmYUsREBWor5JbUur0ZSRyKTAbVTR2GxOIy4';
+// ══ SUPABASE STUB (demo mode - không cần server thật) ══════════
+// Khi anh có SB_URL + SB_KEY thật, thay đoạn này bằng:
+//   
+//   
+// ════════════════════════════════════════════════════════════════
+
+let _sbClient = null;
+try {
+  _sbClient = window.supabase?.createClient(_SB_URL, _SB_KEY);
+  console.log('✅ Supabase connected:', _SB_URL);
+} catch(e) { console.warn('Supabase init:', e.message); }
+const _DEMO_MODE = false;
+
+// Demo Auth state
+let _authUser = null;
+let _authRole = null; // 'kiosk' | 'sale' | 'admin'
+
+// Minimal Supabase client stub for demo
+// window.supabase SDK loaded from CDN above
+
+// ── DEMO USERS ────────────────────────────────────────────────
+const DEMO_USERS = {
+  // Tạp hóa Kiosk
+  '0901111111': { pass: 'Kiosk@SM1', role: 'kiosk', profile: {
+    id: 'ku1', auth_id: 'ku1', tap_hoa_id: 'st1',
+    ten_cua_hang: 'Tạp hóa Lan', ho_ten: 'Chị Lan',
+    so_dien_thoai: '0901111111', dia_chi: '12 Trần Phú, Phú Bài',
+    diem_tich_luy: 750, tier: 'Bạc',
+    tap_hoa: { ten: 'Tạp hóa Lan', sales_users: { ho_ten: 'Nguyễn Nam', so_dien_thoai: '0901234567' } }
+  }},
+  '0902222222': { pass: 'Kiosk@SM1', role: 'kiosk', profile: {
+    id: 'ku2', auth_id: 'ku2', tap_hoa_id: 'st2',
+    ten_cua_hang: 'Tạp hóa Minh', ho_ten: 'Anh Minh',
+    so_dien_thoai: '0902222222', dia_chi: '45 Lý Thường Kiệt',
+    diem_tich_luy: 320, tier: 'Đồng',
+    tap_hoa: { ten: 'Tạp hóa Minh', sales_users: { ho_ten: 'Nguyễn Nam', so_dien_thoai: '0901234567' } }
+  }},
+  // Sale
+  '0901234567': { pass: 'Sale@SM1', role: 'sale', profile: {
+    id: 'sa1', auth_id: 'sa1', ho_ten: 'Nguyễn Nam',
+    so_dien_thoai: '0901234567', bac_sale: 'Vàng',
+    commission_rate: 6, kpi_thang: 35,
+    stk: '1234567890', ngan_hang: 'Vietcombank',
+    zones: { ten: 'Khu A', mo_ta: 'Phú Bài — Hương Thủy' }
+  }},
+  '0902345678': { pass: 'Sale@SM1', role: 'sale', profile: {
+    id: 'sa2', auth_id: 'sa2', ho_ten: 'Trần Hoa',
+    so_dien_thoai: '0902345678', bac_sale: 'Bạc',
+    commission_rate: 5, kpi_thang: 35,
+    stk: '9876543210', ngan_hang: 'Techcombank',
+    zones: { ten: 'Khu B', mo_ta: 'Vinh Thanh — Phú Vang' }
+  }},
+  // Admin
+  '0900000000': { pass: 'Admin@SM1', role: 'admin', profile: { id: 'adm1', ho_ten: 'Admin' } },
+};
+
+// ── DEMO DB (shared in-memory across tabs via localStorage) ──
+function _loadDB(key, def) {
+  try { const v = localStorage.getItem('smone_'+key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function _saveDB(key, val) {
+  try { localStorage.setItem('smone_'+key, JSON.stringify(val)); } catch {}
+}
+
+let _DB_ORDERS = _loadDB('orders', []);
+let _DB_STORES = _loadDB('stores', [
+  {id:'st1',ten:'Tạp hóa Lan',chu_so_huu:'Chị Lan',so_dien_thoai:'0901111111',dia_chi:'12 Trần Phú',loai:'tap_hoa',zone_id:'z1',sale_id:'sa1',trang_thai:'can_vieng',lan_vieng_cuoi:null,tong_doanh_thu:4200000,ghi_chu:'Hay mua ST25'},
+  {id:'st2',ten:'Tạp hóa Minh Quang',chu_so_huu:'Anh Quang',so_dien_thoai:'0902222222',dia_chi:'45 Lý Thường Kiệt',loai:'tap_hoa',zone_id:'z2',sale_id:'sa1',trang_thai:'vua_dat',lan_vieng_cuoi:new Date(Date.now()-5*86400000).toISOString(),tong_doanh_thu:2100000,ghi_chu:''},
+  {id:'st3',ten:'CH Bà Hoa',chu_so_huu:'Bà Hoa',so_dien_thoai:'0903333333',dia_chi:'78 Nguyễn Huệ',loai:'cua_hang_tien_loi',zone_id:'z1',sale_id:'sa1',trang_thai:'moi',lan_vieng_cuoi:null,tong_doanh_thu:0,ghi_chu:''},
+  {id:'st4',ten:'Tạp hóa Sơn',chu_so_huu:'Anh Sơn',so_dien_thoai:'0904444444',dia_chi:'23 Phan Chu Trinh',loai:'tap_hoa',zone_id:'z1',sale_id:'sa1',trang_thai:'can_vieng',lan_vieng_cuoi:new Date(Date.now()-8*86400000).toISOString(),tong_doanh_thu:6300000,ghi_chu:'Mua chiều T6'},
+  {id:'st5',ten:'SM Mini Hà',chu_so_huu:'Chị Hà',so_dien_thoai:'0905555555',dia_chi:'5 Hoàng Diệu',loai:'sieu_thi_mini',zone_id:'z2',sale_id:'sa2',trang_thai:'vua_dat',lan_vieng_cuoi:new Date(Date.now()-3*86400000).toISOString(),tong_doanh_thu:3150000,ghi_chu:''},
+]);
+let _DB_PRODUCTS = _loadDB('products', [
+  {ma:'ST25-50',ten:'Gạo ST25',mo_ta:'Gạo ST25 thơm ngon từ Sóc Trăng',spec:'Túi 50kg',icon:'🌾',category:'gao',don_vi:'túi',don_gia:700000,gia_goc:750000,nha_cung_cap:'Vua Gạo',is_hot:true,rating:4.8,review_count:124,active:true},
+  {ma:'JAS-50',ten:'Jasmine',mo_ta:'Gạo Jasmine thơm nhẹ',spec:'Túi 50kg',icon:'🌾',category:'gao',don_vi:'túi',don_gia:650000,gia_goc:680000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.6,review_count:89,active:true},
+  {ma:'LUT-25',ten:'Lứt đen',mo_ta:'Gạo lứt đen giàu dinh dưỡng',spec:'Túi 25kg',icon:'🌱',category:'gao',don_vi:'túi',don_gia:400000,gia_goc:420000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.7,review_count:45,active:true},
+  {ma:'HUU-25',ten:'Hữu cơ',mo_ta:'Gạo hữu cơ không thuốc trừ sâu',spec:'Túi 25kg',icon:'🌿',category:'gao',don_vi:'túi',don_gia:520000,gia_goc:560000,nha_cung_cap:'Vua Gạo',is_hot:true,rating:4.9,review_count:67,active:true},
+  {ma:'NM-500',ten:'Nước mắm Phú Quốc',mo_ta:'Nước mắm truyền thống 40N',spec:'Chai 500ml',icon:'🍶',category:'nuoc_cham',don_vi:'chai',don_gia:45000,gia_goc:52000,nha_cung_cap:'Phú Quốc',is_hot:true,rating:4.7,review_count:203,active:true},
+  {ma:'DAN-1L',ten:'Dầu ăn Neptune',mo_ta:'Dầu ăn tinh luyện',spec:'Chai 1L',icon:'🫙',category:'dau_an',don_vi:'chai',don_gia:68000,gia_goc:75000,nha_cung_cap:'Neptune',is_hot:false,rating:4.5,review_count:156,active:true},
+  {ma:'MI-30',ten:'Mì Hảo Hảo',mo_ta:'Mì ăn liền vị tôm chua cay',spec:'Thùng 30 gói',icon:'🍜',category:'mi_pho',don_vi:'thùng',don_gia:115000,gia_goc:125000,nha_cung_cap:'Acecook',is_hot:true,rating:4.4,review_count:312,active:true},
+  {ma:'DK-25',ten:'VIP Đặc khu',mo_ta:'Gạo đặc khu cao cấp',spec:'Túi 25kg',icon:'⭐',category:'gao',don_vi:'túi',don_gia:480000,gia_goc:500000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.8,review_count:34,active:true},
+]);
+let _DB_COUPONS = [
+  {code:'TAPHOASM10',mo_ta:'Giảm 10% toàn đơn',loai:'pct',gia_tri:10,don_toi_thieu:1000000,han_su_dung:'2026-12-31',active:true},
+  {code:'MUACANG5',mo_ta:'Giảm 5% đơn hàng',loai:'pct',gia_tri:5,don_toi_thieu:500000,han_su_dung:'2026-06-30',active:true},
+  {code:'FREESHIP',mo_ta:'Miễn phí vận chuyển',loai:'ship',gia_tri:20000,don_toi_thieu:300000,han_su_dung:'2026-06-30',active:true},
+];
+let _DB_ZONES = [
+  {id:'z1',ten:'Khu A',mo_ta:'Phú Bài — Hương Thủy',tinh_thanh:'Thừa Thiên Huế',ghi_chu:'Zone lớn nhất'},
+  {id:'z2',ten:'Khu B',mo_ta:'Vinh Thanh — Phú Vang',tinh_thanh:'Thừa Thiên Huế',ghi_chu:''},
+  {id:'z3',ten:'Khu C',mo_ta:'Thuận An — Phú Hải',tinh_thanh:'Thừa Thiên Huế',ghi_chu:'Zone mới'},
+];
+let _DB_SALES = Object.values(DEMO_USERS).filter(u=>u.role==='sale').map(u=>({...u.profile,don_thang:12,dt_thang:8400000,ten_zone:u.profile.zones?.ten}));
+let _DB_NOTIFS = [
+  {id:'n1',to_user_id:'ku1',tieu_de:'Khuyến mãi hôm nay!',noi_dung:'Gạo ST25 giảm 10% từ 14h–16h. Đặt ngay!',loai:'promo',da_doc:false,created_at:new Date(Date.now()-1800000).toISOString()},
+  {id:'n2',to_user_id:'ku1',tieu_de:'Đơn hàng đang giao',noi_dung:'Xe đã xuất phát, dự kiến đến trước 15h hôm nay.',loai:'order',da_doc:false,created_at:new Date(Date.now()-3600000).toISOString()},
+  {id:'n3',to_user_id:'ku1',tieu_de:'Cộng 150 điểm thưởng',noi_dung:'Cảm ơn đã đặt hàng! Tổng điểm: 750 điểm.',loai:'points',da_doc:true,created_at:new Date(Date.now()-3*86400000).toISOString()},
+];
+// Sample orders với ngày thực tế
+const _now = new Date();
+const _d = (off) => { const d=new Date(_now); d.setDate(d.getDate()+off); return d.toISOString(); };
+if(_DB_ORDERS.length===0){
+  _DB_ORDERS = [
+    {id:'O-K001',tap_hoa_id:'st1',kiosk_user_id:'ku1',sale_id:'sa1',nguon:'kiosk',chi_tiet_sp:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:2,don_gia:700000},{ma:'NM-500',ten:'Nước mắm',icon:'🍶',sl:3,don_gia:45000}],tong_tien:1535000,tien_giam:0,coupon_code:null,trang_thai:'da_giao',ngay_giao_du_kien:_d(-2).split('T')[0],da_thanh_toan:true,ngay_dat:_d(-3),updated_at:_d(-2),ten_tap_hoa:'Tạp hóa Lan',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+    {id:'O-K002',tap_hoa_id:'st2',kiosk_user_id:'ku2',sale_id:'sa1',nguon:'kiosk',chi_tiet_sp:[{ma:'JAS-50',ten:'Jasmine',icon:'🌾',sl:1,don_gia:650000}],tong_tien:650000,tien_giam:65000,coupon_code:'TAPHOASM10',trang_thai:'da_giao',ngay_giao_du_kien:_d(-5).split('T')[0],da_thanh_toan:true,ngay_dat:_d(-7),updated_at:_d(-5),ten_tap_hoa:'Tạp hóa Minh Quang',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+    {id:'O-003',tap_hoa_id:'st5',kiosk_user_id:null,sale_id:'sa2',nguon:'sale',chi_tiet_sp:[{ma:'HUU-25',ten:'Hữu cơ',icon:'🌿',sl:4,don_gia:520000}],tong_tien:2080000,tien_giam:0,coupon_code:null,trang_thai:'cho_giao',ngay_giao_du_kien:_d(1).split('T')[0],da_thanh_toan:true,ngay_dat:_d(0),updated_at:_d(0),ten_tap_hoa:'SM Mini Hà',ten_sale:'Trần Hoa',ten_zone:'Khu B'},
+    {id:'O-004',tap_hoa_id:'st1',kiosk_user_id:null,sale_id:'sa1',nguon:'sale',chi_tiet_sp:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:1,don_gia:700000}],tong_tien:700000,tien_giam:0,coupon_code:null,trang_thai:'cho_xac_nhan',ngay_giao_du_kien:_d(1).split('T')[0],da_thanh_toan:false,ngay_dat:_d(0),updated_at:_d(0),ten_tap_hoa:'Tạp hóa Lan',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+  ];
+  _saveDB('orders', _DB_ORDERS);
+}
+
+// ── REALTIME STUBS (polling-based for demo) ────────────────────
+const _subs = [];
+function _notifySubscribers(table, payload){
+  _subs.filter(s=>s.table===table).forEach(s=>{ try{s.cb(payload);}catch{} });
+}
+setInterval(()=>{
+  const fresh = _loadDB('orders', _DB_ORDERS);
+  if(JSON.stringify(fresh)!==JSON.stringify(_DB_ORDERS)){
+    _DB_ORDERS = fresh;
+    _notifySubscribers('orders',{new:fresh[0]});
+  }
+}, 3000);
+
+// ── WINDOW.DB API (mirrors real smone-db.js) ──────────────────
+window.DB = {
+  _sb: {},
+  AUTH: {
+    async loginPhone(phone, password){
+      const u = DEMO_USERS[phone];
+      if(!u) throw new Error('Số điện thoại không tồn tại trong hệ thống');
+      if(u.pass !== password) throw new Error('Mật khẩu không đúng');
+      _authUser = {id: u.profile.auth_id, phone};
+      _authRole = u.role;
+      return {user: _authUser};
+    },
+    async registerKiosk({ten_cua_hang,ho_ten,so_dien_thoai,dia_chi,password}){
+      const newId = 'ku'+Date.now();
+      const profile = {id:newId,auth_id:newId,tap_hoa_id:null,ten_cua_hang,ho_ten,so_dien_thoai,dia_chi,diem_tich_luy:0,tier:'Đồng',tap_hoa:null};
+      _authUser = {id:newId};
+      _authRole = 'kiosk';
+      DEMO_USERS[so_dien_thoai] = {pass:password, role:'kiosk', profile};
+      return {auth:{user:_authUser}, profile};
+    },
+    async logout(){ _authUser=null; _authRole=null; },
+    async getSession(){ return _authUser ? {user:_authUser} : null; },
+    async getUser(){ return {user:_authUser}; },
+  },
+  PRODUCTS: {
+    async getAll(){ return [..._DB_PRODUCTS]; },
+    async getByCategory(cat){ return cat&&cat!=='all'?_DB_PRODUCTS.filter(p=>p.category===cat):[..._DB_PRODUCTS]; },
+    async upsert(p){
+      const idx=_DB_PRODUCTS.findIndex(x=>x.ma===p.ma);
+      if(idx>=0) _DB_PRODUCTS[idx]={..._DB_PRODUCTS[idx],...p};
+      else _DB_PRODUCTS.push({...p,created_at:new Date().toISOString()});
+      _saveDB('products',_DB_PRODUCTS);
+      return p;
+    },
+    async toggleActive(ma,active){ const p=_DB_PRODUCTS.find(x=>x.ma===ma); if(p)p.active=active; _saveDB('products',_DB_PRODUCTS); },
+  },
+  COUPONS: {
+    async getActive(){ return _DB_COUPONS.filter(c=>c.active); },
+    async validate(code, tong){ const c=_DB_COUPONS.find(x=>x.code===code.toUpperCase()&&x.active); if(!c||tong<c.don_toi_thieu) return null; return c; },
+  },
+  STORES: {
+    async getBySale(sale_id){ return _DB_STORES.filter(s=>s.sale_id===sale_id||true).map(s=>({...s,zones:_DB_ZONES.find(z=>z.id===s.zone_id)||{}})); },
+    async getAll(){ return _DB_STORES.map(s=>({...s,zones:_DB_ZONES.find(z=>z.id===s.zone_id)||{},sales_users:_DB_SALES.find(x=>x.id===s.sale_id)||{}})); },
+    async upsert(s){
+      if(s.id){ const idx=_DB_STORES.findIndex(x=>x.id===s.id); if(idx>=0){_DB_STORES[idx]={..._DB_STORES[idx],...s};} }
+      else { s.id='st'+Date.now(); _DB_STORES.push(s); }
+      _saveDB('stores',_DB_STORES);
+      return s;
+    },
+    async updateStatus(id,ts){ const s=_DB_STORES.find(x=>x.id===id); if(s){s.trang_thai=ts;s.lan_vieng_cuoi=ts!=='moi'?new Date().toISOString():s.lan_vieng_cuoi;} _saveDB('stores',_DB_STORES); },
+    async delete(id){ const s=_DB_STORES.find(x=>x.id===id); if(s)s.active=false; _saveDB('stores',_DB_STORES); },
+  },
+  ORDERS: {
+    async create(data){
+      const id='O-'+Date.now().toString().slice(-6);
+      const order={
+        id, ...data,
+        trang_thai:'cho_xac_nhan', ngay_dat:new Date().toISOString(), updated_at:new Date().toISOString(), da_thanh_toan:false,
+        ten_tap_hoa: _DB_STORES.find(s=>s.id===data.tap_hoa_id)?.ten || data.ten_cua_hang || '',
+        ten_sale: _DB_SALES.find(s=>s.id===data.sale_id)?.ho_ten || 'Kiosk',
+      };
+      _DB_ORDERS.unshift(order);
+      _saveDB('orders',_DB_ORDERS);
+      _notifySubscribers('orders',{new:order, eventType:'INSERT'});
+      return order;
+    },
+    async getByKiosk(kid){ return _DB_ORDERS.filter(o=>o.kiosk_user_id===kid); },
+    async getBySale(sid){ return _DB_ORDERS.filter(o=>o.sale_id===sid); },
+    async getAll({status,nguon,limit=200}={}){
+      let r=[..._DB_ORDERS];
+      if(status)r=r.filter(o=>o.trang_thai===status);
+      if(nguon)r=r.filter(o=>o.nguon===nguon);
+      return r.slice(0,limit);
+    },
+    async updateStatus(id, ts, ma_giao_dich){
+      const o=_DB_ORDERS.find(x=>x.id===id);
+      if(o){ o.trang_thai=ts; o.updated_at=new Date().toISOString(); if(ts==='da_giao'){o.da_thanh_toan=true;o.ngay_giao=new Date().toISOString();} if(ts==='cho_giao')o.da_thanh_toan=true; if(ma_giao_dich)o.ma_giao_dich=ma_giao_dich; }
+      _saveDB('orders',_DB_ORDERS);
+      _notifySubscribers('orders',{new:o, eventType:'UPDATE'});
+      return o;
+    },
+    subscribeNew(cb){ _subs.push({table:'orders',cb}); return {unsubscribe:()=>{}}; },
+  },
+  KIOSK: {
+    async getProfile(auth_id){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.auth_id===auth_id&&x.role==='kiosk');
+      return u?.profile||null;
+    },
+    async getLoyaltyHistory(kid){ return []; },
+    async redeemPoints(kid,pts,mo_ta){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.id===kid);
+      if(u&&u.profile.diem_tich_luy>=pts) u.profile.diem_tich_luy-=pts;
+    },
+  },
+  SALE: {
+    async getProfile(auth_id){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.auth_id===auth_id&&x.role==='sale');
+      return u?.profile||null;
+    },
+    async getCommission(sale_id){ return []; },
+  },
+  CHECKINS: {
+    async create(data){ await DB.STORES.updateStatus(data.tap_hoa_id,'can_vieng'); return {id:'ci'+Date.now(),...data}; },
+    async getBySale(){ return []; },
+  },
+  NOTIF: {
+    async getForUser(uid){ return _DB_NOTIFS.filter(n=>n.to_user_id===uid||!n.to_user_id); },
+    async markAllRead(uid){ _DB_NOTIFS.filter(n=>n.to_user_id===uid).forEach(n=>n.da_doc=true); },
+    async send(data){ _DB_NOTIFS.unshift({id:'n'+Date.now(),...data,da_doc:false,created_at:new Date().toISOString()}); },
+    subscribe(uid,cb){ _subs.push({table:'notifications',cb}); return {unsubscribe:()=>{}}; },
+  },
+  CHAT: {
+    async getMessages(tid){ return [
+      {id:'m1',from_role:'sale',noi_dung:'Chào chị! Em Sale Nam phụ trách khu vực. Cần gì cứ nhắn em 🙏',created_at:new Date(Date.now()-86400000).toISOString()},
+      {id:'m2',from_role:'sale',noi_dung:'Tuần này gạo ST25 mua 5 tặng 1 Jasmine chị ơi!',created_at:new Date(Date.now()-3600000).toISOString()},
+    ];},
+    async send(data){ return {id:'m'+Date.now(),...data,created_at:new Date().toISOString()}; },
+    subscribe(tid,cb){ _subs.push({table:'chat',cb}); return {unsubscribe:()=>{}}; },
+  },
+  ADMIN: {
+    async getSales(){ return _DB_SALES; },
+    async getZones(){ return _DB_ZONES; },
+    async upsertSale(s){ const idx=_DB_SALES.findIndex(x=>x.id===s.id); if(idx>=0)_DB_SALES[idx]={..._DB_SALES[idx],...s}; else _DB_SALES.push({id:'sa'+Date.now(),...s}); return s; },
+    async upsertZone(z){ if(z.id){const idx=_DB_ZONES.findIndex(x=>x.id===z.id);if(idx>=0)_DB_ZONES[idx]={..._DB_ZONES[idx],...z};}else _DB_ZONES.push({id:'z'+Date.now(),...z}); return z; },
+    async deleteZone(id){ const idx=_DB_ZONES.findIndex(x=>x.id===id);if(idx>=0)_DB_ZONES.splice(idx,1); },
+    async getDashboardStats(){ return {orders:_DB_ORDERS,stores:_DB_STORES,sales:_DB_SALES}; },
+  },
+  STORAGE: {
+    async uploadCheckinPhoto(file){ return URL.createObjectURL(file); },
+  },
+};
+
+console.log('✅ SM ONE Demo Mode — Dữ liệu mẫu đã sẵn sàng');
+console.log('📱 Tài khoản test:', JSON.stringify(Object.fromEntries(Object.entries(DEMO_USERS).map(([k,v])=>[k,{pass:v.pass,role:v.role}]))));
+</script>
+<style>
+:root{
+  --G:#1D9E75;--Gl:#E1F5EE;--Gd:#0F6E56;
+  --A:#BA7517;--Al:#FAEEDA;
+  --R:#E24B4A;--Rl:#FCEBEB;
+  --B:#185FA5;--Bl:#E6F1FB;
+  --P:#534AB7;--Pl:#EEEDFE;
+  --bg:#F4F4F1;--white:#FFF;
+  --bdr:rgba(0,0,0,.09);--bdr2:rgba(0,0,0,.15);
+  --txt:#1A1A18;--muted:#6B6A65;--hint:#A8A7A1;
+  --r:12px;--rs:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+
+/* ── SCREENS ──────────────────────────────── */
+.scr{display:none;flex-direction:column;height:100%;overflow:hidden}
+.scr.on{display:flex}
+
+/* ── LOGIN ────────────────────────────────── */
+#s-login{background:linear-gradient(160deg,#0B3D22,#1FAB73);justify-content:center;align-items:center;padding:28px}
+.login-box{background:#fff;border-radius:20px;padding:26px;width:100%;max-width:340px}
+.brand{text-align:center;margin-bottom:22px}
+.brand-logo{font-size:36px;font-weight:900;color:var(--G);letter-spacing:-1.5px}
+.brand-tag{font-size:11px;color:var(--muted);margin-top:3px}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.fi{width:100%;padding:12px 14px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:15px;outline:none;transition:border .15s}
+.fi:focus{border-color:var(--G)}
+.fg{margin-bottom:13px}
+.btn-login{width:100%;padding:14px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;margin-top:2px}
+.btn-login:active{opacity:.85}
+.lerr{color:var(--R);font-size:12px;text-align:center;margin-top:8px;min-height:16px}
+
+/* ── TOPBAR ───────────────────────────────── */
+.topbar{background:var(--G);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;z-index:20}
+.tb-search{display:flex;align-items:center;background:rgba(255,255,255,.18);border-radius:22px;padding:7px 13px;flex:1;gap:7px;margin:0 10px;cursor:pointer}
+.tb-search-text{font-size:13px;color:rgba(255,255,255,.75)}
+.tb-icon{font-size:20px;color:#fff;cursor:pointer;position:relative}
+.cart-badge{position:absolute;top:-5px;right:-6px;background:#FFD600;color:#1A1A18;font-size:9px;font-weight:900;border-radius:10px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+.tb-logo{font-size:18px;font-weight:900;color:#fff;letter-spacing:-0.5px}
+
+/* ── BOTTOM NAV ───────────────────────────── */
+.bnav{background:#fff;border-top:1px solid var(--bdr);display:flex;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.bi{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;cursor:pointer;gap:2px}
+.bi-icon{font-size:21px;color:var(--hint)}
+.bi-label{font-size:9px;color:var(--hint);font-weight:600}
+.bi.on .bi-icon,.bi.on .bi-label{color:var(--G)}
+
+/* ── PAGE SCROLL ──────────────────────────── */
+.pg{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── CATEGORY PILLS ───────────────────────── */
+.cat-row{display:flex;gap:8px;padding:10px 14px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--bdr);-ms-overflow-style:none;scrollbar-width:none;flex-shrink:0}
+.cat-row::-webkit-scrollbar{display:none}
+.cat-pill{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;cursor:pointer}
+.cat-icon-wrap{width:52px;height:52px;border-radius:14px;background:var(--Gl);display:flex;align-items:center;justify-content:center;font-size:24px;border:2px solid transparent;transition:border-color .15s}
+.cat-pill.active .cat-icon-wrap{border-color:var(--G);background:var(--Gl)}
+.cat-label{font-size:10px;color:var(--muted);font-weight:600;text-align:center;max-width:52px}
+
+/* ── SECTION HEADER ───────────────────────── */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 8px}
+.sec-title{font-size:14px;font-weight:800;color:var(--txt)}
+.sec-link{font-size:12px;color:var(--G);font-weight:700;cursor:pointer}
+
+/* ── PRODUCT CARDS (horizontal scroll) ───── */
+.hscroll{display:flex;gap:10px;padding:0 14px 14px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.pcard{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);width:150px;flex-shrink:0;overflow:hidden;cursor:pointer}
+.pcard:active{opacity:.9}
+.pcard-img{width:100%;height:100px;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:40px}
+.pcard-body{padding:8px 10px 10px}
+.pcard-code{font-size:9px;font-family:monospace;background:#F1EFE8;color:var(--muted);padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:4px}
+.pcard-name{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:2px}
+.pcard-spec{font-size:11px;color:var(--muted);margin-bottom:6px}
+.pcard-price{font-size:15px;font-weight:800;color:var(--txt)}
+.pcard-mrp{font-size:11px;color:var(--hint);text-decoration:line-through;margin-left:4px}
+.pcard-discount{font-size:10px;font-weight:700;color:var(--G);background:var(--Gl);padding:1px 5px;border-radius:3px;margin-left:4px}
+.pcard-add{width:100%;padding:7px;background:var(--G);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-top:6px}
+.pcard-qty-ctrl{display:flex;align-items:center;justify-content:space-between;margin-top:6px;background:var(--Gl);border-radius:6px;overflow:hidden}
+.pqb{flex:1;padding:7px 0;background:transparent;border:none;font-size:18px;font-weight:700;color:var(--Gd);cursor:pointer;text-align:center}
+.pqn{font-size:13px;font-weight:800;color:var(--Gd);min-width:28px;text-align:center}
+
+/* ── BUY AGAIN ROW ────────────────────────── */
+.buy-again-row{display:flex;gap:8px;padding:0 14px 14px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.buy-again-row::-webkit-scrollbar{display:none}
+.ba-card{background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:10px;width:130px;flex-shrink:0;cursor:pointer;position:relative}
+.ba-badge{position:absolute;top:6px;right:6px;background:#FFD600;color:#1A1A18;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px}
+.ba-img{width:100%;height:64px;object-fit:cover;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:6px}
+.ba-name{font-size:12px;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ba-detail{font-size:10px;color:var(--muted)}
+.ba-btn{width:100%;padding:6px;background:var(--Gl);color:var(--Gd);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;margin-top:6px}
+
+/* ── STORE LIST ───────────────────────────── */
+.store-list{padding:0 14px 14px}
+.scard{background:#fff;border:1px solid var(--bdr);border-radius:var(--r);padding:13px;margin-bottom:10px}
+.scard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.scard-name{font-size:14px;font-weight:800}
+.scard-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.scard-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.scard-actions{display:flex;gap:6px;margin-top:10px}
+.sact{flex:1;padding:9px;border-radius:var(--rs);font-size:12px;font-weight:700;cursor:pointer;border:none;text-align:center}
+.sact:active{opacity:.85}
+.sact-g{background:var(--G);color:#fff}
+.sact-o{background:transparent;color:var(--txt);border:1px solid var(--bdr2)}
+.sact-icon{flex:0 0 38px;display:flex;align-items:center;justify-content:center;font-size:17px}
+
+/* ── BADGE STYLES ─────────────────────────── */
+.badge{display:inline-flex;align-items:center;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;gap:2px}
+.bg{background:var(--Gl);color:var(--Gd)}
+.ba{background:var(--Al);color:var(--A)}
+.br{background:var(--Rl);color:var(--R)}
+.bb{background:var(--Bl);color:var(--B)}
+.bgy{background:#F1EFE8;color:#444}
+.by{background:#FFF9C4;color:#7A6000}
+
+/* ── FLOATING CART ────────────────────────── */
+.fcart{position:fixed;bottom:68px;left:14px;right:14px;background:var(--Gd);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:50;cursor:pointer;box-shadow:0 4px 20px rgba(15,110,86,.35)}
+.fcart:active{opacity:.9}
+.fc-left{display:flex;align-items:center;gap:10px}
+.fc-count{background:#FFD600;color:#1A1A18;font-size:11px;font-weight:900;border-radius:6px;padding:3px 8px;min-width:24px;text-align:center}
+.fc-label{font-size:13px;color:#fff;font-weight:700}
+.fc-total{font-size:16px;font-weight:900;color:#FFD600}
+.fc-arrow{font-size:20px;color:rgba(255,255,255,.7)}
+
+/* ── CART PAGE ────────────────────────────── */
+.cart-store-hdr{background:#fff;padding:12px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cart-store-name{font-size:14px;font-weight:800}
+.cart-store-meta{font-size:11px;color:var(--muted)}
+.cart-item{background:#fff;margin:0 14px 8px;border-radius:var(--r);padding:12px;display:flex;gap:10px;border:1px solid var(--bdr)}
+.ci-img{width:60px;height:60px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;object-fit:cover}
+.ci-body{flex:1;min-width:0}
+.ci-code{font-size:9px;font-family:monospace;background:#F1EFE8;color:var(--muted);padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:3px}
+.ci-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.ci-spec{font-size:11px;color:var(--muted)}
+.ci-price{font-size:14px;font-weight:800;margin-top:4px}
+.ci-subtotal{font-size:11px;color:var(--muted)}
+.ci-qctrl{display:flex;align-items:center;gap:8px;margin-top:6px}
+.cqb{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--bdr2);background:#fff;font-size:17px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cqb:active{background:var(--bg)}
+.cqn{font-size:14px;font-weight:800;min-width:20px;text-align:center}
+.ci-del{font-size:18px;color:var(--hint);cursor:pointer;padding:4px;margin-left:auto}
+
+/* ── COUPON SECTION ───────────────────────── */
+.coupon-wrap{margin:0 14px 10px}
+.coupon-btn{background:#fff;border:1.5px dashed var(--G);border-radius:var(--rs);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;width:100%}
+.coupon-label{font-size:13px;font-weight:700;color:var(--G)}
+.coupon-applied{background:var(--Gl);border:1.5px solid var(--G);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;justify-content:space-between}
+.coupon-applied-text{font-size:13px;font-weight:700;color:var(--Gd)}
+.coupon-applied-save{font-size:11px;color:var(--G);margin-top:2px}
+.coupon-remove{font-size:12px;color:var(--R);cursor:pointer;font-weight:700}
+
+/* ── DELIVERY SLOT ────────────────────────── */
+.delivery-wrap{margin:0 14px 10px;background:#fff;border-radius:var(--r);padding:13px;border:1px solid var(--bdr)}
+.delivery-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.slot-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.slot{padding:8px 6px;border-radius:var(--rs);border:1.5px solid var(--bdr);text-align:center;cursor:pointer;background:#fff;transition:all .15s}
+.slot.on{border-color:var(--G);background:var(--Gl)}
+.slot-day{font-size:12px;font-weight:700;color:var(--txt)}
+.slot-date{font-size:10px;color:var(--muted)}
+.slot-avail{font-size:10px;color:var(--G);font-weight:600;margin-top:2px}
+
+/* ── PRICE SUMMARY ────────────────────────── */
+.price-summary{margin:0 14px 100px;background:#fff;border-radius:var(--r);padding:14px;border:1px solid var(--bdr)}
+.ps-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.ps-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0}
+.ps-label{font-size:13px;color:var(--muted)}
+.ps-val{font-size:13px;font-weight:600}
+.ps-divider{height:1px;background:var(--bdr);margin:8px 0}
+.ps-total-label{font-size:14px;font-weight:800}
+.ps-total-val{font-size:17px;font-weight:900;color:var(--G)}
+.ps-save{font-size:12px;color:var(--G);font-weight:700;text-align:center;margin-top:6px;background:var(--Gl);border-radius:6px;padding:6px}
+
+/* ── PLACE ORDER BTN ─────────────────────── */
+.place-order-wrap{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bdr);padding:12px 14px calc(12px + env(safe-area-inset-bottom));z-index:30}
+.place-order-btn{width:100%;padding:14px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:16px;font-weight:800;cursor:pointer}
+.place-order-btn:active{opacity:.85}
+
+/* ── COUPON SHEET ─────────────────────────── */
+.sheet-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:flex-end;justify-content:center}
+.sheet-ov.on{display:flex}
+.sheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 14px calc(20px + env(safe-area-inset-bottom));width:100%;max-height:80vh;overflow-y:auto}
+.sh-handle{width:36px;height:4px;background:var(--bdr2);border-radius:2px;margin:0 auto 14px}
+.sh-title{font-size:17px;font-weight:800;margin-bottom:14px}
+.coupon-card{background:#fff;border:1.5px solid var(--G);border-radius:var(--r);padding:13px;margin-bottom:10px;position:relative;overflow:hidden}
+.coupon-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--G)}
+.ck-code{font-size:16px;font-weight:900;color:var(--G);margin-bottom:3px;letter-spacing:1px}
+.ck-desc{font-size:13px;color:var(--txt);margin-bottom:4px}
+.ck-min{font-size:11px;color:var(--muted)}
+.ck-apply{position:absolute;right:13px;top:50%;transform:translateY(-50%);padding:7px 14px;background:var(--G);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── ORDER SUCCESS ────────────────────────── */
+.success-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 24px;text-align:center}
+.success-icon{width:72px;height:72px;background:var(--Gl);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:16px}
+.success-title{font-size:22px;font-weight:900;margin-bottom:6px}
+.success-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.success-btn{padding:13px 32px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:700;cursor:pointer}
+
+/* ── ORDER HISTORY ────────────────────────── */
+.oh-card{background:#fff;margin:0 14px 10px;border-radius:var(--r);border:1px solid var(--bdr);overflow:hidden;cursor:pointer}
+.oh-card:active{opacity:.9}
+.oh-hdr{padding:12px 13px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center}
+.oh-store{font-size:13px;font-weight:800}
+.oh-date{font-size:11px;color:var(--muted);margin-top:2px}
+.oh-items{padding:10px 13px;border-bottom:1px solid var(--bdr)}
+.oh-item-row{display:flex;align-items:center;gap:8px;padding:4px 0}
+.oh-item-img{width:32px;height:32px;border-radius:5px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.oh-item-name{font-size:12px;flex:1}
+.oh-item-price{font-size:12px;font-weight:700}
+.oh-footer{padding:10px 13px;display:flex;justify-content:space-between;align-items:center;background:#FAFAF8}
+.oh-total{font-size:14px;font-weight:800;color:var(--G)}
+.oh-reorder{padding:7px 14px;background:var(--Gl);color:var(--Gd);border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── TOAST ────────────────────────────────── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1A1A18;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.on{opacity:1}
+
+/* ── EMPTY STATE ──────────────────────────── */
+.empty{text-align:center;padding:60px 24px;color:var(--hint)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{font-size:14px;line-height:1.7}
+
+/* ── REPORT ───────────────────────────────── */
+.kpi4{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:14px;margin-bottom:0}
+.kbox{background:#fff;border-radius:var(--r);padding:13px;border:1px solid var(--bdr)}
+.knum{font-size:22px;font-weight:900}
+.klbl{font-size:10px;color:var(--muted);margin-top:3px;line-height:1.3}
+.kg{color:var(--G)}.ka{color:var(--A)}.kp{color:var(--P)}
+.bar-wrap{display:flex;align-items:flex-end;gap:4px;height:80px;margin:10px 0 4px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bf{width:100%;border-radius:4px 4px 0 0;min-height:3px}
+.bf-g{background:var(--G)}.bf-l{background:var(--Gl)}
+.bl{font-size:9px;color:var(--muted);text-align:center}
+.bv{font-size:8px;font-weight:700;color:var(--G);min-height:11px;text-align:center}
+
+/* ── SETTINGS ─────────────────────────────── */
+.setting-section{background:#fff;margin:10px 14px;border-radius:var(--r);border:1px solid var(--bdr);overflow:hidden}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid var(--bdr);cursor:pointer}
+.setting-row:last-child{border-bottom:none}
+.setting-row:active{background:var(--bg)}
+.sr-left{display:flex;align-items:center;gap:10px}
+.sr-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sr-label{font-size:14px;font-weight:500}
+.sr-val{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:3px}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ════════════════════════════════ -->
+<div class="scr on" id="s-login">
+  <div class="login-box">
+    <div style="background:#E1F5EE;padding:10px 14px;text-align:center;font-size:12px;color:#0F6E56;font-weight:600">Demo Sale: SĐT <b>0901234567</b> · Mật khẩu <b>Sale@SM1</b></div>
+<div class="brand">
+      <div class="brand-logo">SM ONE</div>
+      <div class="brand-tag">Hệ thống phân phối FMCG Toàn Quốc</div>
+    </div>
+    <div class="fg"><label class="fl">Số điện thoại</label><input class="fi" type="tel" id="lp" placeholder="0901234567" inputmode="numeric"></div>
+    <div class="fg"><label class="fl">Mật khẩu</label><input class="fi" type="password" id="lw" placeholder="••••••"></div>
+    <button class="btn-login" onclick="doLogin()">Đăng nhập</button>
+    <div class="lerr" id="lerr"></div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ══════════════════════════════ -->
+<div class="scr" id="s-app">
+  <!-- TOPBAR -->
+  <div class="topbar" id="topbar">
+    <div class="tb-logo">SM ONE</div>
+    <div class="tb-search" onclick="goTab('catalog')">
+      <span style="font-size:16px">🔍</span>
+      <span class="tb-search-text">Tìm sản phẩm, cửa hàng...</span>
+    </div>
+    <div class="tb-icon" onclick="openCart()" id="cart-icon">
+      🛒
+      <div class="cart-badge" id="cart-badge" style="display:none">0</div>
+    </div>
+  </div>
+
+  <!-- PAGE AREAS -->
+  <div class="pg" id="pg-home" style="display:none"></div>
+  <div class="pg" id="pg-stores" style="display:none"></div>
+  <div class="pg" id="pg-orders" style="display:none"></div>
+  <div class="pg" id="pg-report" style="display:none"></div>
+  <div class="pg" id="pg-settings" style="display:none"></div>
+  <div class="pg" id="pg-catalog" style="display:none"></div>
+  <div class="pg" id="pg-cart" style="display:none"></div>
+  <div class="pg" id="pg-success" style="display:none">
+    <div class="success-wrap">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Đặt hàng thành công!</div>
+      <div class="success-sub" id="success-sub">Đơn hàng đang chờ xác nhận thanh toán. Vui lòng chuyển khoản về TK SM ONE.</div>
+      <button class="success-btn" onclick="goTab('home')">Về trang chính</button>
+    </div>
+  </div>
+
+  <!-- FLOATING CART -->
+  <div class="fcart" id="fcart" style="display:none" onclick="openCart()">
+    <div class="fc-left">
+      <div class="fc-count" id="fc-count">0</div>
+      <div class="fc-label" id="fc-label">Xem giỏ hàng</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="fc-total" id="fc-total">0đ</div>
+      <div class="fc-arrow">›</div>
+    </div>
+  </div>
+
+  <!-- PLACE ORDER (cart page only) -->
+  <div class="place-order-wrap" id="place-order-wrap" style="display:none">
+    <button class="place-order-btn" onclick="placeOrder()">Đặt hàng ngay — <span id="po-total">0đ</span></button>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav" id="bnav">
+    <div class="bi on" id="bi-home" onclick="goTab('home')"><div class="bi-icon">⌂</div><div class="bi-label">Trang chủ</div></div>
+    <div class="bi" id="bi-catalog" onclick="goTab('catalog')"><div class="bi-icon">◧</div><div class="bi-label">Danh mục</div></div>
+    <div class="bi" id="bi-stores" onclick="goTab('stores')"><div class="bi-icon">◈</div><div class="bi-label">Cửa hàng</div></div>
+    <div class="bi" id="bi-orders" onclick="goTab('orders')"><div class="bi-icon">◎</div><div class="bi-label">Đơn hàng</div></div>
+    <div class="bi" id="bi-settings" onclick="goTab('settings')"><div class="bi-icon">⚙</div><div class="bi-label">Tôi</div></div>
+  </nav>
+</div>
+
+<!-- ═══ SHEETS ════════════════════════════════ -->
+<div class="sheet-ov" id="sh-coupon">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Chọn mã khuyến mãi</div>
+    <div id="coupon-list"></div>
+    <button style="width:100%;padding:12px;background:transparent;color:var(--muted);border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px" onclick="closeSheet('sh-coupon')">Đóng</button>
+  </div>
+</div>
+<div class="sheet-ov" id="sh-checkin">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="ci-title">Check-in viếng thăm</div>
+    <div id="ci-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const SALE = {id:'s1',ten:'Nguyễn Nam',zone:'Khu A — Phú Bài',bac:'Vàng',phone:'0901234567',stk:'1234567890',bank:'Vietcombank'};
+const CFG = {comm:4,xang:400000,tk:'9876543210',bank:'Techcombank',kpi:35};
+
+const PRODUCTS = [
+  {ma:'ST25-50',ten:'Gạo ST25',spec:'Túi 50kg',gia:700000,mrp:750000,icon:'🌾',cat:'gao',hot:true},
+  {ma:'JAS-50', ten:'Jasmine', spec:'Túi 50kg',gia:650000,mrp:680000,icon:'🌾',cat:'gao',hot:false},
+  {ma:'LUT-25', ten:'Lứt đen', spec:'Túi 25kg',gia:400000,mrp:420000,icon:'🌱',cat:'gao',hot:false},
+  {ma:'HUU-25', ten:'Hữu cơ',  spec:'Túi 25kg',gia:520000,mrp:560000,icon:'🌿',cat:'gao',hot:true},
+  {ma:'DK-25',  ten:'VIP Đặc khu',spec:'Túi 25kg',gia:480000,mrp:500000,icon:'⭐',cat:'gao',hot:false},
+  {ma:'NM-500', ten:'Nước mắm Phú Quốc',spec:'Chai 500ml',gia:45000,mrp:52000,icon:'🍶',cat:'nuoc_cham',hot:true},
+  {ma:'DAN-1L', ten:'Dầu ăn Neptune',spec:'Chai 1L',gia:68000,mrp:75000,icon:'🫙',cat:'dau_an',hot:false},
+  {ma:'MI-30', ten:'Mì Hảo Hảo',spec:'Thùng 30 gói',gia:115000,mrp:125000,icon:'🍜',cat:'mi_pho',hot:true},
+];
+
+const CATS = [
+  {id:'all',label:'Tất cả',icon:'📦'},
+  {id:'gao',label:'Gạo',icon:'🌾'},
+  {id:'nuoc_cham',label:'Nước chấm',icon:'🍶'},
+  {id:'dau_an',label:'Dầu ăn',icon:'🫙'},
+  {id:'mi_pho',label:'Mì - Phở',icon:'🍜'},
+];
+
+const COUPONS = [
+  {code:'SM10',desc:'Giảm 10% toàn đơn',min:1000000,type:'pct',val:10,exp:'31/03/2026'},
+  {code:'FREESHIP',desc:'Miễn phí vận chuyển',min:500000,type:'ship',val:30000,exp:'30/04/2026'},
+  {code:'ST25X5',desc:'Mua 5 túi ST25 tặng 1 túi Jasmine',min:3500000,type:'gift',val:650000,exp:'31/03/2026'},
+];
+
+function dateStr(offset=0){const d=new Date();d.setDate(d.getDate()+offset);return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});}
+
+let STORES = [
+  {id:'st1',ten:'Tạp hóa Lan',chu:'Chị Lan',phone:'0901111111',addr:'12 Trần Phú',loai:'tap_hoa',ts:'can_vieng',ngay:12,dt:4200000,note:'Hay mua ST25'},
+  {id:'st2',ten:'Tạp hóa Minh Quang',chu:'Anh Quang',phone:'0902222222',addr:'45 Lý Thường Kiệt',loai:'tap_hoa',ts:'vua_dat',ngay:5,dt:2100000,note:''},
+  {id:'st3',ten:'CH Bà Hoa',chu:'Bà Hoa',phone:'0903333333',addr:'78 Nguyễn Huệ',loai:'tien_loi',ts:'moi',ngay:null,dt:0,note:''},
+  {id:'st4',ten:'Tạp hóa Sơn',chu:'Anh Sơn',phone:'0904444444',addr:'23 Phan Chu Trinh',loai:'tap_hoa',ts:'can_vieng',ngay:8,dt:6300000,note:'Mua chiều T6'},
+  {id:'st5',ten:'SM Mini Hà',chu:'Chị Hà',phone:'0905555555',addr:'5 Hoàng Diệu',loai:'sieu_thi',ts:'vua_dat',ngay:3,dt:3150000,note:''},
+];
+
+let ORDERS = [
+  {id:'O-001',store_id:'st4',store:'Tạp hóa Sơn',items:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:3,gia:700000},{ma:'JAS-50',ten:'Jasmine',icon:'🌾',sl:1,gia:650000}],tong:2750000,ts:'da_giao',ngay:dateStr(-1),gio:'09:30',coupon:null,slot:'Ngày mai'},
+  {id:'O-002',store_id:'st2',store:'Tạp hóa Minh Quang',items:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:2,gia:700000}],tong:1400000,ts:'da_giao',ngay:dateStr(-1),gio:'11:00',coupon:null,slot:'Ngày mai'},
+  {id:'O-003',store_id:'st5',store:'SM Mini Hà',items:[{ma:'HUU-25',ten:'Hữu cơ',icon:'🌿',sl:4,gia:520000},{ma:'MI-30',ten:'Mì Hảo Hảo',icon:'🍜',sl:2,gia:115000}],tong:2310000,ts:'cho_giao',ngay:dateStr(0),gio:'08:45',coupon:'SM10',slot:'Hôm nay'},
+  {id:'O-004',store_id:'st1',store:'Tạp hóa Lan',items:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:1,gia:700000}],tong:700000,ts:'cho_xac_nhan',ngay:dateStr(0),gio:'10:15',coupon:null,slot:'Ngày mai'},
+];
+
+// CART STATE
+let CART = {store_id:null,store_name:'',items:{},coupon:null,slot:null};
+let activeCat = 'all';
+let currentTab = 'home';
+let checkinStoreId = null;
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function fmtM(n){if(n>=1000000)return(n/1000000).toFixed(1).replace('.0','')+'tr';if(n>=1000)return Math.round(n/1000)+'k';return n+'đ';}
+function fmtFull(n){return new Intl.NumberFormat('vi-VN').format(n)+'đ';}
+function toast(msg,ms=2400){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),ms);}
+function closeSheet(id){document.getElementById(id).classList.remove('on');}
+function openSheet(id){document.getElementById(id).classList.add('on');}
+document.querySelectorAll('.sheet-ov').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+
+function pct(gia,mrp){return Math.round((1-gia/mrp)*100);}
+function cartCount(){return Object.values(CART.items).reduce((s,q)=>s+q,0);}
+function cartSubtotal(){return CART.items?Object.entries(CART.items).reduce((s,[ma,q])=>{const p=PRODUCTS.find(x=>x.ma===ma);return s+(p?p.gia*q:0);},0):0;}
+function cartDiscount(){
+  if(!CART.coupon) return 0;
+  const c=COUPONS.find(x=>x.code===CART.coupon);
+  if(!c) return 0;
+  const sub=cartSubtotal();
+  if(sub<c.min) return 0;
+  if(c.type==='pct') return Math.round(sub*c.val/100);
+  return c.val;
+}
+function cartTotal(){return Math.max(0,cartSubtotal()-cartDiscount());}
+
+function updateCartUI(){
+  const count=cartCount();
+  const total=cartTotal();
+  const badge=document.getElementById('cart-badge');
+  const fcart=document.getElementById('fcart');
+  badge.textContent=count;
+  badge.style.display=count>0?'flex':'none';
+  if(count>0&&currentTab!=='cart'){
+    fcart.style.display='flex';
+    document.getElementById('fc-count').textContent=count;
+    document.getElementById('fc-label').textContent='Xem giỏ hàng ('+CART.store_name+')';
+    document.getElementById('fc-total').textContent=fmtFull(total);
+  } else {
+    fcart.style.display='none';
+  }
+  document.getElementById('po-total').textContent=fmtFull(total);
+}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const S = {
+  page: 'home',
+  user: null,
+  saleId: null,
+  orderStoreId: null,
+  orderStoreName: '',
+  editStoreId: null,
+  checkinStoreId: null,
+  checkinDone: false,
+  orderQty: {},
+};
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+async function doLogin(){
+  const phone=document.getElementById('lp').value.trim();
+  const pass=document.getElementById('lw').value;
+  const err=document.getElementById('lerr');
+  if(!phone||!pass){err.textContent='Vui lòng nhập đầy đủ';return;}
+  err.textContent='Đang đăng nhập...';
+  try{
+    const result=await DB.AUTH.loginPhone(phone,pass);
+    const uid=result.user.id;
+    // Thử lấy profile từ Supabase thật trước
+    let profile = null;
+    if(_sbClient){
+      try{
+        const {data,error}=await _sbClient.auth.signInWithPassword({
+          email: phone.replace(/^0/,'84')+'@smone.vn', password: pass
+        });
+        if(!error && data.user){
+          const {data:sp}=await _sbClient.from('sales_users').select('*,zones(ten,mo_ta)').eq('auth_id',data.user.id).single();
+          if(sp) profile=sp;
+        }
+      }catch(se){console.warn('Supabase sale login:',se.message);}
+    }
+    // Fallback demo
+    if(!profile){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.auth_id===uid&&x.role==='sale');
+      profile=u?.profile||null;
+    }
+    if(!profile){err.textContent='Tài khoản không có quyền Sale';return;}
+    S.user=profile; S.saleId=profile.id;
+    await loadSaleData();
+    document.getElementById('s-login').classList.remove('on');
+    document.getElementById('s-app').classList.add('on');
+    const av=(profile.ho_ten||'Sale').split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase();
+    document.getElementById('top-avatar').textContent=av;
+    updateNotifBadge();
+    goTab('home');
+  }catch(e){
+    err.textContent=e.message||'Đăng nhập thất bại';
+  }
+}
+
+
+
+async function loadSaleData_real(){
+  if(!_sbClient||!S.saleId)return loadSaleData();
+  try{
+    const[storeRes,prodRes,orderRes]=await Promise.all([
+      _sbClient.from('tap_hoa').select('*,zones(ten)').eq('sale_id',S.saleId).eq('active',true),
+      _sbClient.from('products').select('*').eq('active',true),
+      _sbClient.from('orders').select('*,tap_hoa(ten)').eq('sale_id',S.saleId).order('ngay_dat',{ascending:false}).limit(50),
+    ]);
+    if(storeRes.data){STORES.length=0;storeRes.data.forEach(s=>STORES.push({id:s.id,ten:s.ten,chu:s.chu_so_huu||'',phone:s.so_dien_thoai||'',addr:s.dia_chi||'',loai:s.loai||'tap_hoa',ts:s.trang_thai,ngay:s.lan_vieng_cuoi?Math.floor((Date.now()-new Date(s.lan_vieng_cuoi))/86400000):null,dt:s.tong_doanh_thu||0,note:s.ghi_chu||''}));}
+    if(prodRes.data){SKUS.length=0;prodRes.data.forEach(p=>SKUS.push({ma:p.ma,ten:p.ten,mo_ta:p.spec||p.mo_ta,don_gia:p.don_gia,don_vi:p.don_vi,icon:p.icon||'📦',active:p.active}));}
+    if(orderRes.data){ORDERS.length=0;orderRes.data.forEach(o=>ORDERS.push({id:o.id,store_id:o.tap_hoa_id,store:o.tap_hoa?.ten||'',items:Array.isArray(o.chi_tiet_sp)?o.chi_tiet_sp:[],tong:o.tong_tien,trang_thai:o.trang_thai,ngay:new Date(o.ngay_dat).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),gio:new Date(o.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),note:o.ghi_chu||''}));}
+    // Realtime
+    _sbClient.channel('orders-sale').on('postgres_changes',{event:'*',schema:'public',table:'orders',filter:'sale_id=eq.'+S.saleId},()=>loadSaleData_real()).subscribe();
+  }catch(e){console.warn('loadSaleData_real:',e);loadSaleData();}
+}
+async function loadSaleData(){
+  try{
+    const stores=await DB.STORES.getBySale(S.saleId);
+    STORES.length=0;
+    stores.forEach(st=>STORES.push({
+      id:st.id,ten:st.ten,chu:st.chu_so_huu||'',phone:st.so_dien_thoai||'',
+      addr:st.dia_chi||'',loai:st.loai||'tap_hoa',ts:st.trang_thai,
+      ngay:st.lan_vieng_cuoi?Math.floor((Date.now()-new Date(st.lan_vieng_cuoi))/86400000):null,
+      dt:st.tong_doanh_thu||0,note:st.ghi_chu||''
+    }));
+    const prods=await DB.PRODUCTS.getAll();
+    SKUS.length=0;
+    prods.forEach(p=>SKUS.push({ma:p.ma,ten:p.ten,mo_ta:p.spec||p.mo_ta,don_gia:p.don_gia,don_vi:p.don_vi,icon:p.icon||'📦',active:p.active}));
+    const orders=await DB.ORDERS.getBySale(S.saleId);
+    ORDERS.length=0;
+    orders.forEach(o=>ORDERS.push({
+      id:o.id,store_id:o.tap_hoa_id,store:o.ten_tap_hoa||o.store||'',
+      items:Array.isArray(o.chi_tiet_sp)?o.chi_tiet_sp:[],
+      tong:o.tong_tien,trang_thai:o.trang_thai,
+      ngay:new Date(o.ngay_dat).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      gio:new Date(o.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+      note:o.ghi_chu||''
+    }));
+    DB.ORDERS.subscribeNew(()=>{loadSaleData();updateNotifBadge();});
+  }catch(e){console.warn('loadSaleData (non-fatal):', e.message);}
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+const TABS=['home','catalog','stores','orders','settings','cart','success','commission','route'];
+
+function goTab(tab){
+  currentTab=tab;
+  TABS.forEach(t=>{const el=document.getElementById('pg-'+t);if(el)el.style.display='none';});
+  const pg=document.getElementById('pg-'+tab);
+  if(pg) pg.style.display='block';
+
+  const navTabs=['home','catalog','stores','orders','settings'];
+  navTabs.forEach(t=>{const el=document.getElementById('bi-'+t);if(el)el.classList.toggle('on',t===tab);});
+
+  const showBnav=['home','catalog','stores','orders','settings'].includes(tab);
+  document.getElementById('bnav').style.display=showBnav?'flex':'none';
+  document.getElementById('place-order-wrap').style.display=tab==='cart'?'block':'none';
+  updateCartUI();
+
+  if(tab==='home')renderHome();
+  if(tab==='commission')renderCommission();
+  if(tab==='route')renderRoute();
+  if(tab==='order4store')renderOrder4Store();
+  else if(tab==='catalog')renderCatalog();
+  else if(tab==='stores')renderStores();
+  else if(tab==='orders')renderOrders();
+  else if(tab==='report')renderReport();
+  else if(tab==='settings')renderSettings();
+  else if(tab==='cart')renderCart();
+}
+
+function openCart(){goTab('cart');}
+
+// ═══════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════
+function renderHome(){
+  const pg=document.getElementById('pg-home');
+  const todayO=ORDERS.filter(o=>o.ngay===dateStr(0));
+  const todayRev=todayO.reduce((s,o)=>s+o.tong,0);
+  const pending=ORDERS.filter(o=>o.ts==='cho_xac_nhan').length;
+  const done=ORDERS.filter(o=>o.ts==='da_giao').length;
+  const kpiPct=Math.min(100,Math.round(done/CFG.kpi*100));
+
+  let html='';
+
+  // Hero banner
+  html+=`<div style="background:linear-gradient(135deg,${''} var(--Gd),var(--G));background:var(--G);padding:14px;margin-bottom:0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:12px;color:rgba(255,255,255,.75);font-weight:600">Xin chào,</div>
+        <div style="font-size:18px;font-weight:900;color:#fff">${SALE.ten} 👋</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);margin-top:2px">${SALE.zone}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:11px;color:#fff;font-weight:700">Sale ${SALE.bac} ⭐</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px 13px;margin-top:12px;display:flex;justify-content:space-between">
+      <div><div style="font-size:11px;color:rgba(255,255,255,.7)">Hôm nay</div><div style="font-size:18px;font-weight:900;color:#FFD600">${fmtM(todayRev)}</div></div>
+      <div style="text-align:center"><div style="font-size:11px;color:rgba(255,255,255,.7)">Đơn tháng</div><div style="font-size:18px;font-weight:900;color:#fff">${done}/${CFG.kpi}</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:rgba(255,255,255,.7)">KPI</div><div style="font-size:18px;font-weight:900;color:#fff">${kpiPct}%</div></div>
+    </div>
+  </div>`;
+
+  // Alert
+  if(pending>0) html+=`<div onclick="goTab('orders')" style="background:#FFF9C4;border-left:3px solid #BA7517;padding:10px 14px;font-size:13px;color:#7A6000;cursor:pointer;font-weight:600">⚠ ${pending} đơn chờ xác nhận thanh toán — Xem ngay ›</div>`;
+
+  // Buy Again
+  const pastItems=[];
+  const seen=new Set();
+  ORDERS.forEach(o=>o.items.forEach(i=>{if(!seen.has(i.ma)){seen.add(i.ma);pastItems.push({...i,store:o.store,store_id:o.store_id});}}));
+  if(pastItems.length>0){
+    html+=`<div class="sec-hdr"><span class="sec-title">Mua lại</span><span class="sec-link" onclick="goTab('orders')">Xem đơn cũ ›</span></div>
+    <div class="buy-again-row">`;
+    pastItems.slice(0,6).forEach(i=>{
+      const p=PRODUCTS.find(x=>x.ma===i.ma)||i;
+      html+=`<div class="ba-card" onclick="quickAddToCart('${i.store_id}','${i.store}','${i.ma}')">
+        <div class="ba-badge">Mua lại</div>
+        <div class="ba-img">${p.icon||'📦'}</div>
+        <div class="ba-name">${i.ten}</div>
+        <div class="ba-detail">${fmtM(i.gia)}/${p?.spec?.split(' ')[1]||'cái'}</div>
+        <button class="ba-btn">+ Thêm vào giỏ</button>
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  // Hot products
+  const hotProds=PRODUCTS.filter(p=>p.hot);
+  html+=`<div class="sec-hdr"><span class="sec-title">Sản phẩm nổi bật</span><span class="sec-link" onclick="goTab('catalog')">Xem tất cả ›</span></div>
+  <div class="hscroll">`;
+  hotProds.forEach(p=>{
+    const qty=CART.items[p.ma]||0;
+    const disc=pct(p.gia,p.mrp);
+    html+=`<div class="pcard">
+      <div class="pcard-img">${p.icon}</div>
+      <div class="pcard-body">
+        <div class="pcard-code">${p.ma}</div>
+        <div class="pcard-name">${p.ten}</div>
+        <div class="pcard-spec">${p.spec}</div>
+        <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">
+          <span class="pcard-price">${fmtFull(p.gia)}</span>
+          <span class="pcard-mrp">${fmtFull(p.mrp)}</span>
+          <span class="pcard-discount">-${disc}%</span>
+        </div>
+        ${qty===0
+          ?`<button class="pcard-add" onclick="event.stopPropagation();addToCart('${p.ma}')">+ Thêm vào giỏ</button>`
+          :`<div class="pcard-qty-ctrl">
+            <button class="pqb" onclick="event.stopPropagation();addToCart('${p.ma}',-1)">−</button>
+            <span class="pqn">${qty}</span>
+            <button class="pqb" onclick="event.stopPropagation();addToCart('${p.ma}',1)">+</button>
+          </div>`}
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+
+  // Priority stores
+  const pStores=STORES.filter(s=>s.ts==='can_vieng').slice(0,3);
+  if(pStores.length>0){
+    html+=`<div class="sec-hdr"><span class="sec-title">Cần viếng hôm nay</span><span class="sec-link" onclick="goTab('stores')">Tất cả ›</span></div>
+    <div class="store-list">`;
+    pStores.forEach(s=>{
+      html+=storeCard(s);
+    });
+    html+='</div>';
+  }
+  pg.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════
+// CATALOG
+// ═══════════════════════════════════════════════
+function renderCatalog(){
+  const pg=document.getElementById('pg-catalog');
+  const filtered=activeCat==='all'?PRODUCTS:PRODUCTS.filter(p=>p.cat===activeCat);
+  let html=`<div class="cat-row">`;
+  CATS.forEach(c=>{
+    html+=`<div class="cat-pill ${activeCat===c.id?'active':''}" onclick="setCat('${c.id}')">
+      <div class="cat-icon-wrap">${c.icon}</div>
+      <div class="cat-label">${c.label}</div>
+    </div>`;
+  });
+  html+='</div><div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  filtered.forEach(p=>{
+    const qty=CART.items[p.ma]||0;
+    const disc=pct(p.gia,p.mrp);
+    html+=`<div class="pcard" style="width:100%">
+      <div class="pcard-img">${p.icon}</div>
+      <div class="pcard-body">
+        <div class="pcard-code">${p.ma}</div>
+        <div class="pcard-name">${p.ten}</div>
+        <div class="pcard-spec">${p.spec}</div>
+        <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:2px">
+          <span class="pcard-price">${fmtFull(p.gia)}</span>
+          ${disc>0?`<span class="pcard-discount">-${disc}%</span>`:''}
+        </div>
+        ${qty===0
+          ?`<button class="pcard-add" onclick="addToCart('${p.ma}')">+ Thêm</button>`
+          :`<div class="pcard-qty-ctrl">
+            <button class="pqb" onclick="addToCart('${p.ma}',-1)">−</button>
+            <span class="pqn">${qty}</span>
+            <button class="pqb" onclick="addToCart('${p.ma}',1)">+</button>
+          </div>`}
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  if(cartCount()>0) html+=`<div style="height:70px"></div>`;
+  pg.innerHTML=html;
+}
+
+function setCat(id){activeCat=id;renderCatalog();}
+
+// ═══════════════════════════════════════════════
+// CART LOGIC
+// ═══════════════════════════════════════════════
+function addToCart(ma,delta=1,storeId=null,storeName=null){
+  const p=PRODUCTS.find(x=>x.ma===ma);
+  if(!p) return;
+  if(storeId && CART.store_id && CART.store_id!==storeId && cartCount()>0){
+    if(!confirm('Giỏ hàng hiện tại thuộc '+CART.store_name+'. Xóa giỏ và chọn cửa hàng mới?')) return;
+    CART={store_id:null,store_name:'',items:{},coupon:null,slot:null};
+  }
+  if(storeId){CART.store_id=storeId;CART.store_name=storeName;}
+  const cur=CART.items[ma]||0;
+  const next=Math.max(0,cur+delta);
+  if(next===0) delete CART.items[ma]; else CART.items[ma]=next;
+  if(delta>0) toast('Đã thêm '+p.ten+' vào giỏ');
+  updateCartUI();
+  if(currentTab==='catalog')renderCatalog();
+  else if(currentTab==='home')renderHome();
+  else if(currentTab==='cart')renderCart();
+}
+
+function quickAddToCart(storeId,storeName,ma){
+  addToCart(ma,1,storeId,storeName);
+  if(!CART.store_id){CART.store_id=storeId;CART.store_name=storeName;}
+  updateCartUI();
+}
+
+function setCartStore(storeId,storeName){
+  if(CART.store_id===storeId) return;
+  if(cartCount()>0){
+    if(!confirm('Đổi cửa hàng sẽ xóa giỏ hàng hiện tại. Tiếp tục?')) return;
+  }
+  CART={store_id:storeId,store_name:storeName,items:{},coupon:null,slot:null};
+  toast('Đã chọn: '+storeName);
+  updateCartUI();
+  goTab('catalog');
+}
+
+// ═══════════════════════════════════════════════
+// CART PAGE
+// ═══════════════════════════════════════════════
+function renderCart(){
+  const pg=document.getElementById('pg-cart');
+  if(cartCount()===0){
+    pg.innerHTML=`<div class="empty" style="padding-top:80px"><div class="empty-icon">🛒</div><div class="empty-text">Giỏ hàng trống<br>Chọn cửa hàng và thêm sản phẩm</div></div>`;
+    document.getElementById('place-order-wrap').style.display='none';
+    return;
+  }
+  document.getElementById('place-order-wrap').style.display='block';
+  const store=STORES.find(s=>s.id===CART.store_id)||{ten:CART.store_name,chu:'',phone:''};
+  let html=`<div class="cart-store-hdr">
+    <div style="font-size:28px">🏪</div>
+    <div><div class="cart-store-name">${store.ten}</div><div class="cart-store-meta">${store.chu}${store.phone?' · '+store.phone:''}</div></div>
+  </div>`;
+
+  // Items
+  Object.entries(CART.items).forEach(([ma,qty])=>{
+    const p=PRODUCTS.find(x=>x.ma===ma);
+    if(!p) return;
+    html+=`<div class="cart-item">
+      <div class="ci-img">${p.icon}</div>
+      <div class="ci-body">
+        <div class="ci-code">${p.ma}</div>
+        <div class="ci-name">${p.ten}</div>
+        <div class="ci-spec">${p.spec}</div>
+        <div class="ci-price">${fmtFull(p.gia)}<span class="ci-subtotal"> × ${qty} = ${fmtFull(p.gia*qty)}</span></div>
+        <div class="ci-qctrl">
+          <div class="cqb" onclick="addToCart('${ma}',-1)">−</div>
+          <div class="cqn">${qty}</div>
+          <div class="cqb" onclick="addToCart('${ma}',1)">+</div>
+          <div class="ci-del" onclick="removeFromCart('${ma}')">🗑</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  // Coupon
+  html+='<div class="coupon-wrap">';
+  if(CART.coupon){
+    const c=COUPONS.find(x=>x.code===CART.coupon);
+    html+=`<div class="coupon-applied">
+      <div><div class="coupon-applied-text">🎟 ${CART.coupon} áp dụng</div><div class="coupon-applied-save">Tiết kiệm ${fmtFull(cartDiscount())}</div></div>
+      <div class="coupon-remove" onclick="removeCoupon()">Xóa</div>
+    </div>`;
+  } else {
+    html+=`<button class="coupon-btn" onclick="openCouponSheet()"><span class="coupon-label">🎟 Nhập mã khuyến mãi</span><span style="color:var(--G);font-size:18px">›</span></button>`;
+  }
+  html+='</div>';
+
+  // Delivery slots
+  const slots=[
+    {day:'Hôm nay',date:dateStr(0),avail:'Còn chỗ'},
+    {day:'Ngày mai',date:dateStr(1),avail:'Còn chỗ'},
+    {day:new Date(Date.now()+2*86400000).toLocaleDateString('vi-VN',{weekday:'short'}),date:dateStr(2),avail:'Còn chỗ'},
+  ];
+  html+=`<div class="delivery-wrap">
+    <div class="delivery-title">Chọn ngày giao hàng</div>
+    <div class="slot-grid">`;
+  slots.forEach(s=>{
+    html+=`<div class="slot ${CART.slot===s.day?'on':''}" onclick="setSlot('${s.day}')">
+      <div class="slot-day">${s.day}</div>
+      <div class="slot-date">${s.date}</div>
+      <div class="slot-avail">${s.avail}</div>
+    </div>`;
+  });
+  html+='</div></div>';
+
+  // Price summary
+  const sub=cartSubtotal();
+  const disc=cartDiscount();
+  const total=cartTotal();
+  html+=`<div class="price-summary">
+    <div class="ps-title">Chi tiết thanh toán</div>
+    <div class="ps-row"><span class="ps-label">Tạm tính (${cartCount()} SP)</span><span class="ps-val">${fmtFull(sub)}</span></div>
+    ${disc>0?`<div class="ps-row"><span class="ps-label">Giảm giá (${CART.coupon})</span><span class="ps-val" style="color:var(--G)">-${fmtFull(disc)}</span></div>`:''}
+    <div class="ps-row"><span class="ps-label">Phí vận chuyển</span><span class="ps-val" style="color:var(--G)">Miễn phí</span></div>
+    <div class="ps-divider"></div>
+    <div class="ps-row"><span class="ps-total-label">Tổng thanh toán</span><span class="ps-total-val">${fmtFull(total)}</span></div>
+    <div class="ps-row" style="margin-top:4px"><span class="ps-label" style="font-size:12px">Hoa hồng của bạn</span><span class="ps-val" style="color:var(--A);font-size:13px">+${fmtFull(Math.round(total*CFG.comm/100))}</span></div>
+    ${disc>0?`<div class="ps-save">Bạn tiết kiệm ${fmtFull(disc)} với mã ${CART.coupon} 🎉</div>`:''}
+  </div>
+  <div style="background:#F0F7FF;margin:0 14px 80px;border-radius:var(--rs);padding:12px 13px;border:1px solid var(--Bl)">
+    <div style="font-size:12px;font-weight:700;color:var(--B);margin-bottom:4px">Thanh toán chuyển khoản</div>
+    <div style="font-size:14px;font-weight:800">TK: ${CFG.tk}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:2px">${CFG.bank} · Nội dung: [TÊN TIỆM] [MÃ ĐƠN]</div>
+  </div>`;
+
+  pg.innerHTML=html;
+  if(!CART.slot) setSlot('Ngày mai');
+}
+
+function removeFromCart(ma){delete CART.items[ma];updateCartUI();renderCart();}
+function setSlot(s){CART.slot=s;renderCart();}
+function removeCoupon(){CART.coupon=null;updateCartUI();renderCart();}
+
+function openCouponSheet(){
+  const sub=cartSubtotal();
+  let html='';
+  COUPONS.forEach(c=>{
+    const ok=sub>=c.min;
+    html+=`<div class="coupon-card" style="${!ok?'opacity:.5':''}">
+      <div class="ck-code">${c.code}</div>
+      <div class="ck-desc">${c.desc}</div>
+      <div class="ck-min">Đơn tối thiểu ${fmtFull(c.min)} · HH: ${c.exp}</div>
+      ${ok?`<button class="ck-apply" onclick="applyCoupon('${c.code}')">Áp dụng</button>`:`<div style="position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted)">Chưa đủ ĐK</div>`}
+    </div>`;
+  });
+  document.getElementById('coupon-list').innerHTML=html;
+  openSheet('sh-coupon');
+}
+
+function applyCoupon(code){
+  CART.coupon=code;
+  closeSheet('sh-coupon');
+  toast('Áp dụng mã '+code+' thành công!');
+  updateCartUI();
+  renderCart();
+}
+
+function placeOrder(){
+  if(cartCount()===0){toast('Giỏ hàng trống');return;}
+  if(!CART.store_id){toast('Chưa chọn cửa hàng');return;}
+  if(!CART.slot){toast('Hãy chọn ngày giao hàng');return;}
+  const now=new Date();
+  const newO={
+    id:'O-'+Date.now().toString().slice(-5),
+    store_id:CART.store_id, store:CART.store_name,
+    items:Object.entries(CART.items).map(([ma,sl])=>{const p=PRODUCTS.find(x=>x.ma===ma);return{ma,ten:p?.ten||ma,icon:p?.icon||'📦',sl,gia:p?.gia||0};}),
+    tong:cartTotal(), ts:'cho_xac_nhan',
+    ngay:dateStr(0), gio:now.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+    coupon:CART.coupon, slot:CART.slot,
+  };
+  ORDERS.unshift(newO);
+  const si=STORES.findIndex(s=>s.id===CART.store_id);
+  if(si>=0){STORES[si].ts='vua_dat';STORES[si].ngay=0;}
+  document.getElementById('success-sub').textContent=`Đơn ${newO.id} · ${fmtFull(newO.tong)} · Giao hàng: ${newO.slot}. Vui lòng chuyển khoản về TK: ${CFG.tk} (${CFG.bank}).`;
+  CART={store_id:null,store_name:'',items:{},coupon:null,slot:null};
+  updateCartUI();
+  goTab('success');
+}
+
+// ═══════════════════════════════════════════════
+// STORES
+// ═══════════════════════════════════════════════
+function renderStores(){
+  const pg=document.getElementById('pg-stores');
+  let html=`<div style="padding:12px 14px 4px;display:flex;gap:6px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none">
+    <button style="padding:6px 14px;border-radius:20px;background:var(--G);color:#fff;border:none;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer" onclick="addStoreDialog()">+ Thêm cửa hàng</button>
+  </div><div class="store-list">`;
+  STORES.forEach(s=>html+=storeCard(s,true));
+  html+='</div>';
+  pg.innerHTML=html;
+}
+
+function storeCard(s,showAll=false){
+  const loaiLabel={tap_hoa:'Tạp hóa',sieu_thi:'Siêu thị mini',tien_loi:'CH tiện lợi',dai_ly:'Đại lý'}[s.loai]||'Cửa hàng';
+  const tsBadge=s.ts==='moi'?'<span class="badge bgy">Khách mới</span>':s.ts==='vua_dat'?'<span class="badge bg">Vừa đặt</span>':`<span class="badge ba">${s.ngay||0}n chưa thăm</span>`;
+  const lastO=ORDERS.filter(o=>o.store_id===s.id)[0];
+  return `<div class="scard">
+    <div class="scard-top">
+      <div>
+        <div class="scard-name">${s.ten}</div>
+        <div class="scard-meta">${s.chu} · ${s.phone}</div>
+        <div class="scard-meta" style="margin-top:1px">${s.addr}</div>
+      </div>
+      ${s.dt>0?`<div style="font-size:13px;font-weight:800;color:var(--G)">${fmtM(s.dt)}<div style="font-size:10px;color:var(--muted);text-align:right;font-weight:400">/tháng</div></div>`:''}
+    </div>
+    <div class="scard-tags">
+      ${tsBadge}
+      <span class="badge bgy">${loaiLabel}</span>
+      ${lastO?`<span class="badge bgy">Đơn cuối: ${fmtM(lastO.tong)}</span>`:''}
+      ${s.note?`<span class="badge by">${s.note}</span>`:''}
+    </div>
+    <div class="scard-actions">
+      <button class="sact sact-g" onclick="setCartStore('${s.id}','${s.ten}')">🛒 Đặt hàng</button>
+      <button class="sact sact-o" onclick="checkIn('${s.id}','${s.ten}')">📍 Check-in</button>
+      <button class="sact sact-o sact-icon" onclick="callStore('${s.phone}')">📞</button>
+    </div>
+  </div>`;
+}
+
+function callStore(phone){if(confirm('Gọi cho '+phone+'?'))window.location.href='tel:'+phone;}
+
+function addStoreDialog(){
+  const ten=prompt('Tên cửa hàng:');if(!ten)return;
+  const chu=prompt('Chủ cửa hàng:');if(!chu)return;
+  const phone=prompt('Số điện thoại:');if(!phone)return;
+  STORES.push({id:'st'+Date.now(),ten,chu,phone,addr:'',loai:'tap_hoa',ts:'moi',ngay:null,dt:0,note:''});
+  toast('Đã thêm: '+ten);
+  renderStores();
+}
+
+function checkIn(id,name){
+  checkinStoreId=id;
+  document.getElementById('ci-title').textContent='Check-in — '+name;
+  document.getElementById('ci-body').innerHTML=`
+    <button onclick="doCheckin('${id}')" style="width:100%;padding:14px;background:var(--Gl);color:var(--Gd);border:none;border-radius:var(--rs);font-size:15px;font-weight:800;cursor:pointer;margin-bottom:12px">📍 Xác nhận đã đến</button>
+    <div id="ci-done" style="display:none;text-align:center;padding:10px;background:var(--Gl);border-radius:var(--rs);color:var(--Gd);font-weight:700;margin-bottom:12px">✓ Đã check-in thành công!</div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Ghi chú viếng thăm</div>
+    <input id="ci-note" placeholder="Tạp hóa cần thêm ST25..." style="width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;outline:none;margin-bottom:12px">
+    <button onclick="saveCheckinAndOrder('${id}','${name}')" style="width:100%;padding:13px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:8px">Lưu & Đặt hàng ngay</button>
+    <button onclick="closeSheet('sh-checkin')" style="width:100%;padding:11px;background:transparent;color:var(--muted);border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:13px;cursor:pointer">Chỉ lưu</button>`;
+  openSheet('sh-checkin');
+}
+
+function doCheckin(id){
+  const si=STORES.findIndex(s=>s.id===id);
+  if(si>=0){STORES[si].ts='can_vieng';STORES[si].ngay=0;}
+  document.getElementById('ci-done').style.display='block';
+  toast('Check-in thành công!');
+}
+
+function saveCheckinAndOrder(id,name){
+  const note=document.getElementById('ci-note').value;
+  const si=STORES.findIndex(s=>s.id===id);
+  if(si>=0&&note) STORES[si].note=note;
+  closeSheet('sh-checkin');
+  setCartStore(id,name);
+}
+
+// ═══════════════════════════════════════════════
+// ORDERS
+// ═══════════════════════════════════════════════
+function renderOrders(){
+  const pg=document.getElementById('pg-orders');
+  const tabs=['all','cho_xac_nhan','cho_giao','da_giao'];
+  const tabLabels={'all':'Tất cả','cho_xac_nhan':'Chờ TT','cho_giao':'Chờ giao','da_giao':'Đã giao'};
+  let activeFilter=pg.dataset.filter||'all';
+
+  let html=`<div style="display:flex;gap:0;border-bottom:1px solid var(--bdr);background:#fff;overflow-x:auto;flex-shrink:0">`;
+  tabs.forEach(t=>{
+    const count=t==='all'?ORDERS.length:ORDERS.filter(o=>o.ts===t).length;
+    html+=`<div onclick="filterOrders('${t}')" style="padding:11px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:2px solid ${activeFilter===t?'var(--G)':'transparent'};color:${activeFilter===t?'var(--G)':'var(--muted)'}">${tabLabels[t]} ${count>0?`(${count})`:''}</div>`;
+  });
+  html+='</div>';
+
+  const filtered=activeFilter==='all'?ORDERS:ORDERS.filter(o=>o.ts===activeFilter);
+  if(filtered.length===0){
+    html+=`<div class="empty"><div class="empty-icon">◎</div><div class="empty-text">Không có đơn hàng nào</div></div>`;
+  } else {
+    html+='<div style="padding:10px 0">';
+    filtered.forEach(o=>{
+      const tsColor={da_giao:'bg',cho_giao:'bb',cho_xac_nhan:'ba'}[o.ts]||'bgy';
+      const tsLabel={da_giao:'Đã giao',cho_giao:'Chờ giao',cho_xac_nhan:'Chờ TT'}[o.ts]||o.ts;
+      html+=`<div class="oh-card" onclick="showOrderDet('${o.id}')">
+        <div class="oh-hdr">
+          <div><div class="oh-store">${o.store}</div><div class="oh-date">${o.ngay} ${o.gio} · Giao: ${o.slot||'Ngày mai'}</div></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+            <span class="badge ${tsColor}">${tsLabel}</span>
+            ${o.coupon?`<span class="badge by">🎟 ${o.coupon}</span>`:''}
+          </div>
+        </div>
+        <div class="oh-items">`;
+      o.items.slice(0,3).forEach(i=>{
+        html+=`<div class="oh-item-row">
+          <div class="oh-item-img">${i.icon||'📦'}</div>
+          <div class="oh-item-name">${i.ten} × ${i.sl}</div>
+          <div class="oh-item-price">${fmtM(i.gia*i.sl)}</div>
+        </div>`;
+      });
+      if(o.items.length>3) html+=`<div style="font-size:11px;color:var(--muted);padding:3px 0">+${o.items.length-3} sản phẩm khác</div>`;
+      html+=`</div>
+        <div class="oh-footer">
+          <div class="oh-total">${fmtFull(o.tong)}</div>
+          <button class="oh-reorder" onclick="event.stopPropagation();reorderAll('${o.id}')">↩ Mua lại</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+  pg.innerHTML=html;
+}
+
+function filterOrders(f){
+  const pg=document.getElementById('pg-orders');
+  pg.dataset.filter=f;
+  renderOrders();
+}
+
+function reorderAll(orderId){
+  const o=ORDERS.find(x=>x.id===orderId);
+  if(!o) return;
+  CART={store_id:o.store_id,store_name:o.store,items:{},coupon:null,slot:null};
+  o.items.forEach(i=>{CART.items[i.ma]=i.sl;});
+  toast('Đã thêm lại toàn bộ đơn vào giỏ!');
+  updateCartUI();
+  goTab('cart');
+}
+
+function showOrderDet(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  const rows=o.items.map(i=>`<div class="oh-item-row" style="padding:8px 0;border-bottom:1px solid var(--bdr)">
+    <div class="oh-item-img" style="width:44px;height:44px;font-size:22px">${i.icon||'📦'}</div>
+    <div><div class="oh-item-name" style="font-size:13px">${i.ten}</div><div style="font-size:11px;color:var(--muted)">${fmtFull(i.gia)} × ${i.sl}</div></div>
+    <div class="oh-item-price" style="font-size:14px">${fmtFull(i.gia*i.sl)}</div>
+  </div>`).join('');
+  const disc=o.coupon?COUPONS.find(c=>c.code===o.coupon)?.val||0:0;
+  document.getElementById('ci-title').textContent='Chi tiết đơn '+o.id;
+  document.getElementById('ci-body').innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+      <div><div style="font-size:14px;font-weight:800">${o.store}</div><div style="font-size:11px;color:var(--muted)">${o.ngay} ${o.gio} · Giao: ${o.slot||'Ngày mai'}</div></div>
+      <span class="badge ${{da_giao:'bg',cho_giao:'bb',cho_xac_nhan:'ba'}[o.ts]||'bgy'}">${{da_giao:'Đã giao',cho_giao:'Chờ giao',cho_xac_nhan:'Chờ TT'}[o.ts]||o.ts}</span>
+    </div>
+    ${rows}
+    <div style="background:var(--Gl);border-radius:var(--rs);padding:11px 13px;margin-top:12px">
+      ${o.coupon?`<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--Gd)">Mã giảm giá (${o.coupon})</span><span style="font-weight:700;color:var(--G)">-${fmtFull(disc)}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:700">Tổng cộng</span><span style="font-size:17px;font-weight:900;color:var(--Gd)">${fmtFull(o.tong)}</span></div>
+    </div>
+    <div style="background:var(--Bl);border-radius:var(--rs);padding:11px 13px;margin-top:8px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--B)">TK nhận thanh toán</div>
+      <div style="font-size:14px;font-weight:800;margin-top:2px">${CFG.tk} · ${CFG.bank}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="printOrderMini('${o.id}')" style="flex:1;padding:12px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer">In đơn hàng</button>
+      <button onclick="reorderAll('${o.id}')" style="flex:1;padding:12px;background:var(--Gl);color:var(--Gd);border:none;border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer">↩ Mua lại</button>
+    </div>`;
+  openSheet('sh-checkin');
+}
+
+function printOrderMini(id){
+  const o=ORDERS.find(x=>x.id===id);if(!o)return;
+  const rows=o.items.map(i=>`<tr><td style="padding:5px 8px;border:1px solid #ddd">${i.icon} ${i.ten}</td><td style="padding:5px 8px;border:1px solid #ddd;text-align:center">${i.sl}</td><td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:bold;color:#1D9E75">${new Intl.NumberFormat('vi-VN').format(i.gia*i.sl)}đ</td></tr>`).join('');
+  const w=window.open('','_blank','width=520,height:680');
+  w.document.write(`<!DOCTYPE html><html><head><title>${o.id}</title><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;padding:18px;max-width:480px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:14px"><b style="font-size:22px;color:#1D9E75">SM ONE</b><br><span style="font-size:11px;color:#888">Hệ thống phân phối FMCG Toàn Quốc</span><br><b style="font-size:15px">ĐƠN HÀNG — ${o.id}</b></div>
+    <table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:12px"><tr><td style="padding:3px 0;color:#888;width:100px">Cửa hàng</td><td><b>${o.store}</b></td></tr><tr><td style="padding:3px 0;color:#888">Ngày đặt</td><td>${o.ngay} ${o.gio}</td></tr><tr><td style="padding:3px 0;color:#888">Giao hàng</td><td>${o.slot||'Ngày mai'}</td></tr></table>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px"><thead><tr style="background:#f5f5f2"><th style="padding:7px 8px;border:1px solid #ddd;text-align:left;font-size:11px">Sản phẩm</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:center">SL</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:right">Thành tiền</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="2" style="padding:9px 8px;border:1px solid #ddd;font-weight:bold;text-align:right">TỔNG</td><td style="padding:9px 8px;border:1px solid #ddd;font-weight:900;font-size:16px;color:#1D9E75;text-align:right">${new Intl.NumberFormat('vi-VN').format(o.tong)}đ</td></tr></tfoot></table>
+    <div style="border:2px solid #1D9E75;border-radius:8px;padding:11px 13px;background:#E1F5EE"><b style="color:#0F6E56;font-size:13px">Thanh toán chuyển khoản:</b><br><b style="font-size:15px">TK: ${CFG.tk} · ${CFG.bank}</b><br><span style="font-size:12px;color:#0F6E56">Nội dung: [TÊN TIỆM] [${o.id}]</span></div>
+  
+<!-- PAGE: TẠO ĐƠN THAY KHÁCH -->
+<div id="pg-order4store" style="display:none;padding:16px;">
+  <div style="font-size:14px;font-weight:800;margin-bottom:12px;">📝 Tạo đơn thay cửa hàng</div>
+
+  <div style="margin-bottom:10px;">
+    <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chọn cửa hàng</label>
+    <select id="o4s-store" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:inherit;">
+      <option>Tạp hóa Lan · 12 Trần Phú</option>
+      <option>SM Mini Hà · 45 Lý Thường Kiệt</option>
+      <option>Tạp hóa Sơn · 23 Phan Chu Trinh</option>
+    </select>
+  </div>
+
+  <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Chọn sản phẩm</div>
+  <div id="o4s-products" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+  <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;color:#6B7280;">Tổng đơn</span>
+      <span style="font-size:16px;font-weight:900;color:#1FAB73;" id="o4s-total">0đ</span>
+    </div>
+    <button onclick="submitOrder4Store()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
+      ✓ Xác nhận tạo đơn
+    </button>
+  </div>
+</div>
+
+<!-- PAGE: ONBOARD CỬA HÀNG MỚI -->
+<div id="pg-onboard" style="display:none;padding:16px;">
+  <div style="font-size:14px;font-weight:800;margin-bottom:14px;">➕ Onboard cửa hàng mới</div>
+
+  <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Tên cửa hàng *</label>
+        <input id="ob-name" placeholder="VD: Tạp hóa Minh" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chủ cửa hàng *</label>
+        <input id="ob-owner" placeholder="Họ tên chủ cửa hàng" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Số điện thoại *</label>
+        <input id="ob-phone" type="tel" placeholder="09xxxxxxxx" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Địa chỉ *</label>
+        <input id="ob-addr" placeholder="Số nhà, đường, phường/xã..." style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Loại cửa hàng</label>
+        <select id="ob-type" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+          <option>Tạp hóa</option>
+          <option>Siêu thị mini</option>
+          <option>Cửa hàng tiện lợi</option>
+          <option>Đại lý</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Ghi chú</label>
+        <textarea id="ob-note" rows="2" placeholder="Tiềm năng, đặc điểm cửa hàng..." style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:none;"></textarea>
+      </div>
+      <button onclick="submitOnboard()" style="width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;">
+        ✓ Đăng ký cửa hàng mới
+      </button>
+    </div>
+  </div>
+</div>
+</body></html>`);
+  w.document.close();setTimeout(()=>w.print(),350);
+  closeSheet('sh-checkin');
+}
+
+// ═══════════════════════════════════════════════
+// REPORT
+// ═══════════════════════════════════════════════
+function renderReport(){
+  const pg=document.getElementById('pg-report');
+  const todayRev=ORDERS.filter(o=>o.ngay===dateStr(0)).reduce((s,o)=>s+o.tong,0);
+  const yestRev=ORDERS.filter(o=>o.ngay===dateStr(-1)).reduce((s,o)=>s+o.tong,0);
+  const mRev=ORDERS.reduce((s,o)=>s+o.tong,0);
+  const mComm=Math.round(mRev*CFG.comm/100);
+  const done=ORDERS.filter(o=>o.ts==='da_giao').length;
+  const bars=[];let maxR=0;
+  for(let i=6;i>=0;i--){const r=ORDERS.filter(o=>o.ngay===dateStr(-i)).reduce((s,o)=>s+o.tong,0);maxR=Math.max(maxR,r);const d=new Date();d.setDate(d.getDate()-i);bars.push({lbl:i===0?'Nay':d.toLocaleDateString('vi-VN',{weekday:'short'}).slice(0,2),r,today:i===0});}
+  let barHtml=bars.map(b=>{const h=maxR>0?Math.max(4,Math.round(b.r/maxR*68)):4;return`<div class="bc ${b.today?'bar-today':''}"><div class="bv">${b.r>0?fmtM(b.r):''}</div><div class="bf ${b.today?'bf-g':'bf-l'}" style="height:${h}px"></div><div class="bl" style="${b.today?'color:var(--G);font-weight:700':''}">${b.lbl}</div></div>`;}).join('');
+
+  pg.innerHTML=`
+  <div class="kpi4">
+    <div class="kbox"><div class="knum kg">${fmtM(todayRev)}</div><div class="klbl">Doanh thu hôm nay</div></div>
+    <div class="kbox"><div class="knum">${fmtM(yestRev)}</div><div class="klbl">Doanh thu hôm qua</div></div>
+    <div class="kbox"><div class="knum kp">${fmtM(mRev)}</div><div class="klbl">Tổng tháng này</div></div>
+    <div class="kbox"><div class="knum ka">${fmtM(mComm)}</div><div class="klbl">Hoa hồng tháng</div></div>
+  </div>
+  <div style="background:#fff;margin:0 14px 12px;border-radius:var(--r);padding:14px;border:1px solid var(--bdr)">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Doanh thu 7 ngày</div>
+    <div class="bar-wrap">${barHtml}</div>
+  </div>
+  <div style="background:#fff;margin:0 14px;border-radius:var(--r);padding:14px;border:1px solid var(--bdr)">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Thu nhập tháng này</div>
+    ${[['Doanh thu','',fmtFull(mRev)],['Hoa hồng ('+CFG.comm+'%)',''+done+' đơn đã giao',fmtFull(mComm),'ka'],['Phụ cấp xăng','',fmtFull(CFG.xang)],['Tổng nhận','',fmtFull(mComm+CFG.xang),'kg bold']].map(([l,s,v,cl])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bdr)"><div><div style="font-size:13px;font-weight:${cl?.includes('bold')?'800':'500'}">${l}</div>${s?`<div style="font-size:10px;color:var(--muted)">${s}</div>`:''}</div><div style="font-size:${cl?.includes('bold')?'15':'13'}px;font-weight:${cl?.includes('bold')?'900':'700'};color:${cl?.includes('kg')?'var(--G)':cl?.includes('ka')?'var(--A)':'var(--txt)'}">${v}</div></div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+function renderSettings(){
+  const pg=document.getElementById('pg-settings');
+  const mRev=ORDERS.reduce((s,o)=>s+o.tong,0);
+  pg.innerHTML=`
+  <div style="background:var(--G);padding:20px 14px 16px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff">${SALE.ten.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase()}</div>
+      <div><div style="font-size:17px;font-weight:900;color:#fff">${SALE.ten}</div><div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px">${SALE.zone}</div><div style="margin-top:5px;display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;color:#fff;font-weight:700">Sale ${SALE.bac} ⭐</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px">
+      ${[['Đơn tháng',ORDERS.filter(o=>o.ts==='da_giao').length+'/'+CFG.kpi],['Doanh thu',fmtM(mRev)],['Hoa hồng',fmtM(Math.round(mRev*CFG.comm/100))]].map(([l,v])=>`<div style="background:rgba(255,255,255,.15);border-radius:8px;padding:9px;text-align:center"><div style="font-size:14px;font-weight:900;color:#FFD600">${v}</div><div style="font-size:9px;color:rgba(255,255,255,.75);margin-top:2px">${l}</div></div>`).join('')}
+    </div>
+  </div>
+
+  <div style="height:10px"></div>
+  <div class="setting-section">
+    ${[
+      ['⚙','var(--Gl)','Tỷ lệ hoa hồng',''+CFG.comm+'%',''],
+      ['🏦','var(--Bl)','TK nhận hoa hồng',SALE.stk+' · '+SALE.bank,''],
+      ['🚗','var(--Al)','Phụ cấp xăng',fmtFull(CFG.xang)+'/tháng',''],
+    ].map(([ic,bg,l,v])=>`<div class="setting-row"><div class="sr-left"><div class="sr-icon" style="background:${bg}">${ic}</div><div class="sr-label">${l}</div></div><div class="sr-val">${v} ›</div></div>`).join('')}
+  </div>
+  <div class="setting-section">
+    ${[
+      ['🔗','var(--Pl)','Supabase Cloud','Chưa kết nối'],
+      ['💬','var(--Gl)','Zalo thông báo','Tắt'],
+      ['📊','var(--Bl)','Báo cáo doanh thu','›'],
+    ].map(([ic,bg,l,v])=>`<div class="setting-row" onclick="goTab('report')"><div class="sr-left"><div class="sr-icon" style="background:${bg}">${ic}</div><div class="sr-label">${l}</div></div><div class="sr-val">${v}</div></div>`).join('')}
+  </div>
+  <div style="margin:12px 14px">
+    <button onclick="doLogout()" style="width:100%;padding:13px;background:#fff;color:var(--R);border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer">Đăng xuất</button>
+  </div>
+  <div style="text-align:center;font-size:11px;color:var(--hint);margin:12px 0">SM ONE v4.0 · FMCG Toàn Quốc</div>`;
+}
+
+function doLogout(){if(confirm('Đăng xuất?')){document.getElementById('s-app').classList.remove('on');document.getElementById('s-login').classList.add('on');document.getElementById('lp').value='';document.getElementById('lw').value='';}}
+
+function renderCommission(){
+  const orders_done = ORDERS.filter(o=>o.trang_thai==='da_giao');
+  const rate = S.user?.commission_rate || (S.user?.bac_sale==='Vàng'?6:S.user?.bac_sale==='Bạc'?5:4);
+  const total = orders_done.reduce((s,o)=>s+Math.round(o.tong*rate/100),0);
+  const pending = ORDERS.filter(o=>o.trang_thai==='cho_tt'||o.trang_thai==='cho_giao').reduce((s,o)=>s+Math.round(o.tong*rate/100),0);
+  
+  document.getElementById('comm-total').textContent = fmtFull(total);
+  document.getElementById('comm-orders').textContent = orders_done.length;
+  document.getElementById('comm-rate').textContent = rate+'%';
+  document.getElementById('comm-pending').textContent = fmtFull(pending);
+  
+  const list = document.getElementById('comm-list');
+  if(!list) return;
+  if(!orders_done.length){list.innerHTML='<div style="text-align:center;padding:32px;color:#78716C;font-size:13px;">Chưa có đơn hoàn thành</div>';return;}
+  list.innerHTML = orders_done.slice(0,20).map(o=>`
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:13px;font-weight:700;">${o.id}</div>
+        <div style="font-size:11px;color:#78716C;">${o.store} · ${o.ngay}</div>
+        <div style="font-size:12px;color:#374151;margin-top:2px;">${fmtFull(o.tong)}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:15px;font-weight:800;color:#1FAB73;">+${fmtFull(Math.round(o.tong*rate/100))}</div>
+        <div style="font-size:9px;color:#9CA3AF;margin-top:2px;">${rate}% HH</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderRoute(){
+  const summary = document.getElementById('route-summary');
+  const list = document.getElementById('route-list');
+  if(!list) return;
+  if(summary) summary.textContent = STORES.length + ' cửa hàng';
+  
+  const sorted = [...STORES].sort((a,b)=>{
+    const order = {can_vieng:0, moi:1, vua_dat:2};
+    return (order[a.ts]||1)-(order[b.ts]||1);
+  });
+  
+  list.innerHTML = sorted.map((s,i)=>`
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;">
+      <div style="width:28px;height:28px;border-radius:50%;background:${s.ts==='can_vieng'?'#FEE2E2':s.ts==='vua_dat'?'#D1FAE5':'#DBEAFE'};
+        color:${s.ts==='can_vieng'?'#DC2626':s.ts==='vua_dat'?'#059669':'#2563EB'};
+        display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:700;">${s.ten}</div>
+        <div style="font-size:11px;color:#78716C;">${s.addr||'Chưa có địa chỉ'}</div>
+        <div style="font-size:11px;margin-top:3px;">
+          <span style="background:${s.ts==='can_vieng'?'#FEE2E2':s.ts==='vua_dat'?'#D1FAE5':'#DBEAFE'};
+            color:${s.ts==='can_vieng'?'#DC2626':s.ts==='vua_dat'?'#059669':'#2563EB'};
+            padding:2px 8px;border-radius:100px;font-weight:700;font-size:9px;">
+            ${s.ts==='can_vieng'?'Cần viếng':s.ts==='vua_dat'?'Vừa đặt':'Mới'}
+          </span>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#1FAB73;">${s.dt?fmtM(s.dt):''}</div>
+    </div>`).join('') || '<div style="text-align:center;padding:32px;color:#78716C;font-size:13px;">Chưa có cửa hàng</div>';
+}
+</script>
+
+<!-- PAGE: TẠO ĐƠN THAY KHÁCH -->
+<div id="pg-order4store" style="display:none;padding:16px;">
+  <div style="font-size:14px;font-weight:800;margin-bottom:12px;">📝 Tạo đơn thay cửa hàng</div>
+
+  <div style="margin-bottom:10px;">
+    <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chọn cửa hàng</label>
+    <select id="o4s-store" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:inherit;">
+      <option>Tạp hóa Lan · 12 Trần Phú</option>
+      <option>SM Mini Hà · 45 Lý Thường Kiệt</option>
+      <option>Tạp hóa Sơn · 23 Phan Chu Trinh</option>
+    </select>
+  </div>
+
+  <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Chọn sản phẩm</div>
+  <div id="o4s-products" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+  <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+      <span style="font-size:13px;font-weight:600;color:#6B7280;">Tổng đơn</span>
+      <span style="font-size:16px;font-weight:900;color:#1FAB73;" id="o4s-total">0đ</span>
+    </div>
+    <button onclick="submitOrder4Store()" style="width:100%;padding:12px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
+      ✓ Xác nhận tạo đơn
+    </button>
+  </div>
+</div>
+
+<!-- PAGE: ONBOARD CỬA HÀNG MỚI -->
+<div id="pg-onboard" style="display:none;padding:16px;">
+  <div style="font-size:14px;font-weight:800;margin-bottom:14px;">➕ Onboard cửa hàng mới</div>
+
+  <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Tên cửa hàng *</label>
+        <input id="ob-name" placeholder="VD: Tạp hóa Minh" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chủ cửa hàng *</label>
+        <input id="ob-owner" placeholder="Họ tên chủ cửa hàng" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Số điện thoại *</label>
+        <input id="ob-phone" type="tel" placeholder="09xxxxxxxx" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Địa chỉ *</label>
+        <input id="ob-addr" placeholder="Số nhà, đường, phường/xã..." style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Loại cửa hàng</label>
+        <select id="ob-type" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;">
+          <option>Tạp hóa</option>
+          <option>Siêu thị mini</option>
+          <option>Cửa hàng tiện lợi</option>
+          <option>Đại lý</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Ghi chú</label>
+        <textarea id="ob-note" rows="2" placeholder="Tiềm năng, đặc điểm cửa hàng..." style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:none;"></textarea>
+      </div>
+      <button onclick="submitOnboard()" style="width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;">
+        ✓ Đăng ký cửa hàng mới
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

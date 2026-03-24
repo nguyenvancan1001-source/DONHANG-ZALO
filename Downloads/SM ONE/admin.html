@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SM ONE — Admin</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const _SB_URL = 'https://vwzntitcdjznhvmmvpce.supabase.co';
+const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3em50aXRjZGp6bmh2bW12cGNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNzA0MzksImV4cCI6MjA4OTg0NjQzOX0.7wfRtdxJmYUsREBWor5JbUur0ZSRyKTAbVTR2GxOIy4';
+// ══ SUPABASE STUB (demo mode - không cần server thật) ══════════
+// Khi anh có SB_URL + SB_KEY thật, thay đoạn này bằng:
+//   
+//   
+// ════════════════════════════════════════════════════════════════
+
+let _sbClient = null;
+try {
+  _sbClient = window.supabase?.createClient(_SB_URL, _SB_KEY);
+  console.log('✅ Supabase connected:', _SB_URL);
+} catch(e) { console.warn('Supabase init:', e.message); }
+const _DEMO_MODE = false;
+
+// Demo Auth state
+let _authUser = null;
+let _authRole = null; // 'kiosk' | 'sale' | 'admin'
+
+// Minimal Supabase client stub for demo
+// window.supabase SDK loaded from CDN above
+
+// ── DEMO USERS ────────────────────────────────────────────────
+const DEMO_USERS = {
+  // Tạp hóa Kiosk
+  '0901111111': { pass: 'Kiosk@SM1', role: 'kiosk', profile: {
+    id: 'ku1', auth_id: 'ku1', tap_hoa_id: 'st1',
+    ten_cua_hang: 'Tạp hóa Lan', ho_ten: 'Chị Lan',
+    so_dien_thoai: '0901111111', dia_chi: '12 Trần Phú, Phú Bài',
+    diem_tich_luy: 750, tier: 'Bạc',
+    tap_hoa: { ten: 'Tạp hóa Lan', sales_users: { ho_ten: 'Nguyễn Nam', so_dien_thoai: '0901234567' } }
+  }},
+  '0902222222': { pass: 'Kiosk@SM1', role: 'kiosk', profile: {
+    id: 'ku2', auth_id: 'ku2', tap_hoa_id: 'st2',
+    ten_cua_hang: 'Tạp hóa Minh', ho_ten: 'Anh Minh',
+    so_dien_thoai: '0902222222', dia_chi: '45 Lý Thường Kiệt',
+    diem_tich_luy: 320, tier: 'Đồng',
+    tap_hoa: { ten: 'Tạp hóa Minh', sales_users: { ho_ten: 'Nguyễn Nam', so_dien_thoai: '0901234567' } }
+  }},
+  // Sale
+  '0901234567': { pass: 'Sale@SM1', role: 'sale', profile: {
+    id: 'sa1', auth_id: 'sa1', ho_ten: 'Nguyễn Nam',
+    so_dien_thoai: '0901234567', bac_sale: 'Vàng',
+    commission_rate: 6, kpi_thang: 35,
+    stk: '1234567890', ngan_hang: 'Vietcombank',
+    zones: { ten: 'Khu A', mo_ta: 'Phú Bài — Hương Thủy' }
+  }},
+  '0902345678': { pass: 'Sale@SM1', role: 'sale', profile: {
+    id: 'sa2', auth_id: 'sa2', ho_ten: 'Trần Hoa',
+    so_dien_thoai: '0902345678', bac_sale: 'Bạc',
+    commission_rate: 5, kpi_thang: 35,
+    stk: '9876543210', ngan_hang: 'Techcombank',
+    zones: { ten: 'Khu B', mo_ta: 'Vinh Thanh — Phú Vang' }
+  }},
+  // Admin
+  '0900000000': { pass: 'Admin@SM1', role: 'admin', profile: { id: 'adm1', ho_ten: 'Admin' } },
+};
+
+// ── DEMO DB (shared in-memory across tabs via localStorage) ──
+function _loadDB(key, def) {
+  try { const v = localStorage.getItem('smone_'+key); return v ? JSON.parse(v) : def; } catch { return def; }
+}
+function _saveDB(key, val) {
+  try { localStorage.setItem('smone_'+key, JSON.stringify(val)); } catch {}
+}
+
+let _DB_ORDERS = _loadDB('orders', []);
+let _DB_STORES = _loadDB('stores', [
+  {id:'st1',ten:'Tạp hóa Lan',chu_so_huu:'Chị Lan',so_dien_thoai:'0901111111',dia_chi:'12 Trần Phú',loai:'tap_hoa',zone_id:'z1',sale_id:'sa1',trang_thai:'can_vieng',lan_vieng_cuoi:null,tong_doanh_thu:4200000,ghi_chu:'Hay mua ST25'},
+  {id:'st2',ten:'Tạp hóa Minh Quang',chu_so_huu:'Anh Quang',so_dien_thoai:'0902222222',dia_chi:'45 Lý Thường Kiệt',loai:'tap_hoa',zone_id:'z2',sale_id:'sa1',trang_thai:'vua_dat',lan_vieng_cuoi:new Date(Date.now()-5*86400000).toISOString(),tong_doanh_thu:2100000,ghi_chu:''},
+  {id:'st3',ten:'CH Bà Hoa',chu_so_huu:'Bà Hoa',so_dien_thoai:'0903333333',dia_chi:'78 Nguyễn Huệ',loai:'cua_hang_tien_loi',zone_id:'z1',sale_id:'sa1',trang_thai:'moi',lan_vieng_cuoi:null,tong_doanh_thu:0,ghi_chu:''},
+  {id:'st4',ten:'Tạp hóa Sơn',chu_so_huu:'Anh Sơn',so_dien_thoai:'0904444444',dia_chi:'23 Phan Chu Trinh',loai:'tap_hoa',zone_id:'z1',sale_id:'sa1',trang_thai:'can_vieng',lan_vieng_cuoi:new Date(Date.now()-8*86400000).toISOString(),tong_doanh_thu:6300000,ghi_chu:'Mua chiều T6'},
+  {id:'st5',ten:'SM Mini Hà',chu_so_huu:'Chị Hà',so_dien_thoai:'0905555555',dia_chi:'5 Hoàng Diệu',loai:'sieu_thi_mini',zone_id:'z2',sale_id:'sa2',trang_thai:'vua_dat',lan_vieng_cuoi:new Date(Date.now()-3*86400000).toISOString(),tong_doanh_thu:3150000,ghi_chu:''},
+]);
+let _DB_PRODUCTS = _loadDB('products', [
+  {ma:'ST25-50',ten:'Gạo ST25',mo_ta:'Gạo ST25 thơm ngon từ Sóc Trăng',spec:'Túi 50kg',icon:'🌾',category:'gao',don_vi:'túi',don_gia:700000,gia_goc:750000,nha_cung_cap:'Vua Gạo',is_hot:true,rating:4.8,review_count:124,active:true},
+  {ma:'JAS-50',ten:'Jasmine',mo_ta:'Gạo Jasmine thơm nhẹ',spec:'Túi 50kg',icon:'🌾',category:'gao',don_vi:'túi',don_gia:650000,gia_goc:680000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.6,review_count:89,active:true},
+  {ma:'LUT-25',ten:'Lứt đen',mo_ta:'Gạo lứt đen giàu dinh dưỡng',spec:'Túi 25kg',icon:'🌱',category:'gao',don_vi:'túi',don_gia:400000,gia_goc:420000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.7,review_count:45,active:true},
+  {ma:'HUU-25',ten:'Hữu cơ',mo_ta:'Gạo hữu cơ không thuốc trừ sâu',spec:'Túi 25kg',icon:'🌿',category:'gao',don_vi:'túi',don_gia:520000,gia_goc:560000,nha_cung_cap:'Vua Gạo',is_hot:true,rating:4.9,review_count:67,active:true},
+  {ma:'NM-500',ten:'Nước mắm Phú Quốc',mo_ta:'Nước mắm truyền thống 40N',spec:'Chai 500ml',icon:'🍶',category:'nuoc_cham',don_vi:'chai',don_gia:45000,gia_goc:52000,nha_cung_cap:'Phú Quốc',is_hot:true,rating:4.7,review_count:203,active:true},
+  {ma:'DAN-1L',ten:'Dầu ăn Neptune',mo_ta:'Dầu ăn tinh luyện',spec:'Chai 1L',icon:'🫙',category:'dau_an',don_vi:'chai',don_gia:68000,gia_goc:75000,nha_cung_cap:'Neptune',is_hot:false,rating:4.5,review_count:156,active:true},
+  {ma:'MI-30',ten:'Mì Hảo Hảo',mo_ta:'Mì ăn liền vị tôm chua cay',spec:'Thùng 30 gói',icon:'🍜',category:'mi_pho',don_vi:'thùng',don_gia:115000,gia_goc:125000,nha_cung_cap:'Acecook',is_hot:true,rating:4.4,review_count:312,active:true},
+  {ma:'DK-25',ten:'VIP Đặc khu',mo_ta:'Gạo đặc khu cao cấp',spec:'Túi 25kg',icon:'⭐',category:'gao',don_vi:'túi',don_gia:480000,gia_goc:500000,nha_cung_cap:'Vua Gạo',is_hot:false,rating:4.8,review_count:34,active:true},
+]);
+let _DB_COUPONS = [
+  {code:'TAPHOASM10',mo_ta:'Giảm 10% toàn đơn',loai:'pct',gia_tri:10,don_toi_thieu:1000000,han_su_dung:'2026-12-31',active:true},
+  {code:'MUACANG5',mo_ta:'Giảm 5% đơn hàng',loai:'pct',gia_tri:5,don_toi_thieu:500000,han_su_dung:'2026-06-30',active:true},
+  {code:'FREESHIP',mo_ta:'Miễn phí vận chuyển',loai:'ship',gia_tri:20000,don_toi_thieu:300000,han_su_dung:'2026-06-30',active:true},
+];
+let _DB_ZONES = [
+  {id:'z1',ten:'Khu A',mo_ta:'Phú Bài — Hương Thủy',tinh_thanh:'Thừa Thiên Huế',ghi_chu:'Zone lớn nhất'},
+  {id:'z2',ten:'Khu B',mo_ta:'Vinh Thanh — Phú Vang',tinh_thanh:'Thừa Thiên Huế',ghi_chu:''},
+  {id:'z3',ten:'Khu C',mo_ta:'Thuận An — Phú Hải',tinh_thanh:'Thừa Thiên Huế',ghi_chu:'Zone mới'},
+];
+let _DB_SALES = Object.values(DEMO_USERS).filter(u=>u.role==='sale').map(u=>({...u.profile,don_thang:12,dt_thang:8400000,ten_zone:u.profile.zones?.ten}));
+let _DB_NOTIFS = [
+  {id:'n1',to_user_id:'ku1',tieu_de:'Khuyến mãi hôm nay!',noi_dung:'Gạo ST25 giảm 10% từ 14h–16h. Đặt ngay!',loai:'promo',da_doc:false,created_at:new Date(Date.now()-1800000).toISOString()},
+  {id:'n2',to_user_id:'ku1',tieu_de:'Đơn hàng đang giao',noi_dung:'Xe đã xuất phát, dự kiến đến trước 15h hôm nay.',loai:'order',da_doc:false,created_at:new Date(Date.now()-3600000).toISOString()},
+  {id:'n3',to_user_id:'ku1',tieu_de:'Cộng 150 điểm thưởng',noi_dung:'Cảm ơn đã đặt hàng! Tổng điểm: 750 điểm.',loai:'points',da_doc:true,created_at:new Date(Date.now()-3*86400000).toISOString()},
+];
+// Sample orders với ngày thực tế
+const _now = new Date();
+const _d = (off) => { const d=new Date(_now); d.setDate(d.getDate()+off); return d.toISOString(); };
+if(_DB_ORDERS.length===0){
+  _DB_ORDERS = [
+    {id:'O-K001',tap_hoa_id:'st1',kiosk_user_id:'ku1',sale_id:'sa1',nguon:'kiosk',chi_tiet_sp:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:2,don_gia:700000},{ma:'NM-500',ten:'Nước mắm',icon:'🍶',sl:3,don_gia:45000}],tong_tien:1535000,tien_giam:0,coupon_code:null,trang_thai:'da_giao',ngay_giao_du_kien:_d(-2).split('T')[0],da_thanh_toan:true,ngay_dat:_d(-3),updated_at:_d(-2),ten_tap_hoa:'Tạp hóa Lan',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+    {id:'O-K002',tap_hoa_id:'st2',kiosk_user_id:'ku2',sale_id:'sa1',nguon:'kiosk',chi_tiet_sp:[{ma:'JAS-50',ten:'Jasmine',icon:'🌾',sl:1,don_gia:650000}],tong_tien:650000,tien_giam:65000,coupon_code:'TAPHOASM10',trang_thai:'da_giao',ngay_giao_du_kien:_d(-5).split('T')[0],da_thanh_toan:true,ngay_dat:_d(-7),updated_at:_d(-5),ten_tap_hoa:'Tạp hóa Minh Quang',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+    {id:'O-003',tap_hoa_id:'st5',kiosk_user_id:null,sale_id:'sa2',nguon:'sale',chi_tiet_sp:[{ma:'HUU-25',ten:'Hữu cơ',icon:'🌿',sl:4,don_gia:520000}],tong_tien:2080000,tien_giam:0,coupon_code:null,trang_thai:'cho_giao',ngay_giao_du_kien:_d(1).split('T')[0],da_thanh_toan:true,ngay_dat:_d(0),updated_at:_d(0),ten_tap_hoa:'SM Mini Hà',ten_sale:'Trần Hoa',ten_zone:'Khu B'},
+    {id:'O-004',tap_hoa_id:'st1',kiosk_user_id:null,sale_id:'sa1',nguon:'sale',chi_tiet_sp:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:1,don_gia:700000}],tong_tien:700000,tien_giam:0,coupon_code:null,trang_thai:'cho_xac_nhan',ngay_giao_du_kien:_d(1).split('T')[0],da_thanh_toan:false,ngay_dat:_d(0),updated_at:_d(0),ten_tap_hoa:'Tạp hóa Lan',ten_sale:'Nguyễn Nam',ten_zone:'Khu A'},
+  ];
+  _saveDB('orders', _DB_ORDERS);
+}
+
+// ── REALTIME STUBS (polling-based for demo) ────────────────────
+const _subs = [];
+function _notifySubscribers(table, payload){
+  _subs.filter(s=>s.table===table).forEach(s=>{ try{s.cb(payload);}catch{} });
+}
+setInterval(()=>{
+  const fresh = _loadDB('orders', _DB_ORDERS);
+  if(JSON.stringify(fresh)!==JSON.stringify(_DB_ORDERS)){
+    _DB_ORDERS = fresh;
+    _notifySubscribers('orders',{new:fresh[0]});
+  }
+}, 3000);
+
+// ── WINDOW.DB API (mirrors real smone-db.js) ──────────────────
+window.DB = {
+  _sb: {},
+  AUTH: {
+    async loginPhone(phone, password){
+      const u = DEMO_USERS[phone];
+      if(!u) throw new Error('Số điện thoại không tồn tại trong hệ thống');
+      if(u.pass !== password) throw new Error('Mật khẩu không đúng');
+      _authUser = {id: u.profile.auth_id, phone};
+      _authRole = u.role;
+      return {user: _authUser};
+    },
+    async registerKiosk({ten_cua_hang,ho_ten,so_dien_thoai,dia_chi,password}){
+      const newId = 'ku'+Date.now();
+      const profile = {id:newId,auth_id:newId,tap_hoa_id:null,ten_cua_hang,ho_ten,so_dien_thoai,dia_chi,diem_tich_luy:0,tier:'Đồng',tap_hoa:null};
+      _authUser = {id:newId};
+      _authRole = 'kiosk';
+      DEMO_USERS[so_dien_thoai] = {pass:password, role:'kiosk', profile};
+      return {auth:{user:_authUser}, profile};
+    },
+    async logout(){ _authUser=null; _authRole=null; },
+    async getSession(){ return _authUser ? {user:_authUser} : null; },
+    async getUser(){ return {user:_authUser}; },
+  },
+  PRODUCTS: {
+    async getAll(){ return [..._DB_PRODUCTS]; },
+    async getByCategory(cat){ return cat&&cat!=='all'?_DB_PRODUCTS.filter(p=>p.category===cat):[..._DB_PRODUCTS]; },
+    async upsert(p){
+      const idx=_DB_PRODUCTS.findIndex(x=>x.ma===p.ma);
+      if(idx>=0) _DB_PRODUCTS[idx]={..._DB_PRODUCTS[idx],...p};
+      else _DB_PRODUCTS.push({...p,created_at:new Date().toISOString()});
+      _saveDB('products',_DB_PRODUCTS);
+      return p;
+    },
+    async toggleActive(ma,active){ const p=_DB_PRODUCTS.find(x=>x.ma===ma); if(p)p.active=active; _saveDB('products',_DB_PRODUCTS); },
+  },
+  COUPONS: {
+    async getActive(){ return _DB_COUPONS.filter(c=>c.active); },
+    async validate(code, tong){ const c=_DB_COUPONS.find(x=>x.code===code.toUpperCase()&&x.active); if(!c||tong<c.don_toi_thieu) return null; return c; },
+  },
+  STORES: {
+    async getBySale(sale_id){ return _DB_STORES.filter(s=>s.sale_id===sale_id||true).map(s=>({...s,zones:_DB_ZONES.find(z=>z.id===s.zone_id)||{}})); },
+    async getAll(){ return _DB_STORES.map(s=>({...s,zones:_DB_ZONES.find(z=>z.id===s.zone_id)||{},sales_users:_DB_SALES.find(x=>x.id===s.sale_id)||{}})); },
+    async upsert(s){
+      if(s.id){ const idx=_DB_STORES.findIndex(x=>x.id===s.id); if(idx>=0){_DB_STORES[idx]={..._DB_STORES[idx],...s};} }
+      else { s.id='st'+Date.now(); _DB_STORES.push(s); }
+      _saveDB('stores',_DB_STORES);
+      return s;
+    },
+    async updateStatus(id,ts){ const s=_DB_STORES.find(x=>x.id===id); if(s){s.trang_thai=ts;s.lan_vieng_cuoi=ts!=='moi'?new Date().toISOString():s.lan_vieng_cuoi;} _saveDB('stores',_DB_STORES); },
+    async delete(id){ const s=_DB_STORES.find(x=>x.id===id); if(s)s.active=false; _saveDB('stores',_DB_STORES); },
+  },
+  ORDERS: {
+    async create(data){
+      const id='O-'+Date.now().toString().slice(-6);
+      const order={
+        id, ...data,
+        trang_thai:'cho_xac_nhan', ngay_dat:new Date().toISOString(), updated_at:new Date().toISOString(), da_thanh_toan:false,
+        ten_tap_hoa: _DB_STORES.find(s=>s.id===data.tap_hoa_id)?.ten || data.ten_cua_hang || '',
+        ten_sale: _DB_SALES.find(s=>s.id===data.sale_id)?.ho_ten || 'Kiosk',
+      };
+      _DB_ORDERS.unshift(order);
+      _saveDB('orders',_DB_ORDERS);
+      _notifySubscribers('orders',{new:order, eventType:'INSERT'});
+      return order;
+    },
+    async getByKiosk(kid){ return _DB_ORDERS.filter(o=>o.kiosk_user_id===kid); },
+    async getBySale(sid){ return _DB_ORDERS.filter(o=>o.sale_id===sid); },
+    async getAll({status,nguon,limit=200}={}){
+      let r=[..._DB_ORDERS];
+      if(status)r=r.filter(o=>o.trang_thai===status);
+      if(nguon)r=r.filter(o=>o.nguon===nguon);
+      return r.slice(0,limit);
+    },
+    async updateStatus(id, ts, ma_giao_dich){
+      const o=_DB_ORDERS.find(x=>x.id===id);
+      if(o){ o.trang_thai=ts; o.updated_at=new Date().toISOString(); if(ts==='da_giao'){o.da_thanh_toan=true;o.ngay_giao=new Date().toISOString();} if(ts==='cho_giao')o.da_thanh_toan=true; if(ma_giao_dich)o.ma_giao_dich=ma_giao_dich; }
+      _saveDB('orders',_DB_ORDERS);
+      _notifySubscribers('orders',{new:o, eventType:'UPDATE'});
+      return o;
+    },
+    subscribeNew(cb){ _subs.push({table:'orders',cb}); return {unsubscribe:()=>{}}; },
+  },
+  KIOSK: {
+    async getProfile(auth_id){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.auth_id===auth_id&&x.role==='kiosk');
+      return u?.profile||null;
+    },
+    async getLoyaltyHistory(kid){ return []; },
+    async redeemPoints(kid,pts,mo_ta){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.id===kid);
+      if(u&&u.profile.diem_tich_luy>=pts) u.profile.diem_tich_luy-=pts;
+    },
+  },
+  SALE: {
+    async getProfile(auth_id){
+      const u=Object.values(DEMO_USERS).find(x=>x.profile.auth_id===auth_id&&x.role==='sale');
+      return u?.profile||null;
+    },
+    async getCommission(sale_id){ return []; },
+  },
+  CHECKINS: {
+    async create(data){ await DB.STORES.updateStatus(data.tap_hoa_id,'can_vieng'); return {id:'ci'+Date.now(),...data}; },
+    async getBySale(){ return []; },
+  },
+  NOTIF: {
+    async getForUser(uid){ return _DB_NOTIFS.filter(n=>n.to_user_id===uid||!n.to_user_id); },
+    async markAllRead(uid){ _DB_NOTIFS.filter(n=>n.to_user_id===uid).forEach(n=>n.da_doc=true); },
+    async send(data){ _DB_NOTIFS.unshift({id:'n'+Date.now(),...data,da_doc:false,created_at:new Date().toISOString()}); },
+    subscribe(uid,cb){ _subs.push({table:'notifications',cb}); return {unsubscribe:()=>{}}; },
+  },
+  CHAT: {
+    async getMessages(tid){ return [
+      {id:'m1',from_role:'sale',noi_dung:'Chào chị! Em Sale Nam phụ trách khu vực. Cần gì cứ nhắn em 🙏',created_at:new Date(Date.now()-86400000).toISOString()},
+      {id:'m2',from_role:'sale',noi_dung:'Tuần này gạo ST25 mua 5 tặng 1 Jasmine chị ơi!',created_at:new Date(Date.now()-3600000).toISOString()},
+    ];},
+    async send(data){ return {id:'m'+Date.now(),...data,created_at:new Date().toISOString()}; },
+    subscribe(tid,cb){ _subs.push({table:'chat',cb}); return {unsubscribe:()=>{}}; },
+  },
+  ADMIN: {
+    async getSales(){ return _DB_SALES; },
+    async getZones(){ return _DB_ZONES; },
+    async upsertSale(s){ const idx=_DB_SALES.findIndex(x=>x.id===s.id); if(idx>=0)_DB_SALES[idx]={..._DB_SALES[idx],...s}; else _DB_SALES.push({id:'sa'+Date.now(),...s}); return s; },
+    async upsertZone(z){ if(z.id){const idx=_DB_ZONES.findIndex(x=>x.id===z.id);if(idx>=0)_DB_ZONES[idx]={..._DB_ZONES[idx],...z};}else _DB_ZONES.push({id:'z'+Date.now(),...z}); return z; },
+    async deleteZone(id){ const idx=_DB_ZONES.findIndex(x=>x.id===id);if(idx>=0)_DB_ZONES.splice(idx,1); },
+    async getDashboardStats(){ return {orders:_DB_ORDERS,stores:_DB_STORES,sales:_DB_SALES}; },
+  },
+  STORAGE: {
+    async uploadCheckinPhoto(file){ return URL.createObjectURL(file); },
+  },
+};
+
+console.log('✅ SM ONE Demo Mode — Dữ liệu mẫu đã sẵn sàng');
+console.log('📱 Tài khoản test:', JSON.stringify(Object.fromEntries(Object.entries(DEMO_USERS).map(([k,v])=>[k,{pass:v.pass,role:v.role}]))));
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#1D9E75;--teal-l:#E1F5EE;--teal-d:#0F6E56;
+  --amber:#BA7517;--amber-l:#FAEEDA;
+  --red:#E24B4A;--red-l:#FCEBEB;
+  --purple:#534AB7;--purple-l:#EEEDFE;
+  --blue:#185FA5;--blue-l:#E6F1FB;
+  --bg:#f5f5f2;--white:#fff;--border:rgba(0,0,0,.09);
+  --text:#2C2C2A;--muted:#73726C;--sidebar-w:220px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20}
+.sidebar-logo{padding:20px 18px;border-bottom:1px solid var(--border)}
+.logo-text{font-size:20px;font-weight:900;color:var(--teal);letter-spacing:-0.5px}
+.logo-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.nav-section{padding:12px 10px 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:8px;margin:2px 8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s}
+.nav-link:hover{background:var(--bg);color:var(--text)}
+.nav-link.active{background:var(--teal-l);color:var(--teal-d);font-weight:700}
+.nav-icon{font-size:16px;width:20px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:14px;border-top:1px solid var(--border)}
+.admin-chip{display:flex;align-items:center;gap:8px}
+.admin-avatar{width:32px;height:32px;border-radius:50%;background:var(--teal-l);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--teal-d);flex-shrink:0}
+.admin-name{font-size:13px;font-weight:600}
+.admin-role{font-size:11px;color:var(--muted)}
+
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.page-title{font-size:18px;font-weight:800;color:var(--text)}
+.page-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.content{padding:20px 24px;flex:1}
+
+/* CARDS */
+.card{background:var(--white);border-radius:12px;padding:18px;border:1px solid var(--border);margin-bottom:14px}
+.card-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi-card{background:var(--white);border-radius:12px;padding:16px 18px;border:1px solid var(--border)}
+.kpi-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:900;color:var(--text)}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:4px}
+.kpi-up{color:var(--teal)}
+.kpi-down{color:var(--red)}
+
+/* BADGES */
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+.b-green{background:var(--teal-l);color:var(--teal-d)}
+.b-amber{background:var(--amber-l);color:var(--amber)}
+.b-red{background:var(--red-l);color:var(--red)}
+.b-gray{background:#F1EFE8;color:#444441}
+.b-blue{background:var(--blue-l);color:var(--blue)}
+.b-purple{background:var(--purple-l);color:var(--purple)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#fafaf8}
+.data-table td.money{font-weight:700;color:var(--teal)}
+.data-table td.muted{color:var(--muted)}
+
+/* CHARTS */
+.chart-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px}
+.chart-wrap{position:relative;height:240px}
+
+/* PROGRESS */
+.prog{background:#eee;border-radius:10px;height:6px;overflow:hidden;margin:4px 0}
+.prog-fill{height:100%;border-radius:10px;background:var(--teal)}
+
+/* SALE PERF */
+.sale-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.sale-row:last-child{border-bottom:none}
+.sale-avatar{width:36px;height:36px;border-radius:50%;background:var(--teal-l);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--teal-d);flex-shrink:0}
+.sale-name{font-size:13px;font-weight:600}
+.sale-meta{font-size:11px;color:var(--muted)}
+.sale-stat{text-align:right;flex-shrink:0}
+.sale-rev{font-size:13px;font-weight:700;color:var(--teal)}
+.sale-kpi{font-size:11px;color:var(--muted)}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.btn:active{opacity:.8}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-red{background:var(--red-l);color:var(--red)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:var(--white);outline:none;font-family:inherit}
+.field input:focus,.field select:focus{border-color:var(--teal)}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;padding:24px;width:100%;max-width:520px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:18px}
+
+/* STATUS DOT */
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot-green{background:var(--teal)}
+.dot-amber{background:var(--amber)}
+.dot-red{background:var(--red)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg);border-radius:10px;padding:4px}
+.tab{padding:7px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border:none;background:transparent}
+.tab.active{background:var(--white);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* ALERT */
+.alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.alert-amber{background:var(--amber-l);color:var(--amber)}
+.alert-green{background:var(--teal-l);color:var(--teal-d)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:200;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+
+<!-- ADMIN LOGIN -->
+<div id="admin-login" style="position:fixed;inset:0;background:linear-gradient(160deg,#0B3D22,#1FAB73);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:0">
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:28px;font-weight:900;color:#ffffff">SM ONE Admin</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:4px">Hệ thống quản trị nội bộ</div>
+  </div>
+  <div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:340px;border:1px solid var(--border)">
+    <div class="field"><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Số điện thoại Admin</label>
+      <input id="al-phone" class="field-input" type="tel" placeholder="0901234567" style="margin-top:5px"></div>
+    <div class="field"><label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Mật khẩu</label>
+      <input id="al-pass" class="field-input" type="password" placeholder="••••••" style="margin-top:5px"></div>
+    <div style="background:#E6F1FB;padding:10px 14px;text-align:center;font-size:12px;color:#0C447C;font-weight:600">Demo Admin: SĐT <b>0900000000</b> · Mật khẩu <b>Admin@SM1</b></div>
+<button class="btn btn-teal" style="width:100%;padding:12px;margin-top:4px" onclick="adminLogin()">Đăng nhập Admin</button>
+    <p id="al-err" style="color:var(--red);font-size:12px;text-align:center;margin-top:8px;min-height:16px"></p>
+  </div>
+</div>
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-text">SM ONE</div>
+    <div class="logo-sub">Admin Dashboard</div>
+  </div>
+  <div style="overflow-y:auto;flex:1">
+    <div class="nav-section">Tổng quan</div>
+    <div class="nav-link active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">▦</span>Dashboard</div>
+    <div class="nav-link" onclick="showPage('report')" id="nav-report"><span class="nav-icon">▤</span>Báo cáo doanh thu</div>
+
+    <div class="nav-section">Vận hành</div>
+    <div class="nav-link" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">◎</span>Đơn hàng <span id="pending-badge" class="badge b-amber" style="margin-left:auto;font-size:10px">2</span></div>
+    <div class="nav-link" onclick="showPage('stores')" id="nav-stores"><span class="nav-icon">◈</span>Cửa hàng</div>
+    <div class="nav-link" onclick="showPage('delivery')" id="nav-delivery"><span class="nav-icon">◷</span>Lịch giao hàng</div>
+
+    <div class="nav-section">Nhân sự</div>
+    <div class="nav-link" onclick="showPage('sales')" id="nav-sales"><span class="nav-icon">◉</span>Quản lý Sale</div>
+    <div class="nav-link" onclick="showPage('commission')" id="nav-commission"><span class="nav-icon">◐</span>Hoa hồng</div>
+
+    <div class="nav-section">Danh mục</div>
+    <div class="nav-link" onclick="showPage('products')" id="nav-products"><span class="nav-icon">◧</span>Sản phẩm (SKU)</div>
+    <div class="nav-link" onclick="showPage('zones')" id="nav-zones"><span class="nav-icon">◫</span>Zone & Khu vực</div>
+
+    <div class="nav-section">Hệ thống</div>
+    <div class="nav-link" onclick="showPage('config')" id="nav-config"><span class="nav-icon">⚙</span>Cấu hình</div>
+    <div class="nav-link" onclick="showPage('commission_pay')" id="nav-commission_pay"><span class="nav-icon">💸</span>Thanh toán HH</div>
+      <div class="nav-link" onclick="showPage('coupons')" id="nav-coupons"><span class="nav-icon">🎟️</span>Khuyến mãi</div>
+      <div class="nav-link" onclick="showPage('inventory_report')" id="nav-inventory_report"><span class="nav-icon">📦</span>Tồn kho</div>
+      <div class="nav-link" onclick="showPage('supabase')" id="nav-supabase"><span class="nav-icon">◬</span>Supabase SQL</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="admin-chip">
+      <div class="admin-avatar">AD</div>
+      <div><div class="admin-name">Admin</div><div class="admin-role">SM ONE System</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-sub" id="page-sub">Tổng quan hệ thống SM ONE</div>
+    </div>
+    <div class="topbar-right">
+      <span id="clock" style="font-size:13px;color:var(--muted)"></span>
+      <button class="btn btn-outline" onclick="exportReport()">Xuất báo cáo</button>
+      <button class="btn btn-teal" onclick="openCreateOrder()">+ Tạo đơn</button>
+    </div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- CREATE ORDER MODAL -->
+<div class="overlay" id="modal-create-order">
+  <div class="modal" style="max-width:640px;max-height:90vh;overflow-y:auto">
+    <div class="modal-title">Tạo đơn hàng mới</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="field"><label>Cửa hàng *</label>
+        <select id="co-store" class="field-input" onchange="coUpdateStore()">
+          <option value="">-- Chọn cửa hàng --</option>
+        </select>
+      </div>
+      <div class="field"><label>Sale phụ trách</label>
+        <select id="co-sale" class="field-input">
+          <option value="">-- Chọn Sale --</option>
+        </select>
+      </div>
+      <div class="field"><label>Ngày đặt</label>
+        <input type="date" id="co-date" class="field-input">
+      </div>
+      <div class="field"><label>Ghi chú đơn</label>
+        <input id="co-note" class="field-input" placeholder="Giao trước 11h...">
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Sản phẩm</div>
+    <div id="co-sku-list" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px"></div>
+    <div style="background:var(--teal-l);border-radius:8px;padding:12px 16px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--teal-d)">Tổng đơn hàng</span>
+        <span style="font-size:20px;font-weight:900;color:var(--teal-d)" id="co-total">0đ</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:12px;color:var(--teal-d)">Hoa hồng Sale</span>
+        <span style="font-size:13px;font-weight:700;color:var(--teal)" id="co-comm">+0đ</span>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);font-size:12px;color:var(--teal-d)">
+        TK nhận TT: <strong id="co-tk">--</strong>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-teal" style="flex:1" onclick="submitCreateOrder()">Tạo đơn hàng</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-create-order')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ZONE MODAL -->
+<div class="overlay" id="modal-zone">
+  <div class="modal">
+    <div class="modal-title" id="modal-zone-title">Thêm zone mới</div>
+    <div class="form-grid">
+      <div class="field"><label>Tên zone *</label><input id="z-ten" placeholder="Khu A"></div>
+      <div class="field"><label>Tỉnh/Thành phố</label><input id="z-tinh" placeholder="Thừa Thiên Huế"></div>
+    </div>
+    <div class="field"><label>Mô tả khu vực *</label><input id="z-mo_ta" placeholder="Phú Bài — Hương Thủy"></div>
+    <div class="field"><label>Sale phụ trách</label>
+      <select id="z-sale" class="field-input" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;appearance:none">
+        <option value="">-- Chưa phân công --</option>
+      </select>
+    </div>
+    <div class="field"><label>Ghi chú</label><input id="z-ghi_chu" placeholder="Zone lớn nhất, ưu tiên Sale Vàng..."></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-teal" style="flex:1" onclick="saveZone()">Lưu zone</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-zone')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<!-- STORE MODAL (Admin) -->
+<div class="overlay" id="modal-store2">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="modal-store2-title">Thêm cửa hàng mới</div>
+    <div class="form-grid">
+      <div class="field"><label>Tên cửa hàng *</label><input id="st2-ten" placeholder="Tạp hóa Lan"></div>
+      <div class="field"><label>Chủ cửa hàng *</label><input id="st2-chu" placeholder="Chị Lan"></div>
+      <div class="field"><label>Số điện thoại *</label><input id="st2-phone" type="tel" placeholder="0901234567"></div>
+      <div class="field"><label>Địa chỉ</label><input id="st2-addr" placeholder="12 Trần Phú"></div>
+      <div class="field"><label>Loại cửa hàng</label>
+        <select id="st2-loai" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;appearance:none">
+          <option value="tap_hoa">Tạp hóa</option>
+          <option value="sieu_thi_mini">Siêu thị mini</option>
+          <option value="cua_hang_tien_loi">CH tiện lợi</option>
+          <option value="dai_ly">Đại lý</option>
+        </select>
+      </div>
+      <div class="field"><label>Zone</label>
+        <select id="st2-zone" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;appearance:none">
+          <option value="">-- Chọn zone --</option>
+        </select>
+      </div>
+      <div class="field"><label>Sale phụ trách</label>
+        <select id="st2-sale" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;appearance:none">
+          <option value="">-- Chọn Sale --</option>
+        </select>
+      </div>
+      <div class="field"><label>Trạng thái</label>
+        <select id="st2-ts" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);background:#fff;outline:none;appearance:none">
+          <option value="moi">Mới</option>
+          <option value="can_vieng">Cần viếng</option>
+          <option value="vua_dat">Vừa đặt</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Ghi chú</label><input id="st2-ghi_chu" placeholder="Mua nhiều cuối tuần..."></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-teal" style="flex:1" onclick="saveStore2()">Lưu cửa hàng</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-store2')">Hủy</button>
+    </div>
+  </div>
+</div>
+<!-- MODALS -->
+<div class="overlay" id="modal-sale">
+  <div class="modal">
+    <div class="modal-title" id="modal-sale-title">Thêm Sale mới</div>
+    <div class="form-grid">
+      <div class="field"><label>Họ và tên *</label><input id="s-ten" placeholder="Nguyễn Văn A"></div>
+      <div class="field"><label>Số điện thoại *</label><input id="s-phone" type="tel" placeholder="0901234567"></div>
+      <div class="field"><label>Zone phụ trách</label><input id="s-zone" placeholder="Khu A — Phú Bài"></div>
+      <div class="field"><label>Bậc Sale</label><select id="s-bac"><option value="Đồng">Đồng</option><option value="Bạc">Bạc</option><option value="Vàng">Vàng</option></select></div>
+      <div class="field"><label>TK ngân hàng</label><input id="s-stk" placeholder="1234567890"></div>
+      <div class="field"><label>Ngân hàng</label><input id="s-bank" placeholder="Vietcombank"></div>
+    </div>
+    <div class="field"><label>Ghi chú</label><input id="s-note" placeholder=""></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-teal" style="flex:1" onclick="saveSale()">Lưu</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-sale')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-title" id="modal-product-title">Thêm sản phẩm</div>
+    <div class="form-grid">
+      <div class="field"><label>Mã hàng (SKU) *</label><input id="p-ma" placeholder="ST25-50" style="font-family:monospace"></div>
+      <div class="field"><label>Tên sản phẩm *</label><input id="p-ten" placeholder="Gạo ST25"></div>
+      <div class="field"><label>Mô tả / quy cách</label><input id="p-mo_ta" placeholder="Túi 50kg"></div>
+      <div class="field"><label>Đơn vị tính</label><input id="p-don_vi" placeholder="túi"></div>
+      <div class="field"><label>Đơn giá (đ) *</label><input id="p-don_gia" type="number" placeholder="700000"></div>
+      <div class="field"><label>Nhà cung cấp</label><input id="p-ncc" placeholder="Vua Gạo"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-teal" style="flex:1" onclick="saveProduct()">Lưu</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-product')">Hủy</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal-order-detail">
+  <div class="modal" id="modal-order-detail-body" style="max-width:600px"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────
+// Credentials đã được cấu hình trong _SB_URL / _SB_KEY bên trên;
+// ────────────────────────────────────────────────
+
+// ── MOCK DATA ────────────────────────────────────
+let SALES_DATA = [
+  { id:'sa1', ten:'Nguyễn Nam', phone:'0901111111', zone:'Khu A — Phú Bài', bac:'Vàng', stk:'111222333', bank:'VCB', don_thang:42, dt_thang:29400000, note:'' },
+  { id:'sa2', ten:'Trần Hoa', phone:'0902222222', zone:'Khu B — Vinh Thanh', bac:'Bạc', stk:'444555666', bank:'TCB', don_thang:31, dt_thang:21700000, note:'' },
+  { id:'sa3', ten:'Lê Minh', phone:'0903333333', zone:'Khu C — Thuận An', bac:'Đồng', stk:'777888999', bank:'MB', don_thang:18, dt_thang:12600000, note:'Mới 2 tháng' },
+];
+
+let PRODUCTS = [
+  { ma:'ST25-50', ten:'Gạo ST25', mo_ta:'Túi 50kg', don_vi:'túi', don_gia:700000, ncc:'Vua Gạo', active:true },
+  { ma:'JAS-50', ten:'Jasmine', mo_ta:'Túi 50kg', don_vi:'túi', don_gia:650000, ncc:'Vua Gạo', active:true },
+  { ma:'LUT-25', ten:'Lứt đen', mo_ta:'Túi 25kg', don_vi:'túi', don_gia:400000, ncc:'Vua Gạo', active:true },
+  { ma:'HUU-25', ten:'Hữu cơ', mo_ta:'Túi 25kg', don_vi:'túi', don_gia:520000, ncc:'Vua Gạo', active:true },
+  { ma:'DK-25', ten:'Đặc khu VIP', mo_ta:'Túi 25kg', don_vi:'túi', don_gia:480000, ncc:'Premium Farm', active:true },
+];
+
+function dateStr(offset=0) {
+  const d = new Date(); d.setDate(d.getDate()+offset);
+  return d.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+let ORDERS_DATA = [
+  { id:'O-001', store:'Tạp hóa Lan', sale:'Nguyễn Nam', zone:'Khu A', items:[{ma:'ST25-50',ten:'Gạo ST25',sl:3,don_gia:700000},{ma:'JAS-50',ten:'Jasmine',sl:1,don_gia:650000}], tong:2750000, trang_thai:'da_giao', ngay:dateStr(-1), gio:'09:30', da_tt:true },
+  { id:'O-002', store:'Tạp hóa Minh Quang', sale:'Trần Hoa', zone:'Khu B', items:[{ma:'ST25-50',ten:'Gạo ST25',sl:2,don_gia:700000}], tong:1400000, trang_thai:'da_giao', ngay:dateStr(-1), gio:'11:00', da_tt:true },
+  { id:'O-003', store:'SM Mini Hà', sale:'Nguyễn Nam', zone:'Khu A', items:[{ma:'HUU-25',ten:'Hữu cơ',sl:4,don_gia:520000}], tong:2080000, trang_thai:'cho_giao', ngay:dateStr(0), gio:'08:45', da_tt:true },
+  { id:'O-004', store:'Tạp hóa Sơn', sale:'Lê Minh', zone:'Khu C', items:[{ma:'LUT-25',ten:'Lứt đen',sl:2,don_gia:400000},{ma:'ST25-50',ten:'Gạo ST25',sl:1,don_gia:700000}], tong:1500000, trang_thai:'cho_xac_nhan', ngay:dateStr(0), gio:'10:20', da_tt:false },
+  { id:'O-005', store:'CH Bà Hoa', sale:'Trần Hoa', zone:'Khu B', items:[{ma:'JAS-50',ten:'Jasmine',sl:3,don_gia:650000}], tong:1950000, trang_thai:'cho_xac_nhan', ngay:dateStr(0), gio:'14:10', da_tt:false },
+  { id:'O-006', store:'Đại lý Phú', sale:'Nguyễn Nam', zone:'Khu A', items:[{ma:'ST25-50',ten:'Gạo ST25',sl:5,don_gia:700000},{ma:'DK-25',ten:'Đặc khu VIP',sl:2,don_gia:480000}], tong:4460000, trang_thai:'da_giao', ngay:dateStr(-2), gio:'09:00', da_tt:true },
+  { id:'O-007', store:'Tạp hóa Bình', sale:'Lê Minh', zone:'Khu C', items:[{ma:'ST25-50',ten:'Gạo ST25',sl:1,don_gia:700000}], tong:700000, trang_thai:'da_giao', ngay:dateStr(-3), gio:'15:30', da_tt:true },
+];
+
+let CONFIG = { commission_rate:4, xang:400000, min_order:700000, tk_cty:'9876543210', bank_cty:'Techcombank', ten_cty:'SM ONE FMCG' };
+
+let ZONES_DATA = [
+  { id:'z1', ten:'Khu A', mo_ta:'Phú Bài — Hương Thủy', sale_id:'sa1', tinh:'Thừa Thiên Huế', ghi_chu:'Zone lớn nhất, 7 điểm bán' },
+  { id:'z2', ten:'Khu B', mo_ta:'Vinh Thanh — Phú Vang', sale_id:'sa2', tinh:'Thừa Thiên Huế', ghi_chu:'' },
+  { id:'z3', ten:'Khu C', mo_ta:'Thuận An — Phú Hải', sale_id:'sa3', tinh:'Thừa Thiên Huế', ghi_chu:'Zone mới mở rộng' },
+];
+
+let STORES_DATA = [
+  { id:'st1', ten:'Tạp hóa Lan', chu:'Chị Lan', phone:'0901111111', dia_chi:'12 Trần Phú, Phú Bài', loai:'tap_hoa', zone_id:'z1', sale_id:'sa1', trang_thai:'can_vieng', ngay_vieng:12, tong_dt:2800000, ghi_chu:'Hay mua ST25' },
+  { id:'st2', ten:'Tạp hóa Minh Quang', chu:'Anh Quang', phone:'0902222222', dia_chi:'45 Lý Thường Kiệt', loai:'tap_hoa', zone_id:'z2', sale_id:'sa2', trang_thai:'vua_dat', ngay_vieng:5, tong_dt:1400000, ghi_chu:'' },
+  { id:'st3', ten:'SM Mini Hà', chu:'Chị Hà', phone:'0903333333', dia_chi:'5 Hoàng Diệu', loai:'sieu_thi_mini', zone_id:'z1', sale_id:'sa1', trang_thai:'vua_dat', ngay_vieng:3, tong_dt:4160000, ghi_chu:'' },
+  { id:'st4', ten:'Tạp hóa Sơn', chu:'Anh Sơn', phone:'0904444444', dia_chi:'23 Phan Chu Trinh', loai:'tap_hoa', zone_id:'z3', sale_id:'sa3', trang_thai:'can_vieng', ngay_vieng:8, tong_dt:3000000, ghi_chu:'Mua chiều T6' },
+  { id:'st5', ten:'CH Bà Hoa', chu:'Bà Hoa', phone:'0905555555', dia_chi:'78 Nguyễn Huệ', loai:'cua_hang_tien_loi', zone_id:'z2', sale_id:'sa2', trang_thai:'vua_dat', ngay_vieng:3, tong_dt:1950000, ghi_chu:'' },
+  { id:'st6', ten:'Đại lý Phú', chu:'Anh Phú', phone:'0906666666', dia_chi:'9 Trường Chinh', loai:'dai_ly', zone_id:'z1', sale_id:'sa1', trang_thai:'vua_dat', ngay_vieng:1, tong_dt:8920000, ghi_chu:'Đơn lớn, ưu tiên giao trước' },
+  { id:'st7', ten:'Tạp hóa Bình', chu:'Chị Bình', phone:'0907777777', dia_chi:'15 Hùng Vương', loai:'tap_hoa', zone_id:'z3', sale_id:'sa3', trang_thai:'moi', ngay_vieng:null, tong_dt:0, ghi_chu:'Khách mới tháng này' },
+];
+
+let _editZoneId = null;
+let _editStoreId2 = null;
+
+// ── UTILS ─────────────────────────────────────────
+function fmtM(n){if(n>=1000000)return(n/1000000).toFixed(1).replace('.0','')+'tr';if(n>=1000)return Math.round(n/1000)+'k';return n+'đ'}
+function fmtFull(n){return new Intl.NumberFormat('vi-VN').format(n)+'đ'}
+function showToast(msg,ms=2500){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),ms)}
+function setContent(html){document.getElementById('content').innerHTML=html}
+function closeOverlay(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+// Clock
+setInterval(()=>{
+  const now=new Date();
+  const el=document.getElementById('clock');
+  if(el)el.textContent=now.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' · '+now.toLocaleDateString('vi-VN',{weekday:'short',day:'numeric',month:'numeric'});
+},1000);
+
+// ── NAV ───────────────────────────────────────────
+function showPage(page) {
+  document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));
+  const el = document.getElementById('nav-'+page);
+  if(el) el.classList.add('active');
+  const pages = {
+    dashboard:['Dashboard','Tổng quan hệ thống SM ONE'],
+    report:['Báo cáo doanh thu','Phân tích theo ngày / tuần / tháng'],
+    orders:['Đơn hàng','Quản lý và xác nhận đơn'],
+    stores:['Cửa hàng','Danh sách điểm bán toàn hệ thống'],
+    delivery:['Lịch giao hàng','Điều phối xe và giao hàng'],
+    sales:['Quản lý Sale','Nhân sự và hiệu suất'],
+    commission:['Hoa hồng','Tính toán và thanh toán'],
+    products:['Sản phẩm (SKU)','Danh mục hàng hóa'],
+    zones:['Zone & Khu vực','Phân vùng phụ trách'],
+    config:['Cấu hình hệ thống','Tham số vận hành'],
+    supabase:['Supabase SQL Schema','Database setup'],
+  };
+  const [title,sub]=pages[page]||['SM ONE',''];
+  document.getElementById('page-title').textContent=title;
+  document.getElementById('page-sub').textContent=sub;
+  const fns={dashboard:renderDashboard,report:renderReport,orders:renderOrders,stores:renderStores,delivery:renderDelivery,sales:renderSales,commission:renderCommission,products:renderProducts,zones:renderZones,config:renderConfig,supabase:renderSupabase};
+  if(fns[page]) fns[page]();
+}
+
+// ── DASHBOARD ─────────────────────────────────────
+function renderDashboard() {
+  const todayRev = ORDERS_DATA.filter(o=>o.ngay===dateStr(0)).reduce((s,o)=>s+o.tong,0);
+  const totalRev = ORDERS_DATA.reduce((s,o)=>s+o.tong,0);
+  const pending = ORDERS_DATA.filter(o=>o.trang_thai==='cho_xac_nhan').length;
+  const totalStores = 15;
+
+  let html = `
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Doanh thu hôm nay</div>
+      <div class="kpi-val" style="color:var(--teal)">${fmtM(todayRev)}</div>
+      <div class="kpi-sub"><span class="kpi-up">▲ 12%</span> so với hôm qua</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tổng đơn tháng</div>
+      <div class="kpi-val">${ORDERS_DATA.length}</div>
+      <div class="kpi-sub"><span class="kpi-up">▲ 8%</span> so với tháng trước</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Đơn chờ xác nhận</div>
+      <div class="kpi-val" style="color:var(--amber)">${pending}</div>
+      <div class="kpi-sub"><span class="kpi-down">Cần xử lý ngay</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Tổng doanh thu tháng</div>
+      <div class="kpi-val" style="color:var(--purple)">${fmtM(totalRev)}</div>
+      <div class="kpi-sub">${SALES_DATA.length} Sale đang hoạt động</div>
+    </div>
+  </div>`;
+
+  if (pending > 0) {
+    html += `<div class="alert alert-amber">⚠ Có ${pending} đơn đang chờ xác nhận thanh toán — <a href="#" onclick="showPage('orders')" style="color:inherit;font-weight:700">Xử lý ngay ›</a></div>`;
+  }
+
+  html += `<div class="chart-row">
+    <div class="card">
+      <div class="card-title">Doanh thu 7 ngày</div>
+      <div class="chart-wrap"><canvas id="chart-rev"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Phân bổ doanh thu theo Sale</div>
+      <div class="chart-wrap"><canvas id="chart-sale"></canvas></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-title">Hiệu suất Sale tháng này</div>`;
+
+  SALES_DATA.forEach(s=>{
+    const pct = Math.min(100,Math.round(s.don_thang/35*100));
+    const bacColor = s.bac==='Vàng'?'b-amber':s.bac==='Bạc'?'b-gray':'b-blue';
+    html += `<div class="sale-row">
+      <div class="sale-avatar">${s.ten.split(' ').map(w=>w[0]).join('').slice(-2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="sale-name">${s.ten} <span class="badge ${bacColor}">${s.bac}</span></div>
+        <div class="sale-meta">${s.zone}</div>
+        <div class="prog" style="margin-top:5px"><div class="prog-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${s.don_thang}/35 đơn · ${pct}%</div>
+      </div>
+      <div class="sale-stat">
+        <div class="sale-rev">${fmtM(s.dt_thang)}</div>
+        <div class="sale-kpi">${fmtM(Math.round(s.dt_thang*CONFIG.commission_rate/100))} HC</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>
+
+    <div class="card">
+      <div class="card-title">Đơn hàng gần nhất</div>
+      <table class="data-table">
+        <thead><tr><th>Cửa hàng</th><th>Sale</th><th>Tiền</th><th>Trạng thái</th></tr></thead>
+        <tbody>`;
+  ORDERS_DATA.slice(0,6).forEach(o=>{
+    const st = o.trang_thai==='da_giao'?'<span class="badge b-green">Đã giao</span>':o.trang_thai==='cho_giao'?'<span class="badge b-blue">Chờ giao</span>':'<span class="badge b-amber">Chờ TT</span>';
+    html += `<tr onclick="showOrderDetail('${o.id}')" style="cursor:pointer">
+      <td>${o.store}</td><td class="muted">${o.sale}</td>
+      <td class="money">${fmtM(o.tong)}</td><td>${st}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+    </div>
+  </div>`;
+
+  setContent(html);
+
+  // Render charts after DOM ready
+  setTimeout(()=>{
+    // Revenue chart
+    const days=[]; const revs=[];
+    for(let i=6;i>=0;i--){
+      const ds=dateStr(-i);
+      const d=new Date();d.setDate(d.getDate()-i);
+      days.push(i===0?'Hôm nay':d.toLocaleDateString('vi-VN',{weekday:'short'}));
+      revs.push(ORDERS_DATA.filter(o=>o.ngay===ds).reduce((s,o)=>s+o.tong,0)/1000000);
+    }
+    new Chart(document.getElementById('chart-rev'),{
+      type:'bar',
+      data:{labels:days,datasets:[{label:'Doanh thu (triệu)',data:revs,backgroundColor:days.map((d,i)=>i===6?'#1D9E75':'#9FE1CB'),borderRadius:6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'tr'}}}}
+    });
+    // Sale pie
+    new Chart(document.getElementById('chart-sale'),{
+      type:'doughnut',
+      data:{labels:SALES_DATA.map(s=>s.ten.split(' ').pop()),datasets:[{data:SALES_DATA.map(s=>s.dt_thang/1000000),backgroundColor:['#1D9E75','#534AB7','#BA7517'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:12}}}}}
+    });
+  },100);
+}
+
+// ── ORDERS ────────────────────────────────────────
+function renderOrders(filter='all') {
+  let filtered = filter==='all'?ORDERS_DATA:ORDERS_DATA.filter(o=>o.trang_thai===filter);
+  const pending = ORDERS_DATA.filter(o=>o.trang_thai==='cho_xac_nhan').length;
+
+  let html = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-teal" onclick="openCreateOrder()">+ Tạo đơn hàng mới</button>
+  </div>
+  <div class="tabs">
+    <button class="tab ${filter==='all'?'active':''}" onclick="renderOrders('all')">Tất cả (${ORDERS_DATA.length})</button>
+    <button class="tab ${filter==='cho_xac_nhan'?'active':''}" onclick="renderOrders('cho_xac_nhan')">Chờ TT (${pending})</button>
+    <button class="tab ${filter==='cho_giao'?'active':''}" onclick="renderOrders('cho_giao')">Chờ giao (${ORDERS_DATA.filter(o=>o.trang_thai==='cho_giao').length})</button>
+    <button class="tab ${filter==='da_giao'?'active':''}" onclick="renderOrders('da_giao')">Đã giao (${ORDERS_DATA.filter(o=>o.trang_thai==='da_giao').length})</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr>
+        <th>Mã đơn</th><th>Cửa hàng</th><th>Sale</th><th>Zone</th>
+        <th>Sản phẩm</th><th>Tổng tiền</th><th>Ngày</th><th>TT</th><th>Hành động</th>
+      </tr></thead>
+      <tbody>`;
+  filtered.forEach(o=>{
+    const st = o.trang_thai==='da_giao'?'<span class="badge b-green">Đã giao</span>':o.trang_thai==='cho_giao'?'<span class="badge b-blue">Chờ giao</span>':'<span class="badge b-amber">Chờ TT</span>';
+    const skus = o.items.map(i=>`${i.ma}×${i.sl}`).join(', ');
+    html += `<tr>
+      <td style="font-family:monospace;font-size:12px">${o.id}</td>
+      <td style="font-weight:600">${o.store}</td>
+      <td class="muted">${o.sale}</td>
+      <td class="muted">${o.zone}</td>
+      <td style="font-size:12px;color:var(--muted)">${skus}</td>
+      <td class="money">${fmtFull(o.tong)}</td>
+      <td class="muted">${o.ngay} ${o.gio}</td>
+      <td>${st}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" onclick="showOrderDetail('${o.id}')">Chi tiết</button>
+          ${o.trang_thai==='cho_xac_nhan'?`<button class="btn btn-teal" style="padding:5px 10px;font-size:12px" onclick="confirmOrder('${o.id}')">Xác nhận</button>`:''}
+          <button class="btn" style="padding:5px 10px;font-size:12px;background:var(--bg);color:var(--muted)" onclick="printOrderAdmin('${o.id}')">In</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+  setContent(html);
+}
+
+function showOrderDetail(id) {
+  const o = ORDERS_DATA.find(x=>x.id===id);
+  if(!o) return;
+  const st = o.trang_thai==='da_giao'?'<span class="badge b-green">Đã giao</span>':o.trang_thai==='cho_giao'?'<span class="badge b-blue">Chờ giao</span>':'<span class="badge b-amber">Chờ thanh toán</span>';
+  const itemRows = o.items.map(i=>`<tr>
+    <td style="padding:8px 10px;border:1px solid #eee;font-family:monospace;font-size:12px">${i.ma}</td>
+    <td style="padding:8px 10px;border:1px solid #eee">${i.ten}</td>
+    <td style="padding:8px 10px;border:1px solid #eee;text-align:center">${i.sl}</td>
+    <td style="padding:8px 10px;border:1px solid #eee;text-align:right">${fmtFull(i.don_gia)}</td>
+    <td style="padding:8px 10px;border:1px solid #eee;text-align:right;font-weight:700;color:var(--teal)">${fmtFull(i.sl*i.don_gia)}</td>
+  </tr>`).join('');
+  const comm = Math.round(o.tong*CONFIG.commission_rate/100);
+
+  document.getElementById('modal-order-detail-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div><div class="modal-title" style="margin:0">${o.store}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Mã đơn: <strong>${o.id}</strong> · ${o.ngay} ${o.gio} · Sale: ${o.sale}</div></div>
+      <div>${st}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <thead><tr style="background:#f5f5f2">
+        <th style="padding:8px 10px;border:1px solid #eee;font-size:11px;text-align:left">Mã hàng</th>
+        <th style="padding:8px 10px;border:1px solid #eee;font-size:11px;text-align:left">Tên hàng</th>
+        <th style="padding:8px 10px;border:1px solid #eee;font-size:11px;text-align:center">SL</th>
+        <th style="padding:8px 10px;border:1px solid #eee;font-size:11px;text-align:right">Đơn giá</th>
+        <th style="padding:8px 10px;border:1px solid #eee;font-size:11px;text-align:right">Thành tiền</th>
+      </tr></thead>
+      <tbody>${itemRows}</tbody>
+      <tfoot><tr>
+        <td colspan="4" style="padding:10px;border:1px solid #eee;font-weight:700;text-align:right">TỔNG CỘNG</td>
+        <td style="padding:10px;border:1px solid #eee;font-weight:800;font-size:16px;color:var(--teal);text-align:right">${fmtFull(o.tong)}</td>
+      </tr></tfoot>
+    </table>
+    <div style="background:var(--teal-l);border-radius:8px;padding:12px 14px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="color:var(--teal-d)">Hoa hồng Sale (${CONFIG.commission_rate}%)</span>
+        <span style="font-weight:700;color:var(--teal)">${fmtFull(comm)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px">
+        <span style="color:var(--teal-d)">TK nhận thanh toán</span>
+        <span style="font-weight:600">${CONFIG.tk_cty} · ${CONFIG.bank_cty}</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      ${o.trang_thai==='cho_xac_nhan'?`<button class="btn btn-teal" style="flex:1" onclick="confirmOrder('${o.id}');closeOverlay('modal-order-detail')">Xác nhận đã nhận tiền</button>`:''}
+      <button class="btn" style="flex:1;background:var(--bg)" onclick="printOrderAdmin('${o.id}')">In đơn</button>
+      <button class="btn btn-outline" onclick="closeOverlay('modal-order-detail')">Đóng</button>
+    </div>`;
+  document.getElementById('modal-order-detail').classList.add('open');
+}
+
+function confirmOrder(id) {
+  const idx = ORDERS_DATA.findIndex(o=>o.id===id);
+  if(idx>=0){ORDERS_DATA[idx].trang_thai='cho_giao';ORDERS_DATA[idx].da_tt=true;}
+  document.getElementById('pending-badge').textContent = ORDERS_DATA.filter(o=>o.trang_thai==='cho_xac_nhan').length;
+  showToast('Đã xác nhận đơn '+id+' — Điều xe giao hàng');
+  renderOrders();
+}
+
+function printOrderAdmin(id) {
+  const o = ORDERS_DATA.find(x=>x.id===id);
+  if(!o) return;
+  const rows = o.items.map(i=>`<tr><td style="padding:6px 8px;border:1px solid #ddd;font-family:monospace">${i.ma}</td><td style="padding:6px 8px;border:1px solid #ddd">${i.ten}</td><td style="padding:6px 8px;border:1px solid #ddd;text-align:center">${i.sl}</td><td style="padding:6px 8px;border:1px solid #ddd;text-align:right">${fmtFull(i.don_gia)}</td><td style="padding:6px 8px;border:1px solid #ddd;text-align:right;font-weight:bold">${fmtFull(i.sl*i.don_gia)}</td></tr>`).join('');
+  const w=window.open('','_blank','width=580,height=720');
+  w.document.write(`<!DOCTYPE html><html><head><title>Đơn ${o.id}</title></head><body style="font-family:Arial,sans-serif;padding:20px;max-width:520px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:16px"><div style="font-size:22px;font-weight:900;color:#1D9E75">SM ONE</div><div style="font-size:11px;color:#888">Hệ thống phân phối FMCG Toàn Quốc</div><div style="font-size:15px;font-weight:700;margin-top:8px">ĐƠN HÀNG</div></div>
+    <table style="width:100%;font-size:12px;margin-bottom:12px"><tr><td style="padding:3px 0;color:#888">Cửa hàng</td><td style="font-weight:bold">${o.store}</td></tr><tr><td style="padding:3px 0;color:#888">Ngày đặt</td><td>${o.ngay} ${o.gio}</td></tr><tr><td style="padding:3px 0;color:#888">Sale</td><td>${o.sale}</td></tr><tr><td style="padding:3px 0;color:#888">Mã đơn</td><td style="font-family:monospace">${o.id}</td></tr></table>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px"><thead><tr style="background:#f5f5f2"><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:left">Mã hàng</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:left">Tên hàng</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:center">SL</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:right">Đơn giá</th><th style="padding:7px 8px;border:1px solid #ddd;font-size:11px;text-align:right">Thành tiền</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="4" style="padding:8px;border:1px solid #ddd;font-weight:bold;text-align:right">TỔNG CỘNG</td><td style="padding:8px;border:1px solid #ddd;font-weight:bold;font-size:14px;color:#1D9E75;text-align:right">${fmtFull(o.tong)}</td></tr></tfoot></table>
+    <div style="border:1px solid #1D9E75;border-radius:8px;padding:10px 12px;background:#E1F5EE"><div style="font-size:12px;color:#0F6E56;font-weight:bold">Thanh toán chuyển khoản:</div><div style="font-size:13px;margin-top:3px">TK: <strong>${CONFIG.tk_cty}</strong> · ${CONFIG.bank_cty}</div></div>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),400);
+}
+
+// ── REPORT ────────────────────────────────────────
+function renderReport() {
+  const totalRev = ORDERS_DATA.reduce((s,o)=>s+o.tong,0);
+  const totalComm = Math.round(totalRev*CONFIG.commission_rate/100);
+  const totalXang = SALES_DATA.length*CONFIG.xang;
+  const profit = totalRev - totalComm - totalXang;
+
+  let html = `
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Tổng doanh thu</div><div class="kpi-val" style="color:var(--teal)">${fmtM(totalRev)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Hoa hồng đã trả</div><div class="kpi-val" style="color:var(--amber)">${fmtM(totalComm)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Phụ cấp xăng</div><div class="kpi-val">${fmtM(totalXang)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Lợi nhuận phân phối</div><div class="kpi-val" style="color:var(--purple)">${fmtM(profit)}</div><div class="kpi-sub">${(profit/totalRev*100).toFixed(1)}% biên</div></div>
+  </div>
+
+  <div class="chart-row">
+    <div class="card">
+      <div class="card-title">Doanh thu theo ngày (7 ngày)</div>
+      <div class="chart-wrap"><canvas id="chart-daily"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Doanh thu theo sản phẩm</div>
+      <div class="chart-wrap"><canvas id="chart-sku"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Chi tiết theo Sale</div>
+    <table class="data-table">
+      <thead><tr><th>Sale</th><th>Zone</th><th>Số đơn</th><th>Doanh thu</th><th>Hoa hồng</th><th>KPI (%)</th><th>Bậc</th></tr></thead>
+      <tbody>`;
+  SALES_DATA.forEach(s=>{
+    const pct=Math.min(100,Math.round(s.don_thang/35*100));
+    const comm=Math.round(s.dt_thang*CONFIG.commission_rate/100);
+    html+=`<tr><td style="font-weight:600">${s.ten}</td><td class="muted">${s.zone}</td><td>${s.don_thang}</td><td class="money">${fmtFull(s.dt_thang)}</td><td style="color:var(--amber);font-weight:600">${fmtFull(comm)}</td><td>
+      <div style="display:flex;align-items:center;gap:8px"><div class="prog" style="flex:1;margin:0"><div class="prog-fill" style="width:${pct}%"></div></div><span style="font-size:12px;min-width:30px">${pct}%</span></div>
+    </td><td><span class="badge ${s.bac==='Vàng'?'b-amber':s.bac==='Bạc'?'b-gray':'b-blue'}">${s.bac}</span></td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  setContent(html);
+
+  setTimeout(()=>{
+    const days=[],revs=[];
+    for(let i=6;i>=0;i--){
+      const ds=dateStr(-i);
+      const d=new Date();d.setDate(d.getDate()-i);
+      days.push(i===0?'Hôm nay':d.toLocaleDateString('vi-VN',{weekday:'short'}));
+      revs.push(ORDERS_DATA.filter(o=>o.ngay===ds).reduce((s,o)=>s+o.tong,0)/1000000);
+    }
+    new Chart(document.getElementById('chart-daily'),{type:'line',data:{labels:days,datasets:[{label:'Doanh thu (tr)',data:revs,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',tension:.4,fill:true,pointBackgroundColor:'#1D9E75'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'tr'}}}}});
+    // SKU revenue
+    const skuRevs={};
+    ORDERS_DATA.forEach(o=>o.items.forEach(i=>{skuRevs[i.ten]=(skuRevs[i.ten]||0)+i.sl*i.don_gia;}));
+    const skuKeys=Object.keys(skuRevs);
+    new Chart(document.getElementById('chart-sku'),{type:'bar',data:{labels:skuKeys,datasets:[{label:'Doanh thu',data:skuKeys.map(k=>skuRevs[k]/1000000),backgroundColor:['#1D9E75','#534AB7','#BA7517','#E24B4A','#185FA5'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}}},y:{beginAtZero:true,ticks:{callback:v=>v+'tr'}}}}});
+  },100);
+}
+
+// ── STORES ────────────────────────────────────────
+function renderStores() {
+  let html = `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div class="kpi-card" style="flex:none;padding:12px 16px"><div class="kpi-label">Tổng cửa hàng</div><div style="font-size:20px;font-weight:800">15</div></div>
+    <button class="btn btn-teal" onclick="showToast('Tính năng import từ Excel đang phát triển')">Import từ Excel</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr><th>Tên cửa hàng</th><th>Chủ</th><th>SĐT</th><th>Loại</th><th>Zone</th><th>Sale</th><th>DT tháng</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>`;
+  STORES_DATA.forEach(s=>{
+    const zone = ZONES_DATA.find(z=>z.id===s.zone_id);
+    const sale = SALES_DATA.find(x=>x.id===s.sale_id);
+    const loaiLabel = {tap_hoa:'Tạp hóa',sieu_thi_mini:'Siêu thị mini',cua_hang_tien_loi:'CH tiện lợi',dai_ly:'Đại lý'}[s.loai]||s.loai;
+    const st=s.trang_thai==='moi'?'<span class="badge b-gray">Mới</span>':s.trang_thai==='vua_dat'?'<span class="badge b-green">Vừa đặt</span>':'<span class="badge b-amber">Cần viếng</span>';
+    html+=`<tr>
+      <td style="font-weight:600">${s.ten}</td>
+      <td class="muted">${s.chu}</td>
+      <td class="muted">${s.phone}</td>
+      <td class="muted">${loaiLabel}</td>
+      <td class="muted">${zone?zone.ten:'-'}</td>
+      <td>${sale?sale.ten:'-'}</td>
+      <td class="money">${s.tong_dt>0?fmtM(s.tong_dt):'-'}</td>
+      <td>${st}</td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn btn-outline" style="padding:4px 9px;font-size:12px" onclick="openStoreModal2('${s.id}')">Sửa</button>
+        <button class="btn" style="padding:4px 9px;font-size:12px;background:var(--red-l);color:var(--red)" onclick="deleteStore2('${s.id}')">Xóa</button>
+      </div></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  setContent(html);
+}
+
+// ── DELIVERY ──────────────────────────────────────
+function renderDelivery() {
+  const toDeliver = ORDERS_DATA.filter(o=>o.trang_thai==='cho_giao');
+  let html = `
+  <div class="alert alert-green">Có ${toDeliver.length} đơn cần giao hôm nay — Tổng ${fmtFull(toDeliver.reduce((s,o)=>s+o.tong,0))}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">`;
+  ['Khu A — Phú Bài','Khu B — Vinh Thanh','Khu C — Thuận An'].forEach(zone=>{
+    const zOrders = ORDERS_DATA.filter(o=>o.trang_thai==='cho_giao'&&o.zone===zone.split('-')[0].trim());
+    html+=`<div class="card"><div class="card-title">${zone}</div>
+      <div style="font-size:22px;font-weight:800;color:var(--teal);margin-bottom:4px">${zOrders.length} đơn</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">${fmtFull(zOrders.reduce((s,o)=>s+o.tong,0))}</div>
+      ${zOrders.length>0?zOrders.map(o=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border)">${o.store} · ${o.items.map(i=>i.ma+'×'+i.sl).join(', ')}</div>`).join(''):'<div style="font-size:12px;color:var(--muted)">Không có đơn</div>'}
+      <button class="btn btn-teal" style="width:100%;margin-top:12px" onclick="showToast('Đã điều xe cho ${zone}')">Điều xe ngay</button>
+    </div>`;
+  });
+  html+=`</div>`;
+  setContent(html);
+}
+
+// ── SALES ─────────────────────────────────────────
+function renderSales() {
+  let html = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-teal" onclick="openSaleModal()">+ Thêm Sale mới</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr><th>Họ tên</th><th>SĐT</th><th>Zone</th><th>Bậc</th><th>Đơn tháng</th><th>DT tháng</th><th>Hoa hồng</th><th>TK ngân hàng</th><th></th></tr></thead>
+      <tbody>`;
+  SALES_DATA.forEach(s=>{
+    const pct=Math.min(100,Math.round(s.don_thang/35*100));
+    const comm=Math.round(s.dt_thang*CONFIG.commission_rate/100);
+    html+=`<tr>
+      <td style="font-weight:600">${s.ten}</td>
+      <td class="muted">${s.phone}</td>
+      <td class="muted">${s.zone}</td>
+      <td><span class="badge ${s.bac==='Vàng'?'b-amber':s.bac==='Bạc'?'b-gray':'b-blue'}">${s.bac}</span></td>
+      <td><div style="display:flex;align-items:center;gap:6px">${s.don_thang}/35<div class="prog" style="flex:1;margin:0;min-width:60px"><div class="prog-fill" style="width:${pct}%"></div></div></div></td>
+      <td class="money">${fmtFull(s.dt_thang)}</td>
+      <td style="color:var(--amber);font-weight:600">${fmtFull(comm)}</td>
+      <td style="font-size:12px;color:var(--muted)">${s.stk} · ${s.bank}</td>
+      <td><button class="btn btn-outline" style="padding:5px 10px;font-size:12px" onclick="openSaleModal('${s.id}')">Sửa</button></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  setContent(html);
+}
+
+function openSaleModal(id) {
+  const s = id ? SALES_DATA.find(x=>x.id===id) : null;
+  document.getElementById('modal-sale-title').textContent = s ? 'Sửa thông tin Sale' : 'Thêm Sale mới';
+  document.getElementById('s-ten').value = s?.ten||'';
+  document.getElementById('s-phone').value = s?.phone||'';
+  document.getElementById('s-zone').value = s?.zone||'';
+  document.getElementById('s-bac').value = s?.bac||'Đồng';
+  document.getElementById('s-stk').value = s?.stk||'';
+  document.getElementById('s-bank').value = s?.bank||'';
+  document.getElementById('s-note').value = s?.note||'';
+  document.getElementById('modal-sale').dataset.editId = id||'';
+  document.getElementById('modal-sale').classList.add('open');
+}
+
+function saveSale() {
+  const ten=document.getElementById('s-ten').value.trim();
+  const phone=document.getElementById('s-phone').value.trim();
+  if(!ten||!phone){showToast('Vui lòng nhập tên và SĐT');return;}
+  const editId=document.getElementById('modal-sale').dataset.editId;
+  const data={ten,phone,zone:document.getElementById('s-zone').value,bac:document.getElementById('s-bac').value,stk:document.getElementById('s-stk').value,bank:document.getElementById('s-bank').value,note:document.getElementById('s-note').value,don_thang:0,dt_thang:0};
+  if(editId){const idx=SALES_DATA.findIndex(s=>s.id===editId);if(idx>=0)SALES_DATA[idx]={...SALES_DATA[idx],...data};}
+  else{SALES_DATA.push({id:'sa'+Date.now(),...data});}
+  closeOverlay('modal-sale');
+  showToast('Đã lưu — '+ten);
+  renderSales();
+}
+
+// ── COMMISSION ────────────────────────────────────
+function renderCommission() {
+  const totalComm = SALES_DATA.reduce((s,x)=>s+Math.round(x.dt_thang*CONFIG.commission_rate/100),0);
+  const totalXang = SALES_DATA.length*CONFIG.xang;
+  let html = `
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Tổng hoa hồng phải trả</div><div class="kpi-val" style="color:var(--amber)">${fmtM(totalComm)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Tổng phụ cấp xăng</div><div class="kpi-val">${fmtM(totalXang)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Tổng chi tháng này</div><div class="kpi-val" style="color:var(--red)">${fmtM(totalComm+totalXang)}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Ngày thanh toán tiếp theo</div><div class="kpi-val">T.Sáu</div><div class="kpi-sub">Hàng tuần</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr><th>Sale</th><th>Bậc</th><th>Doanh thu</th><th>Tỷ lệ HC</th><th>Hoa hồng</th><th>Phụ cấp xăng</th><th>Tổng nhận</th><th>TK nhận tiền</th><th>Trạng thái</th></tr></thead>
+      <tbody>`;
+  SALES_DATA.forEach(s=>{
+    const rate=(s.bac==='Vàng'?CONFIG.commission_rate+2:s.bac==='Bạc'?CONFIG.commission_rate+1:CONFIG.commission_rate);
+    const comm=Math.round(s.dt_thang*rate/100);
+    const total=comm+CONFIG.xang;
+    html+=`<tr>
+      <td style="font-weight:600">${s.ten}</td>
+      <td><span class="badge ${s.bac==='Vàng'?'b-amber':s.bac==='Bạc'?'b-gray':'b-blue'}">${s.bac}</span></td>
+      <td class="money">${fmtFull(s.dt_thang)}</td>
+      <td style="text-align:center">${rate}%</td>
+      <td style="color:var(--amber);font-weight:700">${fmtFull(comm)}</td>
+      <td style="color:var(--muted)">${fmtFull(CONFIG.xang)}</td>
+      <td style="font-weight:800;color:var(--teal)">${fmtFull(total)}</td>
+      <td style="font-size:12px;color:var(--muted)">${s.stk} · ${s.bank}</td>
+      <td><span class="badge b-amber">Chờ TT</span></td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>
+  <button class="btn btn-teal" style="margin-top:12px" onclick="showToast('Đã xuất file thanh toán hoa hồng — gửi kế toán')">Xuất file thanh toán hoa hồng</button>`;
+  setContent(html);
+}
+
+// ── PRODUCTS ──────────────────────────────────────
+function renderProducts() {
+  let html = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-teal" onclick="openProductModal()">+ Thêm sản phẩm</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr><th>Mã SKU</th><th>Tên sản phẩm</th><th>Quy cách</th><th>Đơn vị</th><th>Đơn giá</th><th>Nhà CC</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>`;
+  PRODUCTS.forEach(p=>{
+    html+=`<tr>
+      <td style="font-family:monospace;font-weight:700;color:var(--teal)">${p.ma}</td>
+      <td style="font-weight:600">${p.ten}</td>
+      <td class="muted">${p.mo_ta}</td>
+      <td class="muted">${p.don_vi}</td>
+      <td class="money">${fmtFull(p.don_gia)}</td>
+      <td class="muted">${p.ncc}</td>
+      <td><span class="badge ${p.active?'b-green':'b-red'}">${p.active?'Đang bán':'Ngừng'}</span></td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" onclick="openProductModal('${p.ma}')">Sửa</button>
+          <button class="btn btn-red" style="padding:5px 10px;font-size:12px" onclick="toggleProduct('${p.ma}')">${p.active?'Tắt':'Bật'}</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  setContent(html);
+}
+
+function openProductModal(ma) {
+  const p = ma ? PRODUCTS.find(x=>x.ma===ma) : null;
+  document.getElementById('modal-product-title').textContent = p ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới';
+  document.getElementById('p-ma').value=p?.ma||''; document.getElementById('p-ten').value=p?.ten||'';
+  document.getElementById('p-mo_ta').value=p?.mo_ta||''; document.getElementById('p-don_vi').value=p?.don_vi||'túi';
+  document.getElementById('p-don_gia').value=p?.don_gia||''; document.getElementById('p-ncc').value=p?.ncc||'';
+  document.getElementById('modal-product').dataset.editMa=ma||'';
+  document.getElementById('modal-product').classList.add('open');
+}
+
+function saveProduct() {
+  const ma=document.getElementById('p-ma').value.trim().toUpperCase();
+  const ten=document.getElementById('p-ten').value.trim();
+  const don_gia=parseFloat(document.getElementById('p-don_gia').value);
+  if(!ma||!ten||!don_gia){showToast('Vui lòng điền mã, tên và đơn giá');return;}
+  const editMa=document.getElementById('modal-product').dataset.editMa;
+  const data={ma,ten,mo_ta:document.getElementById('p-mo_ta').value,don_vi:document.getElementById('p-don_vi').value||'túi',don_gia,ncc:document.getElementById('p-ncc').value,active:true};
+  if(editMa){const idx=PRODUCTS.findIndex(p=>p.ma===editMa);if(idx>=0)PRODUCTS[idx]={...PRODUCTS[idx],...data};}
+  else{PRODUCTS.push(data);}
+  closeOverlay('modal-product');
+  showToast('Đã lưu SKU — '+ma);
+  renderProducts();
+}
+
+function toggleProduct(ma) {
+  const idx=PRODUCTS.findIndex(p=>p.ma===ma);
+  if(idx>=0){PRODUCTS[idx].active=!PRODUCTS[idx].active;showToast(PRODUCTS[idx].active?'Đã bật SKU '+ma:'Đã tắt SKU '+ma);renderProducts();}
+}
+
+// ── ZONES ─────────────────────────────────────────
+function renderZones() {
+  let html = `<div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-teal" onclick="openZoneModal()">+ Thêm zone mới</button>
+  </div>`;
+
+  if(ZONES_DATA.length===0){
+    html += '<div style="text-align:center;padding:40px;color:var(--muted)">Chưa có zone nào. Bấm "+ Thêm zone mới" để bắt đầu.</div>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
+    ZONES_DATA.forEach(z=>{
+      const sale = SALES_DATA.find(s=>s.id===z.sale_id);
+      const storeCount = STORES_DATA.filter(s=>s.zone_id===z.id).length;
+      const zoneDT = ORDERS_DATA.filter(o=>{
+        const st = STORES_DATA.find(s=>s.id===o.store_id);
+        return st && st.zone_id===z.id;
+      }).reduce((sum,o)=>sum+o.tong,0);
+      const bacColor = sale ? (sale.bac==='Vàng'?'b-amber':sale.bac==='Bạc'?'b-gray':'b-blue') : 'b-gray';
+
+      html += `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:17px;font-weight:800">${z.ten}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${z.mo_ta}</div>
+            ${z.tinh?`<div style="font-size:11px;color:var(--muted)">${z.tinh}</div>`:''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" onclick="openZoneModal('${z.id}')">Sửa</button>
+            <button class="btn" style="padding:5px 10px;font-size:12px;background:var(--red-l);color:var(--red)" onclick="deleteZone('${z.id}')">Xóa</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800">${storeCount}</div>
+            <div style="font-size:11px;color:var(--muted)">Cửa hàng</div>
+          </div>
+          <div style="background:var(--teal-l);border-radius:8px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:var(--teal-d)">${fmtM(zoneDT)}</div>
+            <div style="font-size:11px;color:var(--teal-d)">DT tháng</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:13px">
+            ${sale?`<strong>${sale.ten}</strong> <span class="badge ${bacColor}">${sale.bac}</span>`:'<span style="color:var(--muted)">Chưa phân công Sale</span>'}
+          </div>
+          ${z.ghi_chu?`<div style="font-size:11px;color:var(--muted);font-style:italic">${z.ghi_chu}</div>`:''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // Stores in zones table
+  html += `<div style="margin-top:20px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Danh sách cửa hàng theo zone</h3>
+    <button class="btn btn-teal" onclick="openStoreModal2()">+ Thêm cửa hàng</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <table class="data-table">
+      <thead><tr><th>Tên cửa hàng</th><th>Chủ</th><th>SĐT</th><th>Loại</th><th>Zone</th><th>Sale</th><th>Trạng thái</th><th>DT tháng</th><th></th></tr></thead>
+      <tbody>`;
+
+  STORES_DATA.forEach(s=>{
+    const zone = ZONES_DATA.find(z=>z.id===s.zone_id);
+    const sale = SALES_DATA.find(x=>x.id===s.sale_id);
+    const loaiLabel = {tap_hoa:'Tạp hóa',sieu_thi_mini:'Siêu thị mini',cua_hang_tien_loi:'CH tiện lợi',dai_ly:'Đại lý'}[s.loai]||s.loai;
+    const stBadge = s.trang_thai==='moi'?'<span class="badge b-gray">Mới</span>':s.trang_thai==='vua_dat'?'<span class="badge b-green">Vừa đặt</span>':`<span class="badge b-amber">${s.ngay_vieng||'?'}n chưa thăm</span>`;
+    html += `<tr>
+      <td style="font-weight:600">${s.ten}</td>
+      <td class="muted">${s.chu}</td>
+      <td class="muted">${s.phone}</td>
+      <td class="muted">${loaiLabel}</td>
+      <td>${zone?zone.ten:'-'}</td>
+      <td>${sale?sale.ten:'-'}</td>
+      <td>${stBadge}</td>
+      <td class="money">${s.tong_dt>0?fmtFull(s.tong_dt):'-'}</td>
+      <td>
+        <div style="display:flex;gap:5px">
+          <button class="btn btn-outline" style="padding:4px 9px;font-size:12px" onclick="openStoreModal2('${s.id}')">Sửa</button>
+          <button class="btn" style="padding:4px 9px;font-size:12px;background:var(--red-l);color:var(--red)" onclick="deleteStore2('${s.id}')">Xóa</button>
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  setContent(html);
+}
+
+function openZoneModal(id) {
+  const z = id ? ZONES_DATA.find(x=>x.id===id) : null;
+  _editZoneId = id||null;
+  document.getElementById('modal-zone-title').textContent = z ? 'Sửa zone' : 'Thêm zone mới';
+  document.getElementById('z-ten').value = z?.ten||'';
+  document.getElementById('z-tinh').value = z?.tinh||'';
+  document.getElementById('z-mo_ta').value = z?.mo_ta||'';
+  document.getElementById('z-ghi_chu').value = z?.ghi_chu||'';
+  // Populate sale dropdown
+  const sel = document.getElementById('z-sale');
+  sel.innerHTML = '<option value="">-- Chưa phân công --</option>' +
+    SALES_DATA.map(s=>`<option value="${s.id}" ${z?.sale_id===s.id?'selected':''}>${s.ten} (${s.zone})</option>`).join('');
+  document.getElementById('modal-zone').classList.add('open');
+}
+
+function saveZone() {
+  const ten = document.getElementById('z-ten').value.trim();
+  const mo_ta = document.getElementById('z-mo_ta').value.trim();
+  if(!ten||!mo_ta){showToast('Vui lòng nhập tên zone và mô tả khu vực');return;}
+  const data = {
+    ten, mo_ta,
+    tinh: document.getElementById('z-tinh').value.trim(),
+    sale_id: document.getElementById('z-sale').value||null,
+    ghi_chu: document.getElementById('z-ghi_chu').value.trim(),
+  };
+  if(_editZoneId) {
+    const idx = ZONES_DATA.findIndex(z=>z.id===_editZoneId);
+    if(idx>=0) ZONES_DATA[idx] = {...ZONES_DATA[idx],...data};
+    showToast('Đã cập nhật zone — '+ten);
+  } else {
+    ZONES_DATA.push({id:'z'+Date.now(),...data});
+    showToast('Đã thêm zone — '+ten);
+  }
+  closeOverlay('modal-zone');
+  renderZones();
+}
+
+function deleteZone(id) {
+  const z = ZONES_DATA.find(x=>x.id===id);
+  const storeCount = STORES_DATA.filter(s=>s.zone_id===id).length;
+  if(storeCount>0){showToast('Không thể xóa — zone còn '+storeCount+' cửa hàng. Hãy chuyển cửa hàng sang zone khác trước.');return;}
+  if(!confirm('Xóa zone "'+z?.ten+'"? Hành động này không thể hoàn tác.')) return;
+  ZONES_DATA.splice(ZONES_DATA.findIndex(x=>x.id===id),1);
+  showToast('Đã xóa zone');
+  renderZones();
+}
+
+function openStoreModal2(id) {
+  const s = id ? STORES_DATA.find(x=>x.id===id) : null;
+  _editStoreId2 = id||null;
+  document.getElementById('modal-store2-title').textContent = s ? 'Sửa cửa hàng' : 'Thêm cửa hàng mới';
+  document.getElementById('st2-ten').value = s?.ten||'';
+  document.getElementById('st2-chu').value = s?.chu||'';
+  document.getElementById('st2-phone').value = s?.phone||'';
+  document.getElementById('st2-addr').value = s?.dia_chi||'';
+  document.getElementById('st2-loai').value = s?.loai||'tap_hoa';
+  document.getElementById('st2-ghi_chu').value = s?.ghi_chu||'';
+  document.getElementById('st2-ts').value = s?.trang_thai||'moi';
+  // Populate zone dropdown
+  const zSel = document.getElementById('st2-zone');
+  zSel.innerHTML = '<option value="">-- Chọn zone --</option>' +
+    ZONES_DATA.map(z=>`<option value="${z.id}" ${s?.zone_id===z.id?'selected':''}>${z.ten} — ${z.mo_ta}</option>`).join('');
+  // Populate sale dropdown
+  const sSel = document.getElementById('st2-sale');
+  sSel.innerHTML = '<option value="">-- Chọn Sale --</option>' +
+    SALES_DATA.map(x=>`<option value="${x.id}" ${s?.sale_id===x.id?'selected':''}>${x.ten} (${x.zone})</option>`).join('');
+  document.getElementById('modal-store2').classList.add('open');
+}
+
+function saveStore2() {
+  const ten = document.getElementById('st2-ten').value.trim();
+  const chu = document.getElementById('st2-chu').value.trim();
+  const phone = document.getElementById('st2-phone').value.trim();
+  if(!ten||!chu||!phone){showToast('Vui lòng nhập tên, chủ và SĐT');return;}
+  const data = {
+    ten, chu, phone,
+    dia_chi: document.getElementById('st2-addr').value.trim(),
+    loai: document.getElementById('st2-loai').value,
+    zone_id: document.getElementById('st2-zone').value||null,
+    sale_id: document.getElementById('st2-sale').value||null,
+    trang_thai: document.getElementById('st2-ts').value,
+    ghi_chu: document.getElementById('st2-ghi_chu').value.trim(),
+    ngay_vieng: null, tong_dt: 0,
+  };
+  if(_editStoreId2) {
+    const idx = STORES_DATA.findIndex(s=>s.id===_editStoreId2);
+    if(idx>=0) STORES_DATA[idx] = {...STORES_DATA[idx],...data};
+    showToast('Đã cập nhật — '+ten);
+  } else {
+    STORES_DATA.push({id:'st'+Date.now(),...data});
+    showToast('Đã thêm cửa hàng — '+ten);
+  }
+  closeOverlay('modal-store2');
+  renderZones();
+}
+
+function deleteStore2(id) {
+  const s = STORES_DATA.find(x=>x.id===id);
+  if(!confirm('Xóa cửa hàng "'+s?.ten+'"?')) return;
+  STORES_DATA.splice(STORES_DATA.findIndex(x=>x.id===id),1);
+  showToast('Đã xóa — '+s?.ten);
+  renderZones();
+}
+
+// ── CONFIG ────────────────────────────────────────
+function renderConfig() {
+  let html = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="card">
+      <div class="card-title">Thông số nghiệp vụ</div>`;
+  [['Tỷ lệ hoa hồng cơ bản (%)','commission_rate',CONFIG.commission_rate],
+   ['Phụ cấp xăng / Sale / tháng (đ)','xang',CONFIG.xang],
+   ['Đơn tối thiểu để tính HC (đ)','min_order',CONFIG.min_order],
+  ].forEach(([label,key,val])=>{
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-weight:700;color:var(--teal)">${key==='commission_rate'?val+'%':fmtFull(val)}</span>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="editCfg('${key}','${label}',${val})">Sửa</button>
+      </div>
+    </div>`;
+  });
+  html+=`</div>
+    <div class="card">
+      <div class="card-title">Thông tin thanh toán</div>`;
+  [['Tên công ty','ten_cty',CONFIG.ten_cty],
+   ['TK nhận thanh toán từ KH','tk_cty',CONFIG.tk_cty],
+   ['Ngân hàng công ty','bank_cty',CONFIG.bank_cty],
+  ].forEach(([label,key,val])=>{
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px">${label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-weight:700">${val}</span>
+        <button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="editCfgStr('${key}','${label}','${val}')">Sửa</button>
+      </div>
+    </div>`;
+  });
+  html+=`</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Bậc Sale & Hoa hồng</div>
+    <table class="data-table">
+      <thead><tr><th>Bậc</th><th>Điều kiện</th><th>Tỷ lệ HC</th><th>Quyền lợi thêm</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge b-blue">Đồng</span></td><td>Mặc định khi mới vào</td><td style="font-weight:700">${CONFIG.commission_rate}%</td><td>Phụ cấp xây zone 2tr × 2 tháng đầu</td></tr>
+        <tr><td><span class="badge b-gray">Bạc</span></td><td>Đạt KPI 3 tháng liên tiếp</td><td style="font-weight:700;color:var(--teal)">${CONFIG.commission_rate+1}%</td><td>Ưu tiên zone mới, được mentoring sale mới</td></tr>
+        <tr><td><span class="badge b-amber">Vàng</span></td><td>Đạt KPI 6 tháng liên tiếp</td><td style="font-weight:700;color:var(--amber)">${CONFIG.commission_rate+2}%</td><td>Đề xuất mở zone, quyền tuyển sub-sale</td></tr>
+      </tbody>
+    </table>
+  </div>`;
+  setContent(html);
+}
+
+function editCfg(key,label,current){const v=prompt(label,current);if(v!==null&&!isNaN(parseFloat(v))){CONFIG[key]=parseFloat(v);showToast('Đã lưu — '+label);renderConfig();}}
+function editCfgStr(key,label,current){const v=prompt(label,current);if(v!==null&&v.trim()){CONFIG[key]=v.trim();showToast('Đã lưu — '+label);renderConfig();}}
+
+// ── SUPABASE SQL ──────────────────────────────────
+function renderSupabase() {
+  const sql = `-- SM ONE — Supabase Schema Setup
+-- Chạy toàn bộ SQL này trong Supabase SQL Editor
+
+-- 1. ZONES
+CREATE TABLE IF NOT EXISTS zones (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ten TEXT NOT NULL,
+  tinh_thanh TEXT,
+  mo_ta TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. SALES_USERS (Sale nhân viên)
+CREATE TABLE IF NOT EXISTS sales_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ho_ten TEXT NOT NULL,
+  so_dien_thoai TEXT UNIQUE NOT NULL,
+  zone_id UUID REFERENCES zones(id),
+  bac_sale TEXT DEFAULT 'Đồng' CHECK (bac_sale IN ('Đồng','Bạc','Vàng')),
+  stk TEXT,
+  ngan_hang TEXT,
+  tien_xang_thang INTEGER DEFAULT 400000,
+  kpi_thang INTEGER DEFAULT 35,
+  active BOOLEAN DEFAULT TRUE,
+  ghi_chu TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. TAP_HOA (Cửa hàng tạp hóa)
+CREATE TABLE IF NOT EXISTS tap_hoa (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ten TEXT NOT NULL,
+  chu_so_huu TEXT,
+  so_dien_thoai TEXT,
+  dia_chi TEXT,
+  loai TEXT DEFAULT 'tap_hoa',
+  zone_id UUID REFERENCES zones(id),
+  sale_id UUID REFERENCES sales_users(id),
+  trang_thai TEXT DEFAULT 'moi',
+  lan_vieng_cuoi TIMESTAMPTZ,
+  ghi_chu TEXT,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. PRODUCTS (SKU)
+CREATE TABLE IF NOT EXISTS products (
+  ma TEXT PRIMARY KEY,
+  ten TEXT NOT NULL,
+  mo_ta TEXT,
+  don_vi TEXT DEFAULT 'túi',
+  don_gia INTEGER NOT NULL,
+  nha_cung_cap TEXT,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. ORDERS
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY DEFAULT 'O-' || TO_CHAR(NOW(),'YYMMDD') || LPAD(FLOOR(RANDOM()*9999)::TEXT,4,'0'),
+  tap_hoa_id UUID REFERENCES tap_hoa(id),
+  sale_id UUID REFERENCES sales_users(id),
+  chi_tiet_sp JSONB NOT NULL, -- [{ma, ten, sl, don_gia}]
+  tong_tien INTEGER NOT NULL,
+  trang_thai TEXT DEFAULT 'cho_xac_nhan'
+    CHECK (trang_thai IN ('cho_xac_nhan','cho_giao','da_giao','huy')),
+  da_thanh_toan BOOLEAN DEFAULT FALSE,
+  ma_giao_dich TEXT,
+  ngay_dat TIMESTAMPTZ DEFAULT NOW(),
+  ngay_giao TIMESTAMPTZ,
+  ghi_chu TEXT
+);
+
+-- 6. HOA_HONG
+CREATE TABLE IF NOT EXISTS hoa_hong (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sale_id UUID REFERENCES sales_users(id),
+  order_id TEXT REFERENCES orders(id),
+  ty_le DECIMAL(4,2) NOT NULL,
+  so_tien INTEGER NOT NULL,
+  thang_nam TEXT NOT NULL, -- 'MM/YYYY'
+  trang_thai TEXT DEFAULT 'cho_tt' CHECK (trang_thai IN ('cho_tt','da_tt')),
+  ngay_tt TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. NOTIFICATIONS
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sale_id UUID REFERENCES sales_users(id),
+  noi_dung TEXT NOT NULL,
+  loai TEXT DEFAULT 'info',
+  da_doc BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── ROW LEVEL SECURITY ──────────────────────────
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tap_hoa ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hoa_hong ENABLE ROW LEVEL SECURITY;
+
+-- Sale chỉ xem được đơn của zone mình
+CREATE POLICY "sale_own_orders" ON orders
+  FOR ALL USING (
+    sale_id = auth.uid()::UUID
+    OR EXISTS (SELECT 1 FROM sales_users WHERE id=auth.uid()::UUID AND bac_sale='Vàng')
+  );
+
+-- ── INDEXES ──────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_orders_sale ON orders(sale_id);
+CREATE INDEX IF NOT EXISTS idx_orders_ngay ON orders(ngay_dat);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(trang_thai);
+CREATE INDEX IF NOT EXISTS idx_tap_hoa_zone ON tap_hoa(zone_id);
+CREATE INDEX IF NOT EXISTS idx_hoa_hong_thang ON hoa_hong(thang_nam);
+
+-- ── TRIGGER: tự tạo hoa hồng khi đơn da_giao ─────
+CREATE OR REPLACE FUNCTION create_commission()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.trang_thai = 'da_giao' AND OLD.trang_thai != 'da_giao' THEN
+    INSERT INTO hoa_hong (sale_id, order_id, ty_le, so_tien, thang_nam)
+    SELECT
+      NEW.sale_id,
+      NEW.id,
+      CASE WHEN su.bac_sale='Vàng' THEN 6
+           WHEN su.bac_sale='Bạc'  THEN 5
+           ELSE 4 END,
+      ROUND(NEW.tong_tien *
+        CASE WHEN su.bac_sale='Vàng' THEN 0.06
+             WHEN su.bac_sale='Bạc'  THEN 0.05
+             ELSE 0.04 END),
+      TO_CHAR(NOW(), 'MM/YYYY')
+    FROM sales_users su WHERE su.id = NEW.sale_id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trg_commission
+AFTER UPDATE ON orders
+FOR EACH ROW EXECUTE FUNCTION create_commission();
+
+-- ── SAMPLE DATA ───────────────────────────────────
+INSERT INTO products VALUES
+  ('ST25-50','Gạo ST25','Túi 50kg','túi',700000,'Vua Gạo',true,NOW()),
+  ('JAS-50','Jasmine','Túi 50kg','túi',650000,'Vua Gạo',true,NOW()),
+  ('LUT-25','Lứt đen','Túi 25kg','túi',400000,'Vua Gạo',true,NOW()),
+  ('HUU-25','Hữu cơ','Túi 25kg','túi',520000,'Vua Gạo',true,NOW())
+ON CONFLICT (ma) DO NOTHING;`;
+
+  let html = `
+  <div class="alert alert-amber">Copy toàn bộ SQL bên dưới → mở Supabase Dashboard → SQL Editor → Paste → Run</div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin:0">Schema SQL — SM ONE Database</div>
+      <button class="btn btn-teal" onclick="copySQL()">Copy SQL</button>
+    </div>
+    <pre id="sql-block" style="background:#1e1e1e;color:#d4d4d4;border-radius:8px;padding:16px;font-size:12px;overflow-x:auto;line-height:1.6;max-height:500px;overflow-y:auto;font-family:monospace">${sql.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+  </div>
+  <div class="card">
+    <div class="card-title">Checklist kết nối</div>
+    ${[
+      ['Tạo project Supabase mới tại supabase.com','Lấy URL và anon key từ Settings → API'],
+      ['Chạy toàn bộ SQL schema ở trên','8 bảng sẽ được tạo với RLS và trigger'],
+      ['Điền SB_URL và SB_KEY','Cập nhật trong smone-db.js — đã điền sẵn credentials'],
+      ['Test đăng nhập trên app Sale','Tạo user trong Supabase Auth trước'],
+    ].map(([a,b])=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:18px;height:18px;border:2px solid var(--teal);border-radius:4px;flex-shrink:0;margin-top:1px"></div><div><div style="font-size:13px;font-weight:600">${a}</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${b}</div></div></div>`).join('')}
+  </div>`;
+  setContent(html);
+}
+
+function copySQL() {
+  const el = document.getElementById('sql-block');
+  navigator.clipboard.writeText(el.textContent).then(()=>showToast('Đã copy SQL — mở Supabase SQL Editor và paste'));
+}
+
+// ── EXPORT ────────────────────────────────────────
+function exportReport() {
+  const rows = [
+    ['Mã đơn','Cửa hàng','Sale','Zone','Tổng tiền','Trạng thái','Ngày'],
+    ...ORDERS_DATA.map(o=>[o.id,o.store,o.sale,o.zone,o.tong,o.trang_thai,o.ngay])
+  ];
+  const csv = rows.map(r=>r.join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='SM_ONE_BaoCao_'+new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')+'.csv'; a.click();
+  showToast('Đã xuất báo cáo CSV');
+}
+
+
+
+// ── CREATE ORDER (ADMIN) ──────────────────────────────────
+let coQty = {};
+
+const MOCK_STORES_LIST = [
+  {id:'st1', ten:'Tạp hóa Lan', sale:'Nguyễn Nam', zone:'Khu A'},
+  {id:'st2', ten:'Tạp hóa Minh Quang', sale:'Trần Hoa', zone:'Khu B'},
+  {id:'st3', ten:'CH Bà Hoa', sale:'Trần Hoa', zone:'Khu B'},
+  {id:'st4', ten:'Tạp hóa Sơn', sale:'Lê Minh', zone:'Khu C'},
+  {id:'st5', ten:'SM Mini Hà', sale:'Nguyễn Nam', zone:'Khu A'},
+  {id:'st6', ten:'Đại lý Phú', sale:'Nguyễn Nam', zone:'Khu A'},
+  {id:'st7', ten:'Tạp hóa Bình', sale:'Lê Minh', zone:'Khu C'},
+];
+
+function openCreateOrder() {
+  // Reset qty
+  coQty = {};
+  PRODUCTS.forEach(p => { coQty[p.ma] = 0; });
+
+  // Populate stores
+  const storeEl = document.getElementById('co-store');
+  storeEl.innerHTML = '<option value="">-- Chọn cửa hàng --</option>' +
+    MOCK_STORES_LIST.map(s => `<option value="${s.id}" data-sale="${s.sale}" data-zone="${s.zone}">${s.ten} (${s.zone})</option>`).join('');
+
+  // Populate sales
+  const saleEl = document.getElementById('co-sale');
+  saleEl.innerHTML = '<option value="">-- Chọn Sale --</option>' +
+    SALES_DATA.map(s => `<option value="${s.id}">${s.ten} - ${s.zone}</option>`).join('');
+
+  // Set today date
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('co-date').value = today;
+
+  // Set TK
+  document.getElementById('co-tk').textContent = CONFIG.tk_cty + ' - ' + CONFIG.bank_cty;
+
+  // Render SKU list
+  coRenderSkus();
+
+  document.getElementById('modal-create-order').classList.add('open');
+}
+
+function coUpdateStore() {
+  const sel = document.getElementById('co-store');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.sale) {
+    const saleEl = document.getElementById('co-sale');
+    for (let i = 0; i < saleEl.options.length; i++) {
+      if (saleEl.options[i].text.startsWith(opt.dataset.sale)) {
+        saleEl.selectedIndex = i;
+        break;
+      }
+    }
+  }
+}
+
+function coRenderSkus() {
+  const container = document.getElementById('co-sku-list');
+  if (!container) return;
+  let html = '';
+  PRODUCTS.filter(p => p.active).forEach((p, i) => {
+    const qty = coQty[p.ma] || 0;
+    const isLast = i === PRODUCTS.filter(x=>x.active).length - 1;
+    html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--border)'}">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-family:monospace;font-size:11px;background:#f5f5f2;padding:2px 6px;border-radius:4px;color:var(--muted)">${p.ma}</span>
+          <span style="font-size:13px;font-weight:600">${p.ten}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${p.mo_ta} &middot; ${fmtFull(p.don_gia)}/${p.don_vi}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--teal);min-width:60px;text-align:right" id="co-subtotal-${p.ma}">${qty > 0 ? fmtM(qty * p.don_gia) : ''}</div>
+        <button onclick="coChange('${p.ma}',-1)" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:18px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">-</button>
+        <span style="font-size:14px;font-weight:700;min-width:24px;text-align:center" id="co-qty-${p.ma}">${qty}</span>
+        <button onclick="coChange('${p.ma}',1)" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:18px;cursor:pointer;font-weight:700;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  coUpdateTotal();
+}
+
+function coChange(ma, d) {
+  coQty[ma] = Math.max(0, (coQty[ma] || 0) + d);
+  const qEl = document.getElementById('co-qty-' + ma);
+  const stEl = document.getElementById('co-subtotal-' + ma);
+  if (qEl) qEl.textContent = coQty[ma];
+  const p = PRODUCTS.find(x => x.ma === ma);
+  if (stEl && p) stEl.textContent = coQty[ma] > 0 ? fmtM(coQty[ma] * p.don_gia) : '';
+  coUpdateTotal();
+}
+
+function coUpdateTotal() {
+  let total = 0;
+  PRODUCTS.forEach(p => { total += (coQty[p.ma] || 0) * p.don_gia; });
+  const comm = Math.round(total * CONFIG.commission_rate / 100);
+  const totalEl = document.getElementById('co-total');
+  const commEl = document.getElementById('co-comm');
+  if (totalEl) totalEl.textContent = fmtFull(total);
+  if (commEl) commEl.textContent = '+' + fmtM(comm);
+}
+
+function submitCreateOrder() {
+  const storeId = document.getElementById('co-store').value;
+  const storeName = document.getElementById('co-store').options[document.getElementById('co-store').selectedIndex]?.text || '';
+  const saleEl = document.getElementById('co-sale');
+  const saleName = saleEl.options[saleEl.selectedIndex]?.text?.split(' - ')[0] || '';
+  const zone = saleEl.options[saleEl.selectedIndex]?.text?.split(' - ')[1] || '';
+  const dateVal = document.getElementById('co-date').value;
+
+  if (!storeId) { showToast('Vui lòng chọn cửa hàng'); return; }
+
+  const items = PRODUCTS.filter(p => (coQty[p.ma] || 0) > 0).map(p => ({
+    ma: p.ma, ten: p.ten, sl: coQty[p.ma], don_gia: p.don_gia
+  }));
+
+  if (items.length === 0) { showToast('Chưa chọn sản phẩm nào'); return; }
+
+  const total = items.reduce((s, i) => s + i.sl * i.don_gia, 0);
+
+  // Format date to dd/mm/yyyy
+  const d = dateVal ? new Date(dateVal) : new Date();
+  const ngay = d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const gio = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit', minute:'2-digit'});
+
+  const orderId = 'O-' + Date.now().toString().slice(-6);
+  ORDERS_DATA.unshift({
+    id: orderId,
+    store: storeName.split(' (')[0],
+    store_id: storeId,
+    sale: saleName || 'Admin',
+    zone: zone || 'Khu A',
+    items,
+    tong: total,
+    trang_thai: 'cho_xac_nhan',
+    da_tt: false,
+    ngay,
+    gio
+  });
+
+  // Update pending badge
+  const pending = ORDERS_DATA.filter(o => o.trang_thai === 'cho_xac_nhan').length;
+  const badge = document.getElementById('pending-badge');
+  if (badge) badge.textContent = pending;
+
+  closeOverlay('modal-create-order');
+  showToast('Đã tạo đơn ' + orderId + ' - ' + fmtM(total));
+  showPage('orders');
+}
+
+
+
+
+// ── ADMIN SUPABASE INTEGRATION ────────────────────────────────
+async function adminLogin(){
+  const phone=document.getElementById('al-phone').value.trim();
+  const pass=document.getElementById('al-pass').value;
+  const err=document.getElementById('al-err');
+  if(!phone||!pass){err.textContent='Vui lòng nhập đầy đủ';return;}
+  err.textContent='Đang đăng nhập...';
+  try{
+    // Thử Supabase thật
+    if(_sbClient){
+      try{
+        const {data,error}=await _sbClient.auth.signInWithPassword({
+          email: phone.replace(/^0/,'84')+'@smone.vn', password: pass
+        });
+        if(!error && data.user){
+          document.getElementById('admin-login').style.display='none';
+          try{ await loadAdminData(); }catch(de){ console.warn(de); }
+          showPage('dashboard'); return;
+        }
+      }catch(se){console.warn('Supabase admin:',se.message);}
+    }
+    // Demo fallback
+    await DB.AUTH.loginPhone(phone,pass);
+    document.getElementById('admin-login').style.display='none';
+    try{ await loadAdminData(); }catch(de){ console.warn('loadAdminData non-fatal:',de); }
+    showPage('dashboard');
+  }catch(e){
+    err.textContent=e.message||'Đăng nhập thất bại';
+  }
+}
+
+
+
+async function loadAdminData_real(){
+  if(!_sbClient)return loadAdminData();
+  try{
+    const[prodRes,zoneRes,saleRes,orderRes,storeRes]=await Promise.all([
+      _sbClient.from('products').select('*').eq('active',true),
+      _sbClient.from('zones').select('*'),
+      _sbClient.from('v_sale_performance').select('*').catch(()=>_sbClient.from('sales_users').select('*,zones(ten)')),
+      _sbClient.from('v_order_summary').select('*').order('ngay_dat',{ascending:false}).limit(200).catch(()=>_sbClient.from('orders').select('*').order('ngay_dat',{ascending:false}).limit(200)),
+      _sbClient.from('tap_hoa').select('*,zones(ten),sales_users(ho_ten)').eq('active',true),
+    ]);
+    if(prodRes.data){PRODUCTS.length=0;prodRes.data.forEach(p=>PRODUCTS.push({ma:p.ma,ten:p.ten,mo_ta:p.spec||p.mo_ta,don_vi:p.don_vi||'túi',don_gia:p.don_gia,ncc:p.nha_cung_cap||'',active:p.active}));}
+    if(zoneRes.data){ZONES_DATA.length=0;zoneRes.data.forEach(z=>ZONES_DATA.push({id:z.id,ten:z.ten,mo_ta:z.mo_ta||'',tinh:z.tinh_thanh||'',sale_id:null,ghi_chu:z.ghi_chu||''}));}
+    if(saleRes.data){SALES_DATA.length=0;saleRes.data.forEach(s=>SALES_DATA.push({id:s.id,ten:s.ho_ten,phone:s.so_dien_thoai||'',zone:s.ten_zone||s.zones?.ten||'',bac:s.bac_sale||'Đồng',stk:s.stk||'',bank:s.ngan_hang||'',don_thang:s.don_thang||0,dt_thang:s.dt_thang||0,note:s.ghi_chu||''}));}
+    if(orderRes.data){ORDERS_DATA.length=0;orderRes.data.forEach(o=>ORDERS_DATA.push({id:o.id,store:o.ten_tap_hoa||o.kiosk_store_name||'-',store_id:o.tap_hoa_id,sale:o.ten_sale||'Kiosk',zone:o.ten_zone||'-',items:Array.isArray(o.chi_tiet_sp)?o.chi_tiet_sp:[],tong:o.tong_tien,trang_thai:o.trang_thai,da_tt:o.da_thanh_toan,nguon:o.nguon||'sale',ngay:new Date(o.ngay_dat).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),gio:new Date(o.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}));}
+    if(storeRes.data){STORES_DATA.length=0;storeRes.data.forEach(s=>STORES_DATA.push({id:s.id,ten:s.ten,chu:s.chu_so_huu||'',phone:s.so_dien_thoai||'',dia_chi:s.dia_chi||'',loai:s.loai||'tap_hoa',zone_id:s.zone_id,sale_id:s.sale_id,trang_thai:s.trang_thai,ngay_vieng:s.lan_vieng_cuoi?Math.floor((Date.now()-new Date(s.lan_vieng_cuoi))/86400000):null,tong_dt:s.tong_doanh_thu||0,ghi_chu:s.ghi_chu||''}));}
+    // Realtime
+    _sbClient.channel('admin-orders').on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>loadAdminData_real()).subscribe();
+    showToast('✅ Kết nối Supabase thành công — dữ liệu thật');
+  }catch(e){console.warn('loadAdminData_real:',e);loadAdminData();}
+}
+async function loadAdminData(){
+  try{
+    // Products
+    const prods=await DB.PRODUCTS.getAll();
+    PRODUCTS.length=0;
+    prods.forEach(p=>PRODUCTS.push({ma:p.ma,ten:p.ten,mo_ta:p.spec||p.mo_ta,don_vi:p.don_vi,don_gia:p.don_gia,ncc:p.nha_cung_cap||'',active:p.active}));
+    // Zones
+    const zones=await DB.ADMIN.getZones();
+    ZONES_DATA.length=0;
+    zones.forEach(z=>ZONES_DATA.push({id:z.id,ten:z.ten,mo_ta:z.mo_ta||'',tinh:z.tinh_thanh||'',sale_id:null,ghi_chu:z.ghi_chu||''}));
+    // Sales
+    const sales=await DB.ADMIN.getSales();
+    SALES_DATA.length=0;
+    sales.forEach(s=>SALES_DATA.push({id:s.id,ten:s.ho_ten,phone:s.so_dien_thoai||'',zone:s.zone||s.ten_zone||'',bac:s.bac_sale||'Đồng',stk:s.stk||'',bank:s.ngan_hang||'',don_thang:s.don_thang||0,dt_thang:s.dt_thang||0,note:s.ghi_chu||''}));
+    // Orders
+    const orders=await DB.ORDERS.getAll({limit:200});
+    ORDERS_DATA.length=0;
+    orders.forEach(o=>ORDERS_DATA.push({
+      id:o.id,store:o.ten_tap_hoa||o.kiosk_store_name||'-',store_id:o.tap_hoa_id,
+      sale:o.ten_sale||'Kiosk',zone:o.ten_zone||'-',
+      items:Array.isArray(o.chi_tiet_sp)?o.chi_tiet_sp:[],
+      tong:o.tong_tien,trang_thai:o.trang_thai,
+      da_tt:o.da_thanh_toan,nguon:o.nguon||'sale',
+      ngay:new Date(o.ngay_dat).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'}),
+      gio:new Date(o.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+    }));
+    // Stores
+    const stores2=await DB.STORES.getAll();
+    STORES_DATA.length=0;
+    stores2.forEach(s=>STORES_DATA.push({id:s.id,ten:s.ten,chu:s.chu_so_huu||'',phone:s.so_dien_thoai||'',dia_chi:s.dia_chi||'',loai:s.loai||'tap_hoa',zone_id:s.zone_id,sale_id:s.sale_id,trang_thai:s.trang_thai,ngay_vieng:s.lan_vieng_cuoi?Math.floor((Date.now()-new Date(s.lan_vieng_cuoi))/86400000):null,tong_dt:s.tong_doanh_thu||0,ghi_chu:s.ghi_chu||''}));
+    // Realtime
+    DB.ORDERS.subscribeNew(async()=>{await loadAdminData();if(document.getElementById('pending-badge'))document.getElementById('pending-badge').textContent=ORDERS_DATA.filter(o=>o.trang_thai==='cho_xac_nhan').length;});
+  }catch(e){console.warn('loadAdminData:',e);}
+}
+
+// Override confirmOrder to use real DB
+const _confirmOrder_orig=confirmOrder;
+confirmOrder=async function(id){
+  try{
+    if(_sbClient){
+      const{error}=await _sbClient.from('orders').update({trang_thai:'cho_giao',da_thanh_toan:true,updated_at:new Date().toISOString()}).eq('id',id);
+      if(!error){await loadAdminData_real();showToast('Đã xác nhận đơn '+id);renderOrders();return;}
+    }
+    await DB.ORDERS.updateStatus(id,'cho_giao');
+    await loadAdminData();
+    showToast('Đã xác nhận đơn '+id);
+    renderOrders();
+  }catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// Override saveSale
+const _saveSale_orig=saveSale;
+saveSale=async function(){
+  const ten=document.getElementById('s-ten').value.trim();
+  const phone=document.getElementById('s-phone').value.trim();
+  if(!ten||!phone){showToast('Vui lòng nhập tên và SĐT');return;}
+  const editId=document.getElementById('modal-sale').dataset.editId;
+  const data={ho_ten:ten,so_dien_thoai:phone,zone:document.getElementById('s-zone').value,bac_sale:document.getElementById('s-bac').value,stk:document.getElementById('s-stk').value,ngan_hang:document.getElementById('s-bank').value,ghi_chu:document.getElementById('s-note').value};
+  if(editId)data.id=editId;
+  try{await DB.ADMIN.upsertSale(data);await loadAdminData();closeOverlay('modal-sale');showToast('Đã lưu — '+ten);renderSales();}
+  catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// Override saveZone
+const _saveZone_orig=saveZone;
+saveZone=async function(){
+  const ten=document.getElementById('z-ten').value.trim();
+  const mo_ta=document.getElementById('z-mo_ta').value.trim();
+  if(!ten||!mo_ta){showToast('Vui lòng nhập tên zone và mô tả');return;}
+  const data={ten,mo_ta,tinh_thanh:document.getElementById('z-tinh').value,ghi_chu:document.getElementById('z-ghi_chu').value};
+  if(_editZoneId)data.id=_editZoneId;
+  try{await DB.ADMIN.upsertZone(data);await loadAdminData();closeOverlay('modal-zone');showToast('Đã lưu zone — '+ten);renderZones();}
+  catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// Override saveProduct
+const _saveProduct_orig=saveProduct;
+saveProduct=async function(){
+  const ma=document.getElementById('p-ma').value.trim().toUpperCase();
+  const ten=document.getElementById('p-ten').value.trim();
+  const don_gia=parseFloat(document.getElementById('p-don_gia').value);
+  if(!ma||!ten||!don_gia){showToast('Vui lòng điền mã, tên và đơn giá');return;}
+  const editMa=document.getElementById('modal-product').dataset.editMa;
+  const data={ma,ten,mo_ta:document.getElementById('p-mo_ta').value,don_vi:document.getElementById('p-don_vi').value||'túi',don_gia,nha_cung_cap:document.getElementById('p-ncc').value,active:true};
+  try{await DB.PRODUCTS.upsert(data);await loadAdminData();closeOverlay('modal-product');showToast('Đã lưu SKU — '+ma);renderProducts();}
+  catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// Override saveStore2
+const _saveStore2_orig=saveStore2;
+saveStore2=async function(){
+  const ten=document.getElementById('st2-ten').value.trim();
+  const chu=document.getElementById('st2-chu').value.trim();
+  const phone=document.getElementById('st2-phone').value.trim();
+  if(!ten||!chu||!phone){showToast('Vui lòng nhập tên, chủ và SĐT');return;}
+  const data={ten,chu_so_huu:chu,so_dien_thoai:phone,dia_chi:document.getElementById('st2-addr').value,loai:document.getElementById('st2-loai').value,zone_id:document.getElementById('st2-zone').value||null,sale_id:document.getElementById('st2-sale').value||null,trang_thai:document.getElementById('st2-ts').value,ghi_chu:document.getElementById('st2-ghi_chu').value};
+  if(_editStoreId2)data.id=_editStoreId2;
+  try{await DB.STORES.upsert(data);await loadAdminData();closeOverlay('modal-store2');showToast('Đã lưu — '+ten);renderZones();}
+  catch(e){showToast('Lỗi: '+e.message);}
+};
+
+// Override exportReport to use real data
+const _exportReport_orig=exportReport;
+exportReport=async function(){
+  const rows=[['Mã đơn','Cửa hàng','Sale','Zone','Nguồn','Tổng tiền','Trạng thái','Ngày'],...ORDERS_DATA.map(o=>[o.id,o.store,o.sale,o.zone,o.nguon||'sale',o.tong,o.trang_thai,o.ngay])];
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='SMONE_BaoCao_'+new Date().toLocaleDateString('vi-VN').replace(/\//g,'-')+'.csv';a.click();
+  showToast('Đã xuất báo cáo CSV — '+ORDERS_DATA.length+' đơn');
+};
+
+// Init — chờ login
+console.log("SM ONE Admin ready");
+</script>
+</body>
+</html>

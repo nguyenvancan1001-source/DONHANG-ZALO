@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SM ONE — Nhà Sản Xuất</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --G:#1FAB73;--G2:#178A5A;--G3:#E8F6F0;
+  --ink:#0F1F16;--muted:#6B8F7A;--border:#D4E8DC;
+  --bg:#F4FAF7;--white:#FFFFFF;
+  --red:#E84545;--gold:#F59E0B;--blue:#3B82F6;
+  --rs:12px;--R:16px;
+}
+body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+
+/* SCREENS */
+.scr{display:none;min-height:100vh;}
+.scr.on{display:flex;flex-direction:column;}
+
+/* ── LOGIN ── */
+#s-login{background:linear-gradient(160deg,#0B3D22,#1FAB73);align-items:center;justify-content:center;padding:32px 24px;}
+.login-box{background:#fff;border-radius:24px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.15);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo-icon{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,#1FAB73,#0F7A45);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;}
+.login-logo h1{font-size:24px;font-weight:900;color:var(--ink);letter-spacing:-1px;}
+.login-logo p{font-size:12px;color:var(--muted);}
+.field{margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;}
+.field input{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border .2s;}
+.field input:focus{border-color:var(--G);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-top:4px;}
+.login-err{color:var(--red);font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
+.demo-hint{background:var(--G3);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--G2);font-weight:600;text-align:center;margin-bottom:14px;}
+
+/* ── APP SHELL ── */
+#s-app{background:var(--bg);}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-left{display:flex;align-items:center;gap:10px;}
+.tb-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1FAB73,#0F7A45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
+.tb-name{font-size:14px;font-weight:700;color:var(--ink);}
+.tb-role{font-size:10px;color:var(--muted);font-weight:500;}
+.tb-right{display:flex;gap:8px;}
+.tb-btn{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+
+.content{flex:1;padding:16px;overflow-y:auto;padding-bottom:80px;}
+
+/* BOTTOM NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;}
+.bni-icon{font-size:20px;line-height:1;}
+.bni-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.bni.on .bni-lbl{color:var(--G);}
+.bni.on .bni-icon{filter:drop-shadow(0 0 4px rgba(31,171,115,.4));}
+
+/* PAGES */
+.pg{display:none;}
+.pg.on{display:block;}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--R);padding:16px;margin-bottom:12px;border:1px solid var(--border);}
+.card-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.kpi{background:#fff;border-radius:var(--R);padding:14px;border:1px solid var(--border);text-align:center;}
+.kpi-num{font-size:26px;font-weight:900;letter-spacing:-1px;line-height:1;}
+.kpi-lbl{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-top:3px;}
+.kpi-trend{font-size:10px;font-weight:700;margin-top:4px;}
+.trend-up{color:var(--G);}
+.trend-dn{color:var(--red);}
+
+/* PRODUCT LIST */
+.prod-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.prod-item:last-child{border-bottom:none;}
+.prod-icon{width:44px;height:44px;border-radius:12px;background:var(--G3);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.prod-info{flex:1;}
+.prod-name{font-size:14px;font-weight:700;color:var(--ink);}
+.prod-spec{font-size:11px;color:var(--muted);}
+.prod-price{font-size:13px;font-weight:800;color:var(--G);}
+.prod-stock{font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;}
+.stock-ok{background:#E8F6F0;color:var(--G2);}
+.stock-low{background:#FEF3C7;color:#B45309;}
+.stock-out{background:#FEE2E2;color:var(--red);}
+
+/* ORDER LIST */
+.order-item{background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:10px;}
+.oi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.oi-id{font-size:13px;font-weight:800;color:var(--ink);}
+.oi-status{font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;}
+.st-cho{background:#FEF3C7;color:#B45309;}
+.st-giao{background:#DBEAFE;color:#1D4ED8;}
+.st-done{background:#E8F6F0;color:var(--G2);}
+.oi-store{font-size:12px;color:var(--muted);}
+.oi-items{font-size:12px;color:var(--ink);margin:6px 0;}
+.oi-foot{display:flex;align-items:center;justify-content:space-between;}
+.oi-total{font-size:14px;font-weight:800;color:var(--G);}
+.oi-date{font-size:11px;color:var(--muted);}
+
+/* CHART BAR */
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:80px;margin:8px 0;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar{width:100%;border-radius:4px 4px 0 0;background:var(--G);opacity:.7;transition:opacity .2s;min-height:4px;}
+.bar.active{opacity:1;}
+.bar-lbl{font-size:9px;color:var(--muted);font-weight:600;}
+
+/* SECTION HEADER */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-title{font-size:14px;font-weight:800;color:var(--ink);}
+.sec-more{font-size:12px;color:var(--G);font-weight:600;cursor:pointer;}
+
+/* BADGE */
+.badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;letter-spacing:.5px;}
+.badge-green{background:var(--G3);color:var(--G2);}
+.badge-gold{background:#FEF3C7;color:#B45309;}
+.badge-blue{background:#DBEAFE;color:#1D4ED8;}
+.badge-red{background:#FEE2E2;color:var(--red);}
+
+/* REPORT */
+.report-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.report-row:last-child{border-bottom:none;}
+.rr-label{font-size:13px;color:var(--ink);font-weight:500;}
+.rr-val{font-size:14px;font-weight:800;color:var(--ink);}
+.rr-val.green{color:var(--G);}
+.rr-val.red{color:var(--red);}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.pg.on{animation:fadeUp .3s ease;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="scr on" id="s-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🏭</div>
+      <h1>SM ONE NSX</h1>
+      <p>Cổng dành cho Nhà Sản Xuất</p>
+    </div>
+    <div class="demo-hint">Demo: SĐT <b>0911000001</b> · Mật khẩu <b>NSX@SM1</b></div>
+    <div class="field"><label>Số điện thoại</label><input id="lp" type="tel" placeholder="0911000001" value="0911000001"></div>
+    <div class="field"><label>Mật khẩu</label><input id="lw" type="password" placeholder="••••••" value="NSX@SM1"></div>
+    <button class="btn-login" onclick="doLogin()">Đăng nhập</button>
+    <div class="login-err" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="scr" id="s-app">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-avatar" id="tb-av">VG</div>
+      <div><div class="tb-name" id="tb-name">Vua Gạo</div><div class="tb-role">Nhà sản xuất</div></div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-btn" onclick="doLogout()" title="Đăng xuất">🚪</div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="pg on" id="pg-home">
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-num" style="color:#1FAB73">142</div><div class="kpi-lbl">Đơn tháng này</div><div class="kpi-trend trend-up">↑ +18% vs tháng trước</div></div>
+        <div class="kpi"><div class="kpi-num" style="color:#F59E0B">89,4M</div><div class="kpi-lbl">Doanh thu (VNĐ)</div><div class="kpi-trend trend-up">↑ +12%</div></div>
+        <div class="kpi"><div class="kpi-num" style="color:#3B82F6">8</div><div class="kpi-lbl">SKU đang bán</div><div class="kpi-trend" style="color:#6B8F7A;">Ổn định</div></div>
+        <div class="kpi"><div class="kpi-num" style="color:#E84545">3</div><div class="kpi-lbl">SKU sắp hết hàng</div><div class="kpi-trend trend-dn">↓ Cần nhập thêm</div></div>
+      </div>
+
+      <div class="sec-hdr"><div class="sec-title">Doanh thu 7 ngày qua</div></div>
+      <div class="card">
+        <div class="chart-bars">
+          <div class="bar-wrap"><div class="bar" style="height:45%"></div><div class="bar-lbl">T2</div></div>
+          <div class="bar-wrap"><div class="bar" style="height:62%"></div><div class="bar-lbl">T3</div></div>
+          <div class="bar-wrap"><div class="bar" style="height:38%"></div><div class="bar-lbl">T4</div></div>
+          <div class="bar-wrap"><div class="bar" style="height:75%"></div><div class="bar-lbl">T5</div></div>
+          <div class="bar-wrap"><div class="bar" style="height:55%"></div><div class="bar-lbl">T6</div></div>
+          <div class="bar-wrap"><div class="bar" style="height:90%"></div><div class="bar-lbl">T7</div></div>
+          <div class="bar-wrap"><div class="bar active" style="height:68%"></div><div class="bar-lbl">CN</div></div>
+        </div>
+      </div>
+
+      <div class="sec-hdr"><div class="sec-title">Đơn hàng mới nhất</div><div class="sec-more" onclick="goTab('orders')">Xem tất cả →</div></div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260324-0012</div><div class="oi-status st-giao">Đang giao</div></div>
+        <div class="oi-store">🏪 Tạp hóa Lan · Khu A</div>
+        <div class="oi-items">Gạo ST25 ×2, Hữu cơ ×1</div>
+        <div class="oi-foot"><div class="oi-total">1.920.000đ</div><div class="oi-date">Hôm nay 09:30</div></div>
+      </div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260324-0011</div><div class="oi-status st-done">Đã giao</div></div>
+        <div class="oi-store">🏪 SM Mini Hà · Khu B</div>
+        <div class="oi-items">Jasmine ×3, Lứt đen ×2</div>
+        <div class="oi-foot"><div class="oi-total">2.750.000đ</div><div class="oi-date">Hôm qua 14:15</div></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS -->
+    <div class="pg" id="pg-products">
+      <div class="sec-hdr"><div class="sec-title">Danh mục SKU của bạn</div><div class="sec-more">+ Thêm SKU</div></div>
+      <div class="card">
+        <div class="prod-item">
+          <div class="prod-icon">🌾</div>
+          <div class="prod-info"><div class="prod-name">Gạo ST25</div><div class="prod-spec">Túi 50kg · Vua Gạo</div></div>
+          <div style="text-align:right">
+            <div class="prod-price" id="price-st25">700.000đ</div>
+            <div class="prod-stock stock-ok">Còn 240 túi</div>
+            <div onclick="editPrice('st25','Gạo ST25',700000)" style="font-size:10px;color:#2563EB;font-weight:700;cursor:pointer;margin-top:3px;">✏️ Sửa giá</div>
+          </div>
+        </div>
+        <div class="prod-item">
+          <div class="prod-icon">🌾</div>
+          <div class="prod-info"><div class="prod-name">Jasmine</div><div class="prod-spec">Túi 50kg · Vua Gạo</div></div>
+          <div style="text-align:right"><div class="prod-price">650.000đ</div><div class="prod-stock stock-ok">Còn 180 túi</div></div>
+        </div>
+        <div class="prod-item">
+          <div class="prod-icon">🌱</div>
+          <div class="prod-info"><div class="prod-name">Lứt đen</div><div class="prod-spec">Túi 25kg · Vua Gạo</div></div>
+          <div style="text-align:right"><div class="prod-price">400.000đ</div><div class="prod-stock stock-low">Còn 28 túi</div></div>
+        </div>
+        <div class="prod-item">
+          <div class="prod-icon">🌿</div>
+          <div class="prod-info"><div class="prod-name">Hữu cơ</div><div class="prod-spec">Túi 25kg · Vua Gạo</div></div>
+          <div style="text-align:right"><div class="prod-price">520.000đ</div><div class="prod-stock stock-ok">Còn 95 túi</div></div>
+        </div>
+        <div class="prod-item">
+          <div class="prod-icon">⭐</div>
+          <div class="prod-info"><div class="prod-name">VIP Đặc khu</div><div class="prod-spec">Túi 25kg · Vua Gạo</div></div>
+          <div style="text-align:right"><div class="prod-price">480.000đ</div><div class="prod-stock stock-out">Hết hàng</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="pg" id="pg-orders">
+      <div class="sec-hdr"><div class="sec-title">Đơn hàng từ SM ONE</div></div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260324-0012</div><div class="oi-status st-giao">Đang giao</div></div>
+        <div class="oi-store">🏪 Tạp hóa Lan · Sale: Nguyễn Nam</div>
+        <div class="oi-items">Gạo ST25 ×2 túi, Hữu cơ ×1 túi</div>
+        <div class="oi-foot"><div class="oi-total">1.920.000đ</div><div class="oi-date">24/03/2026 09:30</div></div>
+      </div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260324-0011</div><div class="oi-status st-done">Đã giao</div></div>
+        <div class="oi-store">🏪 SM Mini Hà · Sale: Trần Hoa</div>
+        <div class="oi-items">Jasmine ×3 túi, Lứt đen ×2 túi</div>
+        <div class="oi-foot"><div class="oi-total">2.750.000đ</div><div class="oi-date">23/03/2026 14:15</div></div>
+      </div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260323-0009</div><div class="oi-status st-done">Đã giao</div></div>
+        <div class="oi-store">🏪 Tạp hóa Sơn · Sale: Nguyễn Nam</div>
+        <div class="oi-items">ST25 ×4 túi</div>
+        <div class="oi-foot"><div class="oi-total">2.800.000đ</div><div class="oi-date">23/03/2026 10:00</div></div>
+      </div>
+      <div class="order-item">
+        <div class="oi-top"><div class="oi-id">O-260322-0007</div><div class="oi-status st-cho">Chờ giao</div></div>
+        <div class="oi-store">🏪 Đại lý Phú · Sale: Nguyễn Nam</div>
+        <div class="oi-items">VIP Đặc khu ×5, Jasmine ×3</div>
+        <div class="oi-foot"><div class="oi-total">4.350.000đ</div><div class="oi-date">22/03/2026 08:45</div></div>
+      </div>
+    </div>
+
+    <!-- REPORT -->
+    <div class="pg" id="pg-report">
+      <div class="sec-hdr"><div class="sec-title">Báo cáo tháng 3/2026</div></div>
+      <div class="card">
+        <div class="card-title">Doanh thu</div>
+        <div class="report-row"><div class="rr-label">Tổng doanh thu</div><div class="rr-val green">89.400.000đ</div></div>
+        <div class="report-row"><div class="rr-label">Tổng đơn hàng</div><div class="rr-val">142 đơn</div></div>
+        <div class="report-row"><div class="rr-label">Giá trị TB/đơn</div><div class="rr-val">629.577đ</div></div>
+        <div class="report-row"><div class="rr-label">Đơn hoàn thành</div><div class="rr-val green">138 đơn (97%)</div></div>
+        <div class="report-row"><div class="rr-label">Đơn hủy</div><div class="rr-val red">4 đơn (3%)</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Top SKU bán chạy</div>
+        <div class="report-row"><div class="rr-label">🌾 Gạo ST25</div><div class="rr-val">58 túi</div></div>
+        <div class="report-row"><div class="rr-label">🌾 Jasmine</div><div class="rr-val">41 túi</div></div>
+        <div class="report-row"><div class="rr-label">🌿 Hữu cơ</div><div class="rr-val">24 túi</div></div>
+        <div class="report-row"><div class="rr-label">🌱 Lứt đen</div><div class="rr-val">19 túi</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Tồn kho cảnh báo</div>
+        <div class="report-row"><div class="rr-label">🌱 Lứt đen</div><div class="rr-val" style="color:#B45309">28 túi — Sắp hết</div></div>
+        <div class="report-row"><div class="rr-label">⭐ VIP Đặc khu</div><div class="rr-val red">0 túi — Hết hàng</div></div>
+      </div>
+    </div>
+
+
+    <!-- INVENTORY -->
+    <div class="pg" id="pg-inventory">
+      <div class="sec-hdr"><div class="sec-title">Quản lý tồn kho</div><div class="sec-more">+ Nhập hàng</div></div>
+      
+      <div style="background:#FEF3C7;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#B45309;font-weight:600;">
+        ⚠️ 2 SKU cần nhập thêm hàng
+      </div>
+
+      <div class="card">
+        <div class="card-title">Chi tiết tồn kho</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <div style="background:#F0FDF4;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:900;color:#15803D;">543</div>
+            <div style="font-size:9px;color:#166534;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Túi còn lại</div>
+          </div>
+          <div style="background:#FEF3C7;border-radius:10px;padding:12px;text-align:center;">
+            <div style="font-size:22px;font-weight:900;color:#B45309;">2</div>
+            <div style="font-size:9px;color:#92400E;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">SKU sắp hết</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #F3F4F6;">Danh sách SKU</div>
+        
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F9FAFB;">
+          <div style="font-size:20px;width:36px;text-align:center;">🌾</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">Gạo ST25</div>
+            <div style="height:6px;background:#E5E7EB;border-radius:3px;margin-top:5px;"><div style="height:100%;width:80%;background:#1FAB73;border-radius:3px;"></div></div>
+          </div>
+          <div style="text-align:right;min-width:60px;">
+            <div style="font-size:13px;font-weight:800;color:#15803D;">240 túi</div>
+            <div style="font-size:9px;color:#6B7280;">80%</div>
+          </div>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F9FAFB;">
+          <div style="font-size:20px;width:36px;text-align:center;">🌾</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">Jasmine</div>
+            <div style="height:6px;background:#E5E7EB;border-radius:3px;margin-top:5px;"><div style="height:100%;width:60%;background:#1FAB73;border-radius:3px;"></div></div>
+          </div>
+          <div style="text-align:right;min-width:60px;">
+            <div style="font-size:13px;font-weight:800;color:#15803D;">180 túi</div>
+            <div style="font-size:9px;color:#6B7280;">60%</div>
+          </div>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F9FAFB;">
+          <div style="font-size:20px;width:36px;text-align:center;">🌱</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">Lứt đen</div>
+            <div style="height:6px;background:#E5E7EB;border-radius:3px;margin-top:5px;"><div style="height:100%;width:18%;background:#F59E0B;border-radius:3px;"></div></div>
+          </div>
+          <div style="text-align:right;min-width:60px;">
+            <div style="font-size:13px;font-weight:800;color:#B45309;">28 túi</div>
+            <div style="font-size:9px;color:#B45309;">⚠️ Thấp</div>
+          </div>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F9FAFB;">
+          <div style="font-size:20px;width:36px;text-align:center;">🌿</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">Hữu cơ</div>
+            <div style="height:6px;background:#E5E7EB;border-radius:3px;margin-top:5px;"><div style="height:100%;width:63%;background:#1FAB73;border-radius:3px;"></div></div>
+          </div>
+          <div style="text-align:right;min-width:60px;">
+            <div style="font-size:13px;font-weight:800;color:#15803D;">95 túi</div>
+            <div style="font-size:9px;color:#6B7280;">63%</div>
+          </div>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 0;">
+          <div style="font-size:20px;width:36px;text-align:center;">⭐</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:700;">VIP Đặc khu</div>
+            <div style="height:6px;background:#E5E7EB;border-radius:3px;margin-top:5px;"><div style="height:100%;width:0%;background:#EF4444;border-radius:3px;"></div></div>
+          </div>
+          <div style="text-align:right;min-width:60px;">
+            <div style="font-size:13px;font-weight:800;color:#DC2626;">0 túi</div>
+            <div style="font-size:9px;color:#DC2626;">❌ Hết</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Lịch sử nhập hàng</div>
+        <div style="font-size:12px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F9FAFB;">
+            <div><div style="font-weight:700;">Nhập Gạo ST25</div><div style="color:#6B7280;font-size:11px;">20/03/2026</div></div>
+            <div style="text-align:right;font-weight:800;color:#15803D;">+100 túi</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F9FAFB;">
+            <div><div style="font-weight:700;">Nhập Jasmine</div><div style="color:#6B7280;font-size:11px;">18/03/2026</div></div>
+            <div style="text-align:right;font-weight:800;color:#15803D;">+80 túi</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;">
+            <div><div style="font-weight:700;">Nhập Hữu cơ</div><div style="color:#6B7280;font-size:11px;">15/03/2026</div></div>
+            <div style="text-align:right;font-weight:800;color:#15803D;">+50 túi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <div class="bnav">
+    <div class="bni on" id="bi-home" onclick="goTab('home')"><div class="bni-icon">📊</div><div class="bni-lbl">Tổng quan</div></div>
+    <div class="bni" id="bi-products" onclick="goTab('products')"><div class="bni-icon">📦</div><div class="bni-lbl">Sản phẩm</div></div>
+    <div class="bni" id="bi-orders" onclick="goTab('orders')"><div class="bni-icon">🧾</div><div class="bni-lbl">Đơn hàng</div></div>
+    <div class="bni" id="bi-inventory" onclick="goTab('inventory')"><div class="bni-icon">🏬</div><div class="bni-lbl">Tồn kho</div></div>
+    <div class="bni" id="bi-report" onclick="goTab('report')"><div class="bni-icon">📈</div><div class="bni-lbl">Báo cáo</div></div>
+  </div>
+</div><!-- /s-app -->
+
+<script>
+const NSX_USERS = {
+  '0911000001': {pass:'NSX@SM1', name:'Vua Gạo', initials:'VG'},
+  '0911000002': {pass:'NSX@SM1', name:'Phú Quốc Fish', initials:'PQ'},
+};
+
+function doLogin(){
+  const p=document.getElementById('lp').value.trim();
+  const w=document.getElementById('lw').value;
+  const err=document.getElementById('lerr');
+  if(!p||!w){err.textContent='Vui lòng nhập đầy đủ';return;}
+  const u=NSX_USERS[p];
+  if(!u){err.textContent='Số điện thoại không tồn tại';return;}
+  if(u.pass!==w){err.textContent='Mật khẩu không đúng';return;}
+  document.getElementById('tb-name').textContent=u.name;
+  document.getElementById('tb-av').textContent=u.initials;
+  document.getElementById('s-login').classList.remove('on');
+  document.getElementById('s-app').classList.add('on');
+  goTab('home');
+}
+
+function doLogout(){
+  document.getElementById('s-app').classList.remove('on');
+  document.getElementById('s-login').classList.add('on');
+}
+
+function goTab(tab){
+  ['home','products','orders','report','inventory'].forEach(t=>{
+    document.getElementById('pg-'+t)?.classList.remove('on');
+    document.getElementById('bi-'+t)?.classList.remove('on');
+  });
+  document.getElementById('pg-'+tab)?.classList.add('on');
+  document.getElementById('bi-'+tab)?.classList.add('on');
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+</script>
+
+<div id="price-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center;">
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:500px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px;" id="pm-title">Cập nhật giá</div>
+    <input id="pm-price" type="number" placeholder="Nhập giá mới..." style="width:100%;padding:12px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:16px;font-family:inherit;font-weight:700;margin-bottom:10px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="savePriceEdit()" style="flex:1;padding:12px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">✓ Lưu giá mới</button>
+      <button onclick="document.getElementById('price-modal').style.display='none'" style="padding:12px 16px;border:1px solid #E5E7EB;border-radius:10px;cursor:pointer;">Hủy</button>
+    </div>
+  </div>
+</div>
+<script>
+let _editingSkuId="";
+function editPrice(id,name,currentPrice){
+  _editingSkuId=id;
+  document.getElementById("pm-title").textContent="Cập nhật giá: "+name;
+  document.getElementById("pm-price").value=currentPrice;
+  document.getElementById("price-modal").style.display="flex";
+}
+function savePriceEdit(){
+  const val=parseInt(document.getElementById("pm-price").value);
+  if(!val){return;}
+  const el=document.getElementById("price-"+_editingSkuId);
+  if(el) el.textContent=val.toLocaleString("vi-VN")+"đ";
+  document.getElementById("price-modal").style.display="none";
+  alert("✅ Đã cập nhật giá thành công");
+}
+</script>
+</body>
+</html>

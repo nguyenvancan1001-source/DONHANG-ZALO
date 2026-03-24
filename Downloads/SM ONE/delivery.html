@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SM ONE — Giao hàng</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --B:#2563EB;--B2:#1D4ED8;--B3:#EFF6FF;
+  --G:#1FAB73;--G3:#E8F6F0;
+  --ink:#0F1827;--muted:#6B7B9A;--border:#DBEAFE;
+  --bg:#F0F4FF;--white:#FFFFFF;
+  --red:#E84545;--gold:#F59E0B;--orange:#F97316;
+  --rs:12px;--R:16px;
+}
+body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased;}
+.scr{display:none;min-height:100vh;}
+.scr.on{display:flex;flex-direction:column;}
+
+/* LOGIN */
+#s-login{background:linear-gradient(160deg,#0B3D22,#1FAB73);align-items:center;justify-content:center;padding:32px 24px;}
+.login-box{background:#fff;border-radius:24px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo-icon{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,#1FAB73,#0B3D22);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 10px;}
+.login-logo h1{font-size:24px;font-weight:900;color:var(--ink);letter-spacing:-1px;}
+.login-logo p{font-size:12px;color:var(--muted);}
+.field{margin-bottom:14px;}
+.field label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;}
+.field input{width:100%;padding:12px 14px;border:1.5px solid #DBEAFE;border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border .2s;}
+.field input:focus{border-color:var(--B);}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#0B3D22);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;}
+.login-err{color:var(--red);font-size:12px;text-align:center;margin-top:8px;min-height:16px;}
+.demo-hint{background:#EFF6FF;border-radius:8px;padding:8px 12px;font-size:11px;color:#1D4ED8;font-weight:600;text-align:center;margin-bottom:14px;}
+
+/* APP */
+#s-app{background:var(--bg);}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.tb-left{display:flex;align-items:center;gap:10px;}
+.tb-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1FAB73,#0B3D22);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
+.tb-name{font-size:14px;font-weight:700;color:var(--ink);}
+.tb-role{font-size:10px;color:var(--muted);}
+.tb-right{display:flex;gap:8px;}
+.tb-btn{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;}
+
+.content{flex:1;padding:16px;overflow-y:auto;padding-bottom:80px;}
+
+/* STATUS BAR */
+.status-bar{background:linear-gradient(135deg,#1FAB73,#0B3D22);border-radius:var(--R);padding:16px;margin-bottom:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;}
+.sb-left .sb-greeting{font-size:12px;opacity:.8;}
+.sb-left .sb-stat{font-size:24px;font-weight:900;letter-spacing:-1px;}
+.sb-left .sb-sub{font-size:11px;opacity:.7;margin-top:2px;}
+.sb-right{text-align:right;}
+.sb-km{font-size:20px;font-weight:900;}
+.sb-km-lbl{font-size:10px;opacity:.7;}
+.sb-income{font-size:13px;font-weight:700;background:rgba(255,255,255,.2);padding:4px 10px;border-radius:100px;margin-top:4px;}
+
+/* DELIVERY CARDS */
+.dcard{background:#fff;border:1.5px solid var(--border);border-radius:var(--R);padding:16px;margin-bottom:12px;position:relative;overflow:hidden;}
+.dcard::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px;border-radius:16px 0 0 16px;}
+.dc-urgent::before{background:var(--red);}
+.dc-normal::before{background:var(--B);}
+.dc-done::before{background:var(--G);}
+
+.dc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+.dc-id{font-size:13px;font-weight:800;color:var(--ink);}
+.dc-badge{font-size:9px;font-weight:700;padding:3px 10px;border-radius:100px;}
+.badge-urgent{background:#FEE2E2;color:var(--red);}
+.badge-normal{background:#DBEAFE;color:var(--B2);}
+.badge-done{background:#E8F6F0;color:#166E4A;}
+
+.dc-store{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.dc-addr{font-size:12px;color:var(--muted);margin-bottom:8px;}
+.dc-items{background:#F8FAFF;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--ink);margin-bottom:10px;line-height:1.6;}
+.dc-foot{display:flex;align-items:center;justify-content:space-between;}
+.dc-total{font-size:14px;font-weight:800;color:var(--B);}
+.dc-time{font-size:11px;color:var(--muted);}
+
+.dc-actions{display:flex;gap:8px;margin-top:10px;}
+.btn-confirm{flex:1;padding:10px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-call{width:40px;height:40px;border:1.5px solid var(--border);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;}
+.btn-photo{width:40px;height:40px;border:1.5px solid var(--B);border-radius:10px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex-shrink:0;}
+
+/* KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.kpi{background:#fff;border-radius:var(--rs);padding:12px;border:1px solid var(--border);text-align:center;}
+.kpi-num{font-size:22px;font-weight:900;letter-spacing:-1px;line-height:1;}
+.kpi-lbl{font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-top:3px;}
+
+/* ROUTE */
+.route-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.route-item:last-child{border-bottom:none;}
+.route-num{width:28px;height:28px;border-radius:50%;background:var(--B);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.route-num.done{background:var(--G);}
+.route-info{flex:1;}
+.route-store{font-size:13px;font-weight:700;color:var(--ink);}
+.route-addr{font-size:11px;color:var(--muted);}
+.route-dist{font-size:11px;font-weight:700;color:var(--B);}
+
+/* BNAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100;}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;}
+.bni-icon{font-size:20px;line-height:1;}
+.bni-lbl{font-size:9px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.bni.on .bni-lbl{color:var(--B);}
+
+.pg{display:none;}
+.pg.on{display:block;}
+
+/* TOAST */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1FAB73;color:#fff;padding:10px 20px;border-radius:100px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.pg.on{animation:fadeUp .3s ease;}
+
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-title{font-size:14px;font-weight:800;color:var(--ink);}
+
+.inc-type-btn.selected{background:#EFF6FF;border-color:#2563EB;color:#1D4ED8;}
+.ck-item{background:#fff;border:1.5px solid #E5E7EB;border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px;transition:all .2s;}
+.ck-item.checked{border-color:#1FAB73;background:#F0FDF4;}
+.ck-check{width:28px;height:28px;border-radius:50%;border:2px solid #D1D5DB;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .2s;}
+.ck-check.on{background:#1FAB73;border-color:#1FAB73;color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="scr on" id="s-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚚</div>
+      <h1>SM ONE Delivery</h1>
+      <p>Ứng dụng dành cho tài xế giao hàng</p>
+    </div>
+    <div class="demo-hint">Demo: SĐT <b>0922000001</b> · Mật khẩu <b>Ship@SM1</b></div>
+    <div class="field"><label>Số điện thoại</label><input id="lp" type="tel" placeholder="0922000001" value="0922000001"></div>
+    <div class="field"><label>Mật khẩu</label><input id="lw" type="password" placeholder="••••••" value="Ship@SM1"></div>
+    <button class="btn-login" onclick="doLogin()">Bắt đầu ca giao</button>
+    <div class="login-err" id="lerr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="scr" id="s-app">
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-avatar">TX</div>
+      <div><div class="tb-name" id="tb-name">Tài xế Nam</div><div class="tb-role">Ca sáng · Xe 51A-12345</div></div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-btn" onclick="doLogout()">🚪</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="pg on" id="pg-home">
+      <div class="status-bar">
+        <div class="sb-left">
+          <div class="sb-greeting">Ca hôm nay · 24/03/2026</div>
+          <div class="sb-stat">5/8 đơn</div>
+          <div class="sb-sub">Đã giao thành công</div>
+        </div>
+        <div class="sb-right">
+          <div class="sb-km">42 km</div>
+          <div class="sb-km-lbl">Quãng đường</div>
+          <div class="sb-income">+280.000đ</div>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-num" style="color:#E84545">3</div><div class="kpi-lbl">Còn lại</div></div>
+        <div class="kpi"><div class="kpi-num" style="color:#1FAB73">5</div><div class="kpi-lbl">Đã giao</div></div>
+        <div class="kpi"><div class="kpi-num" style="color:#2563EB">8</div><div class="kpi-lbl">Tổng đơn</div></div>
+      </div>
+
+      <div class="sec-hdr"><div class="sec-title">⚡ Cần giao ngay</div></div>
+      <div class="dcard dc-urgent">
+        <div class="dc-top"><div class="dc-id">O-260324-0014</div><div class="dc-badge badge-urgent">Gấp · 11:30</div></div>
+        <div class="dc-store">🏪 Đại lý Phú</div>
+        <div class="dc-addr">📍 9 Trường Chinh, Phú Bài — 2.1 km</div>
+        <div class="dc-items">• Gạo ST25 ×3 túi (150kg)<br>• Hữu cơ ×2 túi (50kg)</div>
+        <div class="dc-foot"><div class="dc-total">4.540.000đ</div><div class="dc-time">Đặt lúc 08:15</div></div>
+        <div class="dc-actions">
+          <button class="btn-confirm" onclick="confirmDelivery(this,'O-260324-0014')">✓ Xác nhận đã giao</button>
+          <div class="btn-photo" title="Chụp ảnh xác nhận">📷</div>
+          <div class="btn-call" title="Gọi điện">📞</div>
+        </div>
+      </div>
+
+      <div class="sec-hdr" style="margin-top:8px"><div class="sec-title">📋 Đơn tiếp theo</div></div>
+      <div class="dcard dc-normal">
+        <div class="dc-top"><div class="dc-id">O-260324-0015</div><div class="dc-badge badge-normal">14:00</div></div>
+        <div class="dc-store">🏪 Tạp hóa Bình</div>
+        <div class="dc-addr">📍 15 Hùng Vương, Thuận An — 5.3 km</div>
+        <div class="dc-items">• Jasmine ×2 túi, Lứt đen ×1 túi</div>
+        <div class="dc-foot"><div class="dc-total">1.700.000đ</div><div class="dc-time">Giao trước 15:00</div></div>
+        <div class="dc-actions">
+          <button class="btn-confirm" onclick="confirmDelivery(this,'O-260324-0015')">✓ Xác nhận đã giao</button>
+          <div class="btn-photo">📷</div>
+          <div class="btn-call">📞</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL ORDERS -->
+    <div class="pg" id="pg-orders">
+      <div class="sec-hdr"><div class="sec-title">Tất cả đơn hôm nay</div></div>
+      <div class="dcard dc-done">
+        <div class="dc-top"><div class="dc-id">O-260324-0008</div><div class="dc-badge badge-done">✓ Đã giao 08:45</div></div>
+        <div class="dc-store">🏪 Tạp hóa Lan</div>
+        <div class="dc-addr">📍 12 Trần Phú, Phú Bài</div>
+        <div class="dc-foot"><div class="dc-total">1.920.000đ</div><div class="dc-time">Chữ ký ✓</div></div>
+      </div>
+      <div class="dcard dc-done">
+        <div class="dc-top"><div class="dc-id">O-260324-0009</div><div class="dc-badge badge-done">✓ Đã giao 09:30</div></div>
+        <div class="dc-store">🏪 Tạp hóa Minh Quang</div>
+        <div class="dc-addr">📍 45 Lý Thường Kiệt</div>
+        <div class="dc-foot"><div class="dc-total">650.000đ</div><div class="dc-time">Ảnh ✓</div></div>
+      </div>
+      <div class="dcard dc-done">
+        <div class="dc-top"><div class="dc-id">O-260324-0010</div><div class="dc-badge badge-done">✓ Đã giao 10:15</div></div>
+        <div class="dc-store">🏪 Tạp hóa Sơn</div>
+        <div class="dc-addr">📍 23 Phan Chu Trinh</div>
+        <div class="dc-foot"><div class="dc-total">2.800.000đ</div><div class="dc-time">Ảnh ✓</div></div>
+      </div>
+      <div class="dcard dc-urgent">
+        <div class="dc-top"><div class="dc-id">O-260324-0014</div><div class="dc-badge badge-urgent">Chờ giao</div></div>
+        <div class="dc-store">🏪 Đại lý Phú</div>
+        <div class="dc-addr">📍 9 Trường Chinh</div>
+        <div class="dc-foot"><div class="dc-total">4.540.000đ</div><div class="dc-time">Giao trước 11:30</div></div>
+      </div>
+      <div class="dcard dc-normal">
+        <div class="dc-top"><div class="dc-id">O-260324-0015</div><div class="dc-badge badge-normal">Chờ giao</div></div>
+        <div class="dc-store">🏪 Tạp hóa Bình</div>
+        <div class="dc-addr">📍 15 Hùng Vương</div>
+        <div class="dc-foot"><div class="dc-total">1.700.000đ</div><div class="dc-time">Giao trước 15:00</div></div>
+      </div>
+    </div>
+
+    <!-- ROUTE -->
+    <div class="pg" id="pg-route">
+      <div class="sec-hdr"><div class="sec-title">🗺️ Lộ trình tối ưu hôm nay</div></div>
+      <div style="background:#EFF6FF;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#1D4ED8;font-weight:600;">
+        ⚡ Tổng: 42km · Tiết kiệm 18km so với đường thẳng
+      </div>
+      <div style="background:#fff;border-radius:var(--R);border:1px solid var(--border);padding:14px;">
+        <div class="route-item">
+          <div class="route-num done">✓</div>
+          <div class="route-info"><div class="route-store">Tạp hóa Lan</div><div class="route-addr">12 Trần Phú · 0.8km từ kho</div></div>
+          <div class="route-dist">✓ 08:45</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num done">✓</div>
+          <div class="route-info"><div class="route-store">Tạp hóa Minh Quang</div><div class="route-addr">45 Lý Thường Kiệt · 1.2km</div></div>
+          <div class="route-dist">✓ 09:30</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num done">✓</div>
+          <div class="route-info"><div class="route-store">Tạp hóa Sơn</div><div class="route-addr">23 Phan Chu Trinh · 0.9km</div></div>
+          <div class="route-dist">✓ 10:15</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num" style="background:#E84545">4</div>
+          <div class="route-info"><div class="route-store">Đại lý Phú ⚡</div><div class="route-addr">9 Trường Chinh · 2.1km</div></div>
+          <div class="route-dist" style="color:#E84545">→ Tiếp theo</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num">5</div>
+          <div class="route-info"><div class="route-store">CH Bà Hoa</div><div class="route-addr">78 Nguyễn Huệ · 1.4km</div></div>
+          <div class="route-dist">~13:00</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num">6</div>
+          <div class="route-info"><div class="route-store">SM Mini Hà</div><div class="route-addr">5 Hoàng Diệu · 3.8km</div></div>
+          <div class="route-dist">~14:30</div>
+        </div>
+        <div class="route-item">
+          <div class="route-num">7</div>
+          <div class="route-info"><div class="route-store">Tạp hóa Bình</div><div class="route-addr">15 Hùng Vương · 5.3km</div></div>
+          <div class="route-dist">~15:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INCOME -->
+    <div class="pg" id="pg-income">
+      <div class="sec-hdr"><div class="sec-title">Thu nhập của tôi</div></div>
+      <div style="background:linear-gradient(135deg,#1FAB73,#0B3D22);border-radius:var(--R);padding:20px;color:#fff;text-align:center;margin-bottom:14px;">
+        <div style="font-size:11px;opacity:.75;margin-bottom:4px;">Thu nhập hôm nay</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-2px;">280.000đ</div>
+        <div style="font-size:12px;opacity:.7;margin-top:4px;">5 đơn · 42km</div>
+      </div>
+      <div style="background:#fff;border-radius:var(--R);border:1px solid var(--border);padding:14px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:12px;">Chi tiết thu nhập</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span style="color:var(--muted)">Phí cố định/đơn (×5)</span><span style="font-weight:700">250.000đ</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span style="color:var(--muted)">Thưởng giao đúng giờ</span><span style="font-weight:700;color:var(--G)">+30.000đ</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;">
+          <span style="color:var(--muted)">Dự kiến cuối ca (8 đơn)</span><span style="font-weight:800;color:var(--B)">~450.000đ</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- SCHEDULE -->
+    <div class="pg" id="pg-schedule">
+      <div class="sec-hdr"><div class="sec-title">📅 Lịch ca giao hàng</div></div>
+      
+      <div style="background:linear-gradient(135deg,#1FAB73,#0B6E3F);border-radius:14px;padding:16px;color:#fff;margin-bottom:14px;">
+        <div style="font-size:11px;opacity:.75;">Ca hiện tại</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px;">Ca sáng · 07:00 – 13:00</div>
+        <div style="font-size:12px;opacity:.75;margin-top:4px;">Thứ 2, 24/03/2026 · Xe 51A-12345</div>
+      </div>
+
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Lịch tuần này</div>
+      <div style="background:#fff;border-radius:14px;border:1px solid #DBEAFE;overflow:hidden;">
+        ${[
+          {day:'T2 24/03',ca:'Ca sáng 07:00–13:00',don:8,status:'active'},
+          {day:'T3 25/03',ca:'Ca sáng 07:00–13:00',don:7,status:'upcoming'},
+          {day:'T4 26/03',ca:'Nghỉ',don:0,status:'off'},
+          {day:'T5 27/03',ca:'Ca chiều 13:00–19:00',don:6,status:'upcoming'},
+          {day:'T6 28/03',ca:'Ca sáng 07:00–13:00',don:9,status:'upcoming'},
+          {day:'T7 29/03',ca:'Ca sáng 07:00–13:00',don:5,status:'upcoming'},
+          {day:'CN 30/03',ca:'Nghỉ',don:0,status:'off'},
+        ].map(d=>`
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #F0F9FF;">
+            <div style="width:48px;text-align:center;">
+              <div style="font-size:11px;font-weight:800;color:${d.status==='active'?'#2563EB':d.status==='off'?'#9CA3AF':'#374151'}">${d.day.split(' ')[0]}</div>
+              <div style="font-size:10px;color:#9CA3AF;">${d.day.split(' ')[1]}</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:${d.status==='off'?'#9CA3AF':'#111827'}">${d.ca}</div>
+              ${d.don?`<div style="font-size:11px;color:#6B7280;margin-top:2px;">${d.don} đơn dự kiến</div>`:''}
+            </div>
+            <div style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;background:${d.status==='active'?'#DBEAFE':d.status==='off'?'#F3F4F6':'#F0FDF4'};color:${d.status==='active'?'#1D4ED8':d.status==='off'?'#6B7280':'#15803D'}">
+              ${d.status==='active'?'Đang làm':d.status==='off'?'Nghỉ':'Sắp tới'}
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <div style="font-size:13px;font-weight:800;margin:16px 0 10px;">Thống kê tháng 3/2026</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="background:#fff;border:1px solid #DBEAFE;border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#2563EB;">22</div>
+          <div style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Ca làm</div>
+        </div>
+        <div style="background:#fff;border:1px solid #DBEAFE;border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#1FAB73;">186</div>
+          <div style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Đơn giao</div>
+        </div>
+        <div style="background:#fff;border:1px solid #DBEAFE;border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:900;color:#F59E0B;">3,2M</div>
+          <div style="font-size:9px;color:#6B7280;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Thu nhập</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKLIST KHO -->
+    <div class="pg" id="pg-checklist">
+      <div class="sec-hdr"><div class="sec-title">📦 Nhận hàng từ kho</div></div>
+      
+      <div style="background:linear-gradient(135deg,#1FAB73,#0B6E3F);border-radius:14px;padding:16px;color:#fff;margin-bottom:14px;">
+        <div style="font-size:11px;opacity:.75;">Ca sáng · 24/03/2026</div>
+        <div style="font-size:18px;font-weight:800;margin-top:2px;">Checklist xuất kho</div>
+        <div style="display:flex;gap:16px;margin-top:10px;">
+          <div><div style="font-size:22px;font-weight:900;" id="ck-done">0</div><div style="font-size:10px;opacity:.7;">Đã xác nhận</div></div>
+          <div><div style="font-size:22px;font-weight:900;" id="ck-total">8</div><div style="font-size:10px;opacity:.7;">Tổng kiện</div></div>
+          <div><div style="font-size:22px;font-weight:900;" id="ck-pct">0%</div><div style="font-size:10px;opacity:.7;">Hoàn thành</div></div>
+        </div>
+      </div>
+
+      <div id="checklist-items" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+      <button id="btn-start-delivery" onclick="startDelivery()" disabled
+        style="width:100%;padding:14px;background:#9CA3AF;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:not-allowed;transition:all .2s;">
+        🚚 Bắt đầu giao hàng
+      </button>
+    </div>
+    <!-- SỰ CỐ & HOÀN ĐƠN -->
+    <div class="pg" id="pg-incident">
+      <div class="sec-hdr"><div class="sec-title">⚠️ Báo cáo sự cố</div></div>
+
+      <div style="background:#FEF3C7;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#B45309;font-weight:600;">
+        Ghi nhận sự cố để Admin xử lý kịp thời. Ảnh chụp là bằng chứng quan trọng.
+      </div>
+
+      <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:12px;">Tạo báo cáo sự cố mới</div>
+        
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Mã đơn hàng</label>
+          <select id="inc-order" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;">
+            <option>O-260324-0014</option>
+            <option>O-260324-0015</option>
+            <option>O-260324-0016</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Loại sự cố</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="inc-types">
+            <div class="inc-type-btn" onclick="selectType(this,'Không gặp khách')" style="padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;">😔 Không gặp khách</div>
+            <div class="inc-type-btn" onclick="selectType(this,'Hàng bị hỏng')" style="padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;">📦 Hàng bị hỏng</div>
+            <div class="inc-type-btn" onclick="selectType(this,'Thiếu hàng')" style="padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;">⚖️ Thiếu hàng</div>
+            <div class="inc-type-btn" onclick="selectType(this,'Khách từ chối nhận')" style="padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;">🚫 Khách từ chối</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Ghi chú</label>
+          <textarea id="inc-note" rows="2" placeholder="Mô tả thêm tình huống..." style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:none;"></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <div onclick="fakePhoto()" style="flex:1;padding:12px;border:2px dashed #DBEAFE;border-radius:10px;text-align:center;cursor:pointer;font-size:12px;color:#2563EB;font-weight:600;">
+            📷 Chụp ảnh bằng chứng
+          </div>
+          <div id="photo-preview" style="display:none;width:60px;height:60px;border-radius:8px;background:#DBEAFE;align-items:center;justify-content:center;font-size:24px;">📸</div>
+        </div>
+
+        <button onclick="submitIncident()" style="width:100%;padding:12px;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
+          📋 Gửi báo cáo lên Admin
+        </button>
+      </div>
+
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Sự cố gần đây</div>
+      <div id="incident-list">
+        <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <div style="font-size:13px;font-weight:700;">O-260323-0010 · Không gặp khách</div>
+            <div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;background:#FEF3C7;color:#B45309;">Chờ xử lý</div>
+          </div>
+          <div style="font-size:11px;color:#6B7280;">23/03/2026 14:30 · Đã chụp 1 ảnh</div>
+        </div>
+      </div>
+    </div>
+    <!-- THU TIỀN MẶT COD -->
+    <div class="pg" id="pg-cod">
+      <div class="sec-hdr"><div class="sec-title">💵 Thu tiền mặt</div></div>
+
+      <div style="background:linear-gradient(135deg,#2563EB,#1D4ED8);border-radius:14px;padding:16px;color:#fff;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:11px;opacity:.75;">Tổng thu ca hôm nay</div>
+          <div style="font-size:32px;font-weight:900;letter-spacing:-2px;" id="cod-total">0đ</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px;" id="cod-count">0 đơn COD</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;opacity:.75;">Chờ đối soát</div>
+          <div style="font-size:20px;font-weight:800;" id="cod-pending">0đ</div>
+        </div>
+      </div>
+
+      <div id="cod-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+
+      <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:12px;">Ghi nhận thu tiền</div>
+        <div style="margin-bottom:8px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Mã đơn</label>
+          <select id="cod-order-sel" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;">
+            <option value="">Chọn đơn hàng...</option>
+            <option value="O-260324-0014:4540000">O-260324-0014 · 4.540.000đ</option>
+            <option value="O-260324-0015:1700000">O-260324-0015 · 1.700.000đ</option>
+            <option value="O-260324-0016:920000">O-260324-0016 · 920.000đ</option>
+          </select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Số tiền thực thu</label>
+          <input id="cod-amount" type="number" placeholder="Nhập số tiền..." style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;font-weight:700;">
+        </div>
+        <button onclick="recordCOD()" style="width:100%;padding:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
+          ✓ Xác nhận đã thu tiền
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BNAV -->
+  <div class="bnav">
+    <div class="bni" id="bi-checklist" onclick="goTab('checklist')"><div class="bni-icon">✅</div><div class="bni-lbl">Nhận kho</div></div>
+    <div class="bni on" id="bi-home" onclick="goTab('home')"><div class="bni-icon">🏠</div><div class="bni-lbl">Ca hôm nay</div></div>
+    <div class="bni" id="bi-orders" onclick="goTab('orders')"><div class="bni-icon">📋</div><div class="bni-lbl">Đơn hàng</div></div>
+    <div class="bni" id="bi-route" onclick="goTab('route')"><div class="bni-icon">🗺️</div><div class="bni-lbl">Lộ trình</div></div>
+    <div class="bni" id="bi-more" onclick="toggleMore()"><div class="bni-icon">⋯</div><div class="bni-lbl">Thêm</div></div>
+  </div>
+
+  <!-- MORE MENU -->
+  <div id="more-menu" style="display:none;position:fixed;bottom:65px;left:0;right:0;background:#fff;border-top:1px solid #E5E7EB;padding:12px 16px;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.1);">
+    <div style="font-size:10px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">Thêm tính năng</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <div onclick="goTabMore('incident')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:#FFF7ED;border-radius:12px;cursor:pointer;">
+        <span style="font-size:22px;">⚠️</span>
+        <span style="font-size:10px;font-weight:700;color:#B45309;text-align:center;">Sự cố</span>
+      </div>
+      <div onclick="goTabMore('cod')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:#EFF6FF;border-radius:12px;cursor:pointer;">
+        <span style="font-size:22px;">💵</span>
+        <span style="font-size:10px;font-weight:700;color:#1D4ED8;text-align:center;">Thu tiền</span>
+      </div>
+      <div onclick="goTabMore('schedule')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:#F0FDF4;border-radius:12px;cursor:pointer;">
+        <span style="font-size:22px;">📅</span>
+        <span style="font-size:10px;font-weight:700;color:#15803D;text-align:center;">Lịch ca</span>
+      </div>
+      <div onclick="goTabMore('income')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:#FEF9C3;border-radius:12px;cursor:pointer;">
+        <span style="font-size:22px;">💰</span>
+        <span style="font-size:10px;font-weight:700;color:#854D0E;text-align:center;">Thu nhập</span>
+      </div>
+      <div onclick="doLogout()" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;background:#FEF2F2;border-radius:12px;cursor:pointer;">
+        <span style="font-size:22px;">🚪</span>
+        <span style="font-size:10px;font-weight:700;color:#DC2626;text-align:center;">Đăng xuất</span>
+      </div>
+    </div>
+  </div>
+  <div id="more-overlay" style="display:none;position:fixed;inset:0;z-index:199;" onclick="closeMore()"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DRV_USERS = {
+  '0922000001': {pass:'Ship@SM1', name:'Tài xế Nam'},
+  '0922000002': {pass:'Ship@SM1', name:'Tài xế Hùng'},
+};
+
+function doLogin(){
+  const p=document.getElementById('lp').value.trim();
+  const w=document.getElementById('lw').value;
+  const err=document.getElementById('lerr');
+  if(!p||!w){err.textContent='Vui lòng nhập đầy đủ';return;}
+  const u=DRV_USERS[p];
+  if(!u){err.textContent='Số điện thoại không tồn tại';return;}
+  if(u.pass!==w){err.textContent='Mật khẩu không đúng';return;}
+  document.getElementById('tb-name').textContent=u.name;
+  document.getElementById('s-login').classList.remove('on');
+  document.getElementById('s-app').classList.add('on');
+  goTab('home');
+}
+
+function doLogout(){
+  document.getElementById('s-app').classList.remove('on');
+  document.getElementById('s-login').classList.add('on');
+}
+
+function goTab(tab){
+  ['home','orders','route','income','schedule','checklist','incident','cod','more'].forEach(t=>{
+    document.getElementById('pg-'+t)?.classList.remove('on');
+    document.getElementById('bi-'+t)?.classList.remove('on');
+  });
+  document.getElementById('pg-'+tab)?.classList.add('on');
+  document.getElementById('bi-'+tab)?.classList.add('on');
+}
+
+function confirmDelivery(btn, orderId){
+  const card = btn.closest('.dcard');
+  card.classList.remove('dc-urgent','dc-normal');
+  card.classList.add('dc-done');
+  card.querySelector('.dc-badge').className='dc-badge badge-done';
+  card.querySelector('.dc-badge').textContent='✓ Đã giao ' + new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  btn.parentElement.remove();
+  showToast('✅ Xác nhận giao thành công ' + orderId);
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// ── CHECKLIST ──────────────────────────────────────────
+const CHECKLIST_ITEMS = [
+  {id:'ck1',order:'O-260324-0008',store:'Tạp hóa Lan',items:'Gạo ST25 ×3 túi',weight:'150kg',checked:false},
+  {id:'ck2',order:'O-260324-0009',store:'Tạp hóa Minh Quang',items:'Jasmine ×1 túi',weight:'50kg',checked:false},
+  {id:'ck3',order:'O-260324-0010',store:'Tạp hóa Sơn',items:'ST25 ×4 túi',weight:'200kg',checked:false},
+  {id:'ck4',order:'O-260324-0014',store:'Đại lý Phú',items:'ST25 ×3, Hữu cơ ×2',weight:'200kg',checked:false},
+  {id:'ck5',order:'O-260324-0015',store:'Tạp hóa Bình',items:'Jasmine ×2, Lứt đen ×1',weight:'125kg',checked:false},
+];
+
+function renderChecklist(){
+  const el=document.getElementById('checklist-items');
+  if(!el)return;
+  el.innerHTML=CHECKLIST_ITEMS.map(item=>`
+    <div class="ck-item${item.checked?' checked':''}" id="ckitem-${item.id}">
+      <div class="ck-check${item.checked?' on':''}" onclick="toggleCheck('${item.id}')">
+        ${item.checked?'✓':''}
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;">${item.store}</div>
+        <div style="font-size:11px;color:#6B7280;">${item.items} · ${item.weight}</div>
+        <div style="font-size:10px;color:#9CA3AF;">Đơn: ${item.order}</div>
+      </div>
+      ${item.checked?'<div style="font-size:18px;">✅</div>':'<div style="font-size:18px;">📦</div>'}
+    </div>`).join('');
+  updateChecklistStats();
+}
+
+function toggleCheck(id){
+  const item=CHECKLIST_ITEMS.find(x=>x.id===id);
+  if(item){item.checked=!item.checked;renderChecklist();}
+}
+
+function updateChecklistStats(){
+  const done=CHECKLIST_ITEMS.filter(x=>x.checked).length;
+  const total=CHECKLIST_ITEMS.length;
+  document.getElementById('ck-done').textContent=done;
+  document.getElementById('ck-total').textContent=total;
+  document.getElementById('ck-pct').textContent=Math.round(done/total*100)+'%';
+  const btn=document.getElementById('btn-start-delivery');
+  if(btn){
+    if(done===total){
+      btn.disabled=false;
+      btn.style.background='linear-gradient(135deg,#1FAB73,#0B6E3F)';
+      btn.style.cursor='pointer';
+    } else {
+      btn.disabled=true;
+      btn.style.background='#9CA3AF';
+      btn.style.cursor='not-allowed';
+    }
+  }
+}
+
+function startDelivery(){
+  showToast('🚚 Bắt đầu ca giao! Chúc may mắn!');
+  goTab('home');
+}
+
+// ── SỰ CỐ ──────────────────────────────────────────────
+let selectedIncType = '';
+function selectType(el, type){
+  document.querySelectorAll('.inc-type-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedIncType = type;
+}
+
+function fakePhoto(){
+  document.getElementById('photo-preview').style.display='flex';
+  showToast('📸 Đã chụp ảnh bằng chứng');
+}
+
+function submitIncident(){
+  const order=document.getElementById('inc-order')?.value;
+  const note=document.getElementById('inc-note')?.value;
+  if(!selectedIncType){showToast('⚠️ Chọn loại sự cố');return;}
+  const list=document.getElementById('incident-list');
+  const now=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  const newItem=document.createElement('div');
+  newItem.style.cssText='background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:14px;margin-bottom:8px;';
+  newItem.innerHTML=`
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:13px;font-weight:700;">${order} · ${selectedIncType}</div>
+      <div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;background:#FEF3C7;color:#B45309;">Chờ xử lý</div>
+    </div>
+    <div style="font-size:11px;color:#6B7280;">Hôm nay ${now}${note?' · '+note:''}</div>`;
+  list.prepend(newItem);
+  document.getElementById('inc-note').value='';
+  selectedIncType='';
+  document.querySelectorAll('.inc-type-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('photo-preview').style.display='none';
+  showToast('✅ Đã gửi báo cáo lên Admin');
+}
+
+// ── COD ────────────────────────────────────────────────
+const COD_RECORDS = [];
+function renderCOD(){
+  const list=document.getElementById('cod-list');
+  if(!list)return;
+  if(!COD_RECORDS.length){
+    list.innerHTML='<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px;">Chưa có giao dịch COD nào</div>';
+  } else {
+    list.innerHTML=COD_RECORDS.map(r=>`
+      <div style="background:#fff;border:1.5px solid #D1FAE5;border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">${r.order}</div>
+          <div style="font-size:11px;color:#6B7280;">${r.store} · ${r.time}</div>
+        </div>
+        <div style="font-size:15px;font-weight:900;color:#1FAB73;">+${r.amount.toLocaleString('vi-VN')}đ</div>
+      </div>`).join('');
+  }
+  const total=COD_RECORDS.reduce((s,r)=>s+r.amount,0);
+  document.getElementById('cod-total').textContent=total.toLocaleString('vi-VN')+'đ';
+  document.getElementById('cod-count').textContent=COD_RECORDS.length+' đơn COD';
+  document.getElementById('cod-pending').textContent=total.toLocaleString('vi-VN')+'đ';
+}
+
+function recordCOD(){
+  const sel=document.getElementById('cod-order-sel')?.value;
+  const amt=parseInt(document.getElementById('cod-amount')?.value);
+  if(!sel||!amt){showToast('⚠️ Chọn đơn và nhập số tiền');return;}
+  const [orderId,_]=sel.split(':');
+  const storeMap={'O-260324-0014':'Đại lý Phú','O-260324-0015':'Tạp hóa Bình','O-260324-0016':'Tạp hóa Mai'};
+  COD_RECORDS.push({
+    order:orderId,
+    store:storeMap[orderId]||'Cửa hàng',
+    amount:amt,
+    time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})
+  });
+  document.getElementById('cod-amount').value='';
+  document.getElementById('cod-order-sel').value='';
+  renderCOD();
+  showToast('💵 Ghi nhận '+amt.toLocaleString('vi-VN')+'đ từ '+orderId);
+}
+
+
+function toggleMore(){
+  const m=document.getElementById('more-menu');
+  const o=document.getElementById('more-overlay');
+  const isOpen=m.style.display!=='none';
+  m.style.display=isOpen?'none':'block';
+  o.style.display=isOpen?'none':'block';
+}
+function closeMore(){
+  document.getElementById('more-menu').style.display='none';
+  document.getElementById('more-overlay').style.display='none';
+}
+function goTabMore(tab){
+  closeMore();
+  goTab(tab);
+}
+</script>
+</body>
+</html>
