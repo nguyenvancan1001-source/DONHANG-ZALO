@@ -1532,10 +1532,13 @@ function toast(msg) {
 // ── ACCOUNTS (demo — thay bằng Supabase Auth thực tế) ──
 // Tài khoản demo fallback (dùng khi Supabase Auth chưa setup)
 const ADM_ACCOUNTS_DEFAULT = [
-  {user:'admin',      pass:'vcm@2026',      role:'admin',  name:'Quản trị viên',        branch:''},
-  {user:'phubai',     pass:'phubai@123',    role:'staff',  name:'Cửa hàng Phú Bài',     branch:'Vicomart Phú Bài'},
-  {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',  name:'Cửa hàng Vinh Thanh',  branch:'Vicomart Vinh Thanh'},
-  {user:'thuanan',    pass:'thuanan@123',   role:'staff',  name:'Cửa hàng Thuận An',    branch:'Vicomart Thuận An'},
+  {user:'admin',      pass:'vcm@2026',      role:'admin',   name:'Quản trị viên',        branch:''},
+  {user:'qlpb',       pass:'qlpb@123',      role:'manager', name:'Quản lý Phú Bài',      branch:'Vicomart Phú Bài'},
+  {user:'qlvt',       pass:'qlvt@123',      role:'manager', name:'Quản lý Vinh Thanh',   branch:'Vicomart Vinh Thanh'},
+  {user:'qlta',       pass:'qlta@123',      role:'manager', name:'Quản lý Thuận An',     branch:'Vicomart Thuận An'},
+  {user:'phubai',     pass:'phubai@123',    role:'staff',   name:'Cửa hàng Phú Bài',    branch:'Vicomart Phú Bài'},
+  {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',   name:'Cửa hàng Vinh Thanh', branch:'Vicomart Vinh Thanh'},
+  {user:'thuanan',    pass:'thuanan@123',   role:'staff',   name:'Cửa hàng Thuận An',   branch:'Vicomart Thuận An'},
 ];
 // Load từ localStorage, fallback default
 let ADM_ACCOUNTS_DEMO = (()=>{
@@ -1637,6 +1640,10 @@ function showAdmApp(){
   badge.className = 'adm-role-badge ' + (admUser.role==='admin'?'adm-role-admin':'adm-role-staff');
   // Show/hide admin-only elements
   document.querySelectorAll('.admin-only').forEach(el=>{
+    el.style.display = (admUser.role==='admin'||admUser.role==='manager')?'':'none';
+  });
+  // Manager không thấy tab Phân quyền
+  document.querySelectorAll('.superadmin-only').forEach(el=>{
     el.style.display = admUser.role==='admin'?'':'none';
   });
   swAdmTab('orders');
@@ -1667,7 +1674,9 @@ async function admLoadOrders(){
   try{
     let q=db.from('orders').select('*').order('created_at',{ascending:false}).limit(100);
     if(status) q=q.eq('status',status);
-    if(admUser.selectedBranch) q=q.eq('branch',admUser.selectedBranch);
+    if(admUser.role==='manager'||admUser.role==='staff'){
+      if(admUser.selectedBranch) q=q.eq('branch',admUser.selectedBranch);
+    }
     const {data,error}=await q;
     if(error) throw error;
     orders=data||[];
@@ -1866,6 +1875,20 @@ const PROMO_TYPE_META = {
 // ── RENDER LIST ──
 async function admLoadPromos(){
   const el=document.getElementById('adm-promos-list');
+  // Gắn event delegation 1 lần duy nhất
+  if(!el._delegated){
+    el._delegated=true;
+    el.addEventListener('click',function(e){
+      const btn=e.target.closest('[data-action]');
+      if(!btn) return;
+      e.stopPropagation();
+      const action=btn.dataset.action;
+      const id=btn.dataset.id;
+      if(action==='edit') editPromo(id);
+      else if(action==='tog') togPromoActive(id, btn.dataset.active==='true');
+      else if(action==='del') delPromo(id);
+    });
+  }
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
   // Luôn load từ Supabase trước, fallback local
   await _syncPromosFromCloud();
@@ -1903,9 +1926,9 @@ function renderPromoAdminCard(p){
       ${p.discount_pct?`<span class="pc-mini">-${p.discount_pct}%</span>`:''}
     </div>
     <div class="pc-acts">
-      <button class="pc-act-btn" onclick="event.stopPropagation();editPromo('${p.id}')">✏️ Sửa</button>
-      <button class="pc-act-btn" onclick="event.stopPropagation();togPromoActive('${p.id}',${p.is_active})">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
-      <button class="pc-act-btn danger" onclick="event.stopPropagation();delPromo('${p.id}')">🗑</button>
+      <button class="pc-act-btn" data-action="edit" data-id="${p.id}" onclick="event.stopPropagation()">✏️ Sửa</button>
+      <button class="pc-act-btn" data-action="tog" data-id="${p.id}" data-active="${p.is_active}" onclick="event.stopPropagation()">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
+      <button class="pc-act-btn danger" data-action="del" data-id="${p.id}" onclick="event.stopPropagation()">🗑</button>
     </div>
   </div>`;
 }
@@ -2332,16 +2355,42 @@ allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 // ── USERS (admin only) ──
 function admRenderUsers(){
   const list=document.getElementById('adm-users-list');
+
+  // Event delegation — gắn 1 lần
+  if(!list._delegated){
+    list._delegated=true;
+    list.addEventListener('click',function(e){
+      const btn=e.target.closest('[data-action]');
+      if(!btn) return;
+      e.stopPropagation();
+      const action=btn.dataset.action;
+      const idx=parseInt(btn.dataset.idx);
+      if(action==='edit') editAccount(idx);
+      else if(action==='del') delAccount(idx);
+    });
+  }
+
+  const PERMS = {
+    admin:   ['Xem tất cả đơn hàng','Quản lý sản phẩm','Quản lý KM','Quản lý tài khoản','Tất cả chi nhánh'],
+    manager: ['Xem đơn hàng chi nhánh','Quản lý sản phẩm','Quản lý KM','Cập nhật trạng thái đơn','Chỉ chi nhánh mình'],
+    staff:   ['Xem đơn hàng chi nhánh','Cập nhật trạng thái đơn','Chỉ chi nhánh mình'],
+  };
+
   list.innerHTML=ADM_ACCOUNTS_DEMO.map((a,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
-      <div style="width:32px;height:32px;border-radius:50%;background:${a.role==='admin'?'var(--g800)':'#e0f2fe'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${a.role==='admin'?'👑':'👤'}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:700">${a.name}</div>
-        <div style="font-size:11px;color:var(--ink3)">@${a.user}${a.branch?' · '+a.branch:''}</div>
+    <div style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:34px;height:34px;border-radius:50%;background:${a.role==='admin'?'var(--g800)':a.role==='manager'?'#059669':'#e0f2fe'};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${a.role==='admin'?'👑':a.role==='manager'?'🏪':'👤'}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700">${a.name}</div>
+          <div style="font-size:11px;color:var(--ink3)">@${a.user}${a.branch?' · '+a.branch:''}</div>
+        </div>
+        <span style="background:${a.role==='admin'?'#FFC300':a.role==='manager'?'#d1fae5':'#dbeafe'};color:${a.role==='admin'?'#0D47A1':a.role==='manager'?'#065f46':'#0D47A1'};font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0">${a.role==='admin'?'ADMIN':a.role==='manager'?'QUẢN LÝ':'NV'}</span>
+        <button data-action="edit" data-idx="${i}" style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer">✏️</button>
+        ${a.role!=='admin'?`<button data-action="del" data-idx="${i}" style="padding:5px 10px;border:1px solid #fca5a5;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#dc2626">🗑</button>`:''}
       </div>
-      <span style="background:${a.role==='admin'?'#FFC300':'#dbeafe'};color:${a.role==='admin'?'#0D47A1':'#0D47A1'};font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;flex-shrink:0">${a.role==='admin'?'ADMIN':'NV'}</span>
-      <button onclick="editAccount(${i})" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:var(--font)">✏️</button>
-      ${a.role!=='admin'?`<button onclick="delAccount(${i})" style="padding:4px 8px;border:1px solid #fca5a5;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;color:#dc2626;font-family:var(--font)">🗑</button>`:''}
+      <div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px">
+        ${(PERMS[a.role]||[]).map(p=>`<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">${p}</span>`).join('')}
+      </div>
     </div>`).join('');
 }
 
@@ -3067,6 +3116,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
                 <div><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Quyền</label>
                   <select id="ua-role" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none">
                     <option value="admin">Admin</option>
+                    <option value="manager">Quản lý chi nhánh</option>
                     <option value="staff" selected>Nhân viên</option>
                   </select>
                 </div>
