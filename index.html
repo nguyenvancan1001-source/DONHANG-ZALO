@@ -2186,6 +2186,8 @@ async function savePromo(){
       }
       if(error) throw error;
       await _syncPromosFromCloud();
+      // Lưu localStorage đồng bộ với cloud
+      try{ localStorage.setItem('vc_promos',JSON.stringify(_promoStore)); }catch(e){}
       savedToCloud=true;
     }catch(e){
       console.warn('Supabase savePromo error:',e.message,'→ lưu local');
@@ -2264,17 +2266,21 @@ function promoToCardV2(p){
   return {icon:meta.icon,title,subTitle,badge,boxIcon,boxText,boxSub,boxTag,_source:p};
 }
 
-// Override allPromos init với _promoStore
-// Khởi tạo allPromos từ DEMO_PROMO_FALLBACK tạm — sẽ bị replace khi loadPromos() chạy
-_promoStore = [...DEMO_PROMO_FALLBACK];
-// Khởi động: load từ localStorage nếu có (ưu tiên hơn demo)
-try{
-  const saved=localStorage.getItem('vc_promos');
-  if(saved){
-    const parsed=JSON.parse(saved);
-    if(parsed&&parsed.length) _promoStore=parsed;
-  }
-}catch(e){}
+// ── INIT _promoStore: localStorage → DEMO_PROMOS ──────────
+(function(){
+  try{
+    const saved = localStorage.getItem('vc_promos');
+    if(saved){
+      const parsed = JSON.parse(saved);
+      if(parsed && parsed.length){
+        _promoStore = parsed;
+        console.log('[Vicomart] Loaded', parsed.length, 'promos from localStorage');
+        return;
+      }
+    }
+  }catch(e){ console.warn('load vc_promos error:', e); }
+  // Fallback: giữ _promoStore demo mặc định
+})();
 allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 
 
