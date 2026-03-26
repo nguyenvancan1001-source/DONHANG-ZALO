@@ -1877,9 +1877,9 @@ function renderPromoAdminCard(p){
       ${p.discount_pct?`<span class="pc-mini">-${p.discount_pct}%</span>`:''}
     </div>
     <div class="pc-acts">
-      <button class="pc-act-btn" onclick="editPromo('${p.id}')">✏️ Sửa</button>
-      <button class="pc-act-btn" onclick="togPromoActive('${p.id}',${p.is_active})">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
-      <button class="pc-act-btn danger" onclick="delPromo('${p.id}')">🗑</button>
+      <button class="pc-act-btn" onclick="event.stopPropagation();editPromo('${p.id}')">✏️ Sửa</button>
+      <button class="pc-act-btn" onclick="event.stopPropagation();togPromoActive('${p.id}',${p.is_active})">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
+      <button class="pc-act-btn danger" onclick="event.stopPropagation();delPromo('${p.id}')">🗑</button>
     </div>
   </div>`;
 }
@@ -1931,14 +1931,17 @@ function openPromoModal(id){
   // Mở modal
   const bg=document.getElementById('adm-promo-modal-bg');
   bg.classList.add('open');
-  // Nếu sửa: preload form sau khi modal hiển thị hoàn toàn
+  // Nếu sửa: đợi modal animation xong rồi render form
   if(id){
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        const p=_promoStore.find(x=>x.id===id);
-        if(p) selPromoType(p.type,p);
-      });
-    });
+    setTimeout(()=>{
+      const p=_promoStore.find(x=>x.id===id);
+      if(p){
+        selPromoType(p.type,p);
+        // Scroll modal về đầu
+        const modal=document.getElementById('adm-promo-modal');
+        if(modal) modal.scrollTop=0;
+      }
+    },150);
   }
 }
 function closePromoModal(){
