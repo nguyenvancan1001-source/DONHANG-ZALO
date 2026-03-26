@@ -1785,9 +1785,6 @@ function openAdmProdModal(id){
   ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
-  // Xoá input tạm nếu còn sót
-  const tmp = document.getElementById('_tmp_file_input');
-  if(tmp) tmp.remove();
   clearProdImg();
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
@@ -1839,29 +1836,22 @@ function clearProdImg(){
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
   document.getElementById('apm-img').value='';
+  _resetFileInput();
   const btn = document.getElementById('apm-pick-btn');
   if(btn) btn.textContent='📷 Chọn ảnh từ máy';
 }
 
-function pickProdImage(){
-  // Tạo input file tạm trong body — không bao giờ bị block
-  const old = document.getElementById('_tmp_file_input');
-  if(old) old.remove();
-  const inp = document.createElement('input');
-  inp.type = 'file';
-  inp.id = '_tmp_file_input';
-  inp.accept = 'image/*';
-  inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
-  inp.addEventListener('change', handleProdImgUpload);
-  document.body.appendChild(inp);
-  inp.click();
+function _resetFileInput(){
+  // Replace node để reset hoàn toàn — hoạt động trên mọi trình duyệt
+  const old = document.getElementById('apm-file-input');
+  if(!old) return;
+  const neu = old.cloneNode(false);
+  neu.addEventListener('change', handleProdImgUpload);
+  old.parentNode.replaceChild(neu, old);
 }
 
 async function handleProdImgUpload(e){
   const file = e.target.files[0];
-  // Xoá input tạm ngay
-  const tmp = document.getElementById('_tmp_file_input');
-  if(tmp) tmp.remove();
   if(!file) return;
   const btn = document.getElementById('apm-pick-btn');
   if(btn) btn.textContent='⏳ Đang xử lý...';
@@ -1923,12 +1913,14 @@ async function handleProdImgUpload(e){
     document.getElementById('apm-img').value = finalUrl;
     document.getElementById('apm-img-thumb').src = finalUrl;
     document.getElementById('apm-img-preview').style.display = 'block';
-    if(btn) btn.textContent='✓ Đã chọn ảnh — Chọn lại';
+    if(btn) btn.textContent='✓ Đã chọn — Tap để đổi ảnh';
+    _resetFileInput(); // reset để chọn lại được ngay
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
     toast('❌ Lỗi xử lý ảnh: ' + (err.message||''));
     if(btn) btn.textContent='📷 Chọn ảnh từ máy';
+    _resetFileInput();
   }
 }
 
@@ -3516,12 +3508,16 @@ document.addEventListener('click', function(e){
         <img id="apm-img-thumb" src="" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid var(--line);object-fit:contain">
       </div>
       <!-- Upload file -->
-      <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
-        <button type="button" id="apm-pick-btn" onclick="pickProdImage()"
-          style="flex:1;padding:9px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:13px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center">
-          📷 Chọn ảnh từ máy
-        </button>
-        <button type="button" onclick="clearProdImg()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
+      <div style="display:flex;gap:6px;margin-bottom:5px;align-items:stretch">
+        <div style="position:relative;flex:1;min-height:38px">
+          <div id="apm-pick-btn" style="width:100%;height:100%;padding:9px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:13px;font-weight:700;color:var(--g800);text-align:center;display:flex;align-items:center;justify-content:center;pointer-events:none">
+            📷 Chọn ảnh từ máy
+          </div>
+          <input type="file" id="apm-file-input" accept="image/*"
+            onchange="handleProdImgUpload(event)"
+            style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;margin:0;padding:0">
+        </div>
+        <button type="button" onclick="clearProdImg()" style="padding:7px 12px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:13px;cursor:pointer;color:var(--ink3);flex-shrink:0">✕</button>
       </div>
       <!-- URL fallback -->
       <input id="apm-img" type="url" placeholder="Hoặc dán link ảnh https://..." oninput="handleProdImgUrl(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font);outline:none">
