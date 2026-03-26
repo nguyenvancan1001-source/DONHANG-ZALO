@@ -54,12 +54,12 @@ html,body{height:100%;overflow:hidden}
 body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-behavior:none}
 
 /* ── SCREENS ────────────────────────────────── */
-.screen{position:absolute;inset:0;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform;overflow:hidden;background:var(--bg);z-index:1}.screen.active{z-index:5}
 .screen.active{transform:translateX(0)}
 .screen.behind{transform:translateX(-30%)}
 
 /* ── HEADER ─────────────────────────────────── */
-.header{background:var(--g800);padding:0 16px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:relative;z-index:2}
+.header{background:var(--g800);padding:0 16px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:relative;z-index:10}
 .header-back{width:36px;height:36px;background:rgba(255,255,255,.12);border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .header-title{color:#fff;font-size:16px;font-weight:700;flex:1}
 .header-sub{color:rgba(255,255,255,.6);font-size:11px;font-weight:400}
@@ -129,6 +129,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── CART SCREEN ────────────────────────────── */
 #s-cart .content{flex:1;overflow-y:auto;padding:14px;padding-bottom:80px}
+.checkout-bar,.order-bar{flex-shrink:0;padding:12px 14px;background:var(--white);border-top:1px solid var(--line)}
 #s-cart .content::-webkit-scrollbar{display:none}
 .cart-item{background:var(--white);border-radius:var(--r);padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px;border:1px solid var(--line)}
 .ci-img{width:56px;height:56px;border-radius:var(--r-sm);background:#f0f0ee;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center}
@@ -599,6 +600,18 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .ip-preview{display:flex;align-items:center;gap:8px;margin-top:6px}
 .ip-preview-box{width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:24px}
 .ip-preview-hint{font-size:11px;color:var(--ink3);font-weight:600}
+
+
+/* ── FIX: Ẩn hero/expand khi ở màn cart/checkout ──────── */
+#s-cart .hero-wrap,
+#s-cart .expand-section,
+#s-cart #hero-mode,
+#s-checkout .hero-wrap,
+#s-checkout .expand-section,
+#s-success .hero-wrap{display:none!important}
+/* Badge KM không được tràn ra ngoài card SP */
+.hot-card{isolation:isolate}
+.sap-het-badge{z-index:2}
 
 </style>
 </head>
@@ -1130,7 +1143,15 @@ function goScreen(id) {
   document.getElementById(cur).classList.add('behind');
   document.getElementById(id).classList.add('active');
   screenStack.push(id);
-  if (id === 's-cart') renderCart();
+  if (id === 's-cart') { renderCart(); }
+  // Ẩn hero-mode khi chuyển sang cart/checkout/success
+  const heroMode = document.getElementById('hero-mode');
+  const expandSection = document.querySelectorAll('.expand-section, #prod-list');
+  if(id !== 's-shop'){
+    if(heroMode) heroMode.style.pointerEvents='none';
+  } else {
+    if(heroMode) heroMode.style.pointerEvents='';
+  }
   if (id === 's-checkout') renderCoSummary();
 }
 
