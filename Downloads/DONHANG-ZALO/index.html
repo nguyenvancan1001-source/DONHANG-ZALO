@@ -1334,11 +1334,13 @@ function prodCard(p) {
   const qty = item ? item.qty : 0;
   const inCart = qty > 0;
   return `<div class="prod-card${inCart ? ' has' : ''}" id="pc-${p.id}">
-    <div class="prod-img">
+    <div class="prod-img" style="position:relative">
       ${p.image_url
         ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">`
         : `<div class="prod-img-ph"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="18" rx="3" stroke="#ccc" stroke-width="1.5"/><path d="M4 13h24" stroke="#ccc" stroke-width="1.5"/><circle cx="10" cy="10.5" r="1.5" fill="#ccc"/></svg></div>`
       }
+      ${p.promo_name ? `<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(0deg,rgba(230,30,30,.92),transparent);color:#fff;font-size:8px;font-weight:800;padding:3px 4px 2px;text-align:center;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.promo_name}</div>` : ''}
+      ${p.discount_pct > 0 ? `<div style="position:absolute;top:4px;left:4px;background:#e53e3e;color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px;line-height:1.2">-${p.discount_pct}%</div>` : ''}
     </div>
     <div class="prod-body">
       <div class="prod-name">${p.name}</div>
@@ -1795,7 +1797,9 @@ function openAdmProdModal(id){
   document.getElementById('apm-cat').value='Lương thực';
   document.getElementById('apm-badge').value='';
   document.getElementById('apm-active').value='true';
-  document.getElementById('apm-promo-type').value='';
+  document.getElementById('apm-promo-type').value='discount';
+  document.getElementById('apm-promo-select').value='';
+  apmFillPromoSelect();
   apmTogglePromo();
   if(id){
     // Lấy SP từ cloud/allProds
@@ -1808,12 +1812,17 @@ function openAdmProdModal(id){
       document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
       document.getElementById('apm-active').value=String(p.is_active!==false);
       // Restore KM
-      if(p.promo_type){
-        document.getElementById('apm-promo-type').value=p.promo_type;
-        apmTogglePromo();
+      if(p.promo_name || p.promo_type){
+        // Tìm promo khớp tên trong store
+        const promos = (_promoStore&&_promoStore.length)?_promoStore:DEMO_PROMO_FALLBACK;
+        const match = promos.find(x=>x.name===p.promo_name||x.id===p.promo_type);
+        if(match) document.getElementById('apm-promo-select').value=match.id;
+        apmFillPromoSelect();
+        apmSelectPromo(match?match.id:'');
         document.getElementById('apm-price').value=p.price||'';
         document.getElementById('apm-discount-pct').value=p.discount_pct||'';
         document.getElementById('apm-promo-name').value=p.promo_name||'';
+        if(p.promo_type) document.getElementById('apm-promo-type').value=p.promo_type;
         apmCalc();
       } else {
         document.getElementById('apm-price').value=p.price||'';
@@ -1940,23 +1949,47 @@ async function handleProdImgUpload(e){
   }
 }
 
-function apmTogglePromo(){
-  const type = document.getElementById('apm-promo-type').value;
+function apmFillPromoSelect(){
+  // Điền danh sách chương trình KM đang có vào dropdown
+  const sel = document.getElementById('apm-promo-select');
+  if(!sel) return;
+  const promos = (_promoStore && _promoStore.length) ? _promoStore : DEMO_PROMO_FALLBACK;
+  const active = promos.filter(p=>p.is_active!==false);
+  sel.innerHTML = '<option value="">— Không áp dụng —</option>' +
+    active.map(p=>`<option value="${p.id}">${p.name||p.id}</option>`).join('');
+}
+
+function apmSelectPromo(promoId){
   const box  = document.getElementById('apm-promo-box');
   const wrap = document.getElementById('apm-price-wrap');
-  if(type){
-    box.style.display  = 'block';
-    wrap.style.display = 'none';
-    // Đặt tên KM mặc định
-    const names = {discount:'Giảm giá', combo:'Combo tiết kiệm', flash:'Flash Sale'};
-    const nameEl = document.getElementById('apm-promo-name');
-    if(!nameEl.value) nameEl.value = names[type]||'';
-  } else {
+  if(!promoId){
     box.style.display  = 'none';
     wrap.style.display = 'block';
-    document.getElementById('apm-discount-pct').value = '';
-    document.getElementById('apm-promo-label').textContent = '—';
+    return;
   }
+  const promos = (_promoStore && _promoStore.length) ? _promoStore : DEMO_PROMO_FALLBACK;
+  const promo  = promos.find(p=>p.id===promoId);
+  box.style.display  = 'block';
+  wrap.style.display = 'none';
+  if(promo){
+    // Điền tên + mô tả
+    document.getElementById('apm-promo-name').value = promo.name||'';
+    document.getElementById('apm-promo-type').value = promo.type==='flash'?'flash':promo.type==='combo'?'combo':'discount';
+    const typeIcons = {bxgy1:'🥛',bxgy2:'🎁',combo:'🧺',discount:'🏷️',flash:'⚡',gift:'🎀'};
+    const icon = typeIcons[promo.type]||'🏷️';
+    document.getElementById('apm-promo-desc').textContent = icon + ' ' + (promo.name||'');
+    // Điền % giảm nếu có
+    if(promo.discount_pct){
+      document.getElementById('apm-discount-pct').value = promo.discount_pct;
+      apmCalcFromPct();
+    }
+  }
+}
+
+function apmTogglePromo(){
+  // Legacy — dùng apmSelectPromo thay thế
+  const sel  = document.getElementById('apm-promo-select');
+  apmSelectPromo(sel ? sel.value : '');
 }
 
 function apmCalc(){
@@ -3557,17 +3590,15 @@ document.addEventListener('click', function(e){
       <div class="adm-field"><label>Giá gốc (đ) *</label><input id="apm-old-price" type="number" placeholder="30000" oninput="apmCalc()"></div>
       <div class="adm-field"><label>Đơn vị</label><input id="apm-unit" type="text" placeholder="cái/chai/túi"></div>
     </div>
-    <!-- Hình thức KM -->
+    <!-- Chọn chương trình KM -->
     <div class="adm-field">
-      <label>Hình thức khuyến mãi</label>
-      <select id="apm-promo-type" onchange="apmTogglePromo()">
-        <option value="">Không có</option>
-        <option value="discount">🏷️ Giảm giá (% hoặc số tiền)</option>
-        <option value="combo">🧺 Combo tiết kiệm</option>
-        <option value="flash">⚡ Flash Sale</option>
+      <label>Chương trình khuyến mãi</label>
+      <select id="apm-promo-select" onchange="apmSelectPromo(this.value)" style="margin-bottom:4px">
+        <option value="">— Không áp dụng —</option>
       </select>
     </div>
     <div id="apm-promo-box" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:800;color:#e65100;margin-bottom:8px" id="apm-promo-desc">—</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">
         <div class="adm-field" style="margin:0">
           <label style="font-size:10px">Giá KM (đ)</label>
@@ -3580,11 +3611,19 @@ document.addEventListener('click', function(e){
         <div style="font-size:11px;color:#e65100;font-weight:700;padding-bottom:6px" id="apm-promo-label">—</div>
       </div>
       <div class="adm-field" style="margin-top:8px;margin-bottom:0">
-        <label style="font-size:10px">Tên chương trình KM (hiển thị trên thẻ SP)</label>
+        <label style="font-size:10px">Tên hiển thị trên thẻ SP</label>
         <input id="apm-promo-name" type="text" placeholder="VD: Flash Sale cuối tuần">
       </div>
+      <div class="adm-field" style="margin-top:6px;margin-bottom:0">
+        <label style="font-size:10px">Hình thức</label>
+        <select id="apm-promo-type">
+          <option value="discount">🏷️ Giảm giá</option>
+          <option value="combo">🧺 Combo</option>
+          <option value="flash">⚡ Flash Sale</option>
+        </select>
+      </div>
     </div>
-    <!-- Giá bán thực tế (ẩn khi không có KM) -->
+    <!-- Giá bán thực tế (ẩn khi có KM) -->
     <div id="apm-price-wrap" class="adm-field">
       <label>Giá bán (đ) *</label>
       <input id="apm-price" type="number" placeholder="25000">
