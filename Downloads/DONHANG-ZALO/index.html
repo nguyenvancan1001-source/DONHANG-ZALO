@@ -1860,32 +1860,45 @@ async function handleProdImgUpload(e){
       reader.readAsDataURL(file);
     });
 
-    // 2. Kiểm tra kết nối Supabase
-    if(!db || IS_DEMO) throw new Error('Chưa kết nối Supabase');
+    let finalUrl = null;
 
-    // 3. Upload lên Storage
-    const fname = `products/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-    const {data: upData, error: upErr} = await db.storage
-      .from('product-images')
-      .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
-    if(upErr) throw new Error('Storage: ' + upErr.message);
+    // 2. Thử upload lên Supabase Storage
+    if(db && !IS_DEMO){
+      try{
+        const fname = `products/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+        const {error: upErr} = await db.storage
+          .from('product-images')
+          .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
+        if(!upErr){
+          const {data: urlData} = db.storage.from('product-images').getPublicUrl(fname);
+          if(urlData?.publicUrl) finalUrl = urlData.publicUrl;
+        } else {
+          console.warn('Storage upload err:', upErr.message);
+        }
+      }catch(se){ console.warn('Storage exception:', se.message); }
+    }
 
-    // 4. Lấy URL public
-    const {data: urlData} = db.storage.from('product-images').getPublicUrl(fname);
-    const finalUrl = urlData.publicUrl;
-    if(!finalUrl) throw new Error('Không lấy được URL ảnh');
+    // 3. Fallback: dùng base64 nếu Storage lỗi
+    if(!finalUrl){
+      finalUrl = await new Promise(resolve=>{
+        const r = new FileReader();
+        r.onload = ev => resolve(ev.target.result);
+        r.readAsDataURL(compressed);
+      });
+      toast('⚠️ Dùng ảnh local (Storage chưa sẵn sàng)');
+    } else {
+      toast('✓ Ảnh đã upload cloud — đồng bộ mọi máy');
+    }
 
-    // 5. Cập nhật form
+    // 4. Cập nhật form
     document.getElementById('apm-img').value = finalUrl;
     document.getElementById('apm-img-thumb').src = finalUrl;
     document.getElementById('apm-img-preview').style.display = 'block';
     if(label) label.textContent = '📷 Chọn ảnh từ máy';
-    toast('✓ Ảnh đã upload — đồng bộ mọi máy');
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
-    const msg = err.message||JSON.stringify(err)||'Lỗi không xác định';
-    alert('LỖI UPLOAD ẢNH:\n' + msg);
+    toast('❌ Lỗi xử lý ảnh: ' + (err.message||''));
     if(label) label.textContent = '📷 Chọn ảnh từ máy';
   }
 }
@@ -1935,19 +1948,30 @@ async function saveAdmProd(){
         const {error} = await db.from('products').update(sp).eq('id', editId);
         if(error) throw error;
       } else {
-        // INSERT sản phẩm mới — KHÔNG gửi id, để Supabase tự tạo UUID
-        const spInsert = {...sp};
-        delete spInsert.image_url; // xóa nếu null tránh lỗi constraint
+        // INSERT sản phẩm mới — không gửi id, để Supabase tự tạo UUID
+        const spInsert = {
+          name      : sp.name,
+          price     : sp.price,
+          unit      : sp.unit,
+          category  : sp.category,
+          is_active : sp.is_active,
+          old_price : sp.old_price,
+          is_hot    : sp.is_hot,
+          is_new    : sp.is_new,
+          stock_qty : sp.stock_qty,
+        };
         if(imageUrl) spInsert.image_url = imageUrl;
-        const {error} = await db.from('products').insert(spInsert);
+        const {data:inserted, error} = await db.from('products').insert(spInsert).select().single();
         if(error) throw error;
+        // Thêm sản phẩm mới vào DEMO_PRODUCTS với id thật từ Supabase
+        if(inserted) DEMO_PRODUCTS.push(inserted);
       }
 
-      await loadProds(); // reload từ cloud để lấy id thật + đồng bộ local
+      // Reload toàn bộ từ cloud
+      await loadProds();
     } else {
       // Demo mode — chỉ lưu local
       const localProd = {...sp, id: editId||('p'+Date.now())};
-      if(!imageUrl) delete localProd.image_url;
       const li = DEMO_PRODUCTS.findIndex(x=>x.id===localProd.id);
       if(li>=0) DEMO_PRODUCTS[li] = {...DEMO_PRODUCTS[li], ...localProd};
       else DEMO_PRODUCTS.push(localProd);
