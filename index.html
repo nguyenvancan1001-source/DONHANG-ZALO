@@ -1832,79 +1832,81 @@ function handleProdImgUrl(val){
   }
 }
 async function saveAdmProd(){
-  const name=document.getElementById('apm-name').value.trim();
-  const price=Number(document.getElementById('apm-price').value);
-  if(!name||!price){toast('Nhập tên và đơn giá');return;}
-  const badge=document.getElementById('apm-badge').value;
-  const payload={name,price,
-    old_price:Number(document.getElementById('apm-old-price').value)||0,
-    unit:document.getElementById('apm-unit').value.trim()||'cái',
-    category:document.getElementById('apm-cat').value,
-    image_url:document.getElementById('apm-img').value.trim()||null,
-    is_active:document.getElementById('apm-active').value==='true',
-    is_hot:badge==='hot', is_new:badge==='new',
+  const name = document.getElementById('apm-name').value.trim();
+  const price = Number(document.getElementById('apm-price').value);
+  if(!name||!price){ toast('Nhập tên và đơn giá'); return; }
+
+  const badge = document.getElementById('apm-badge').value;
+  const prod = {
+    id: admEditProdId || ('d'+Date.now()),
+    name, price,
+    old_price: Number(document.getElementById('apm-old-price').value)||0,
+    unit: document.getElementById('apm-unit').value.trim()||'cái',
+    category: document.getElementById('apm-cat').value,
+    image_url: document.getElementById('apm-img').value.trim()||'',
+    is_active: document.getElementById('apm-active').value==='true',
+    is_hot: badge==='hot',
+    is_new: badge==='new',
+    stock_qty: 99,
   };
-  // Thử Supabase trước
-  let savedCloud = false;
+
+  // 1. Lưu vào DEMO_PRODUCTS
+  const idx = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+  if(idx>=0) DEMO_PRODUCTS[idx] = prod;
+  else DEMO_PRODUCTS.push(prod);
+
+  // 2. Lưu localStorage ngay — không phụ thuộc cloud
+  _saveProdLocal();
+
+  // 3. Thử cloud (background) — đầy đủ cột sau khi chạy alter_products.sql
   if(!IS_DEMO && db){
     try{
-      const {error}=admEditProdId
-        ?await db.from('products').update(payload).eq('id',admEditProdId)
-        :await db.from('products').insert(payload);
-      if(error) throw error;
-      savedCloud = true;
-    }catch(e){ console.warn('saveAdmProd cloud error:',e.message); }
+      const sp={
+        name:prod.name, price:prod.price, unit:prod.unit,
+        category:prod.category, is_active:prod.is_active,
+        old_price:prod.old_price||0,
+        is_hot:prod.is_hot||false, is_new:prod.is_new||false,
+        stock_qty:prod.stock_qty||99,
+        // Chỉ lưu URL http lên cloud, không lưu base64
+        image_url:(prod.image_url&&prod.image_url.startsWith('http'))?prod.image_url:null,
+      };
+      admEditProdId
+        ? await db.from('products').update(sp).eq('id',prod.id)
+        : await db.from('products').insert(sp);
+    }catch(e){ console.warn('saveAdmProd cloud:',e.message); }
   }
-  // Luôn cập nhật DEMO_PRODUCTS local
-  if(admEditProdId){
-    const idx=DEMO_PRODUCTS.findIndex(x=>x.id===admEditProdId);
-    if(idx>=0) Object.assign(DEMO_PRODUCTS[idx],payload);
-  } else if(!savedCloud) {
-    DEMO_PRODUCTS.push({...payload,id:'d'+Date.now(),image_url:payload.image_url||''});
-  }
-  // Lưu vào localStorage
+
+  closeAdmProdModal();
+  admEditProdId=null;
+  await loadProds();
+  renderExpandGrid();
+  admLoadProducts();
+  toast('✓ Đã lưu sản phẩm');
+}
+
+function _saveProdLocal(){
   try{
-    // Tách ảnh base64 ra lưu riêng để tránh đầy localStorage
-    const imgs = {};
-    const prods = DEMO_PRODUCTS.map(p=>{
-      if(p.image_url && p.image_url.startsWith('data:')){
-        imgs[p.id] = p.image_url;
-        return {...p, image_url:'__local__'};
+    const imgs={};
+    const prods=DEMO_PRODUCTS.map(p=>{
+      if(p.image_url&&p.image_url.startsWith('data:')){
+        imgs[p.id]=p.image_url;
+        return {...p,image_url:'__local__'};
       }
       return p;
     });
-    localStorage.setItem('vc_products', JSON.stringify(prods));
-    localStorage.setItem('vc_prod_images', JSON.stringify(imgs));
-  }catch(e){ console.warn('saveProducts:',e.message); }
-  closeAdmProdModal();
-  await loadProds(); buildHotGrid(); renderExpandGrid(); admLoadProducts();
-  toast(savedCloud
-    ?(admEditProdId?'✓ Đã cập nhật (cloud)':'✓ Đã thêm SP (cloud)')
-    :(admEditProdId?'✓ Đã cập nhật':'✓ Đã thêm SP'));
+    localStorage.setItem('vc_products',JSON.stringify(prods));
+    localStorage.setItem('vc_prod_images',JSON.stringify(imgs));
+  }catch(e){ console.warn('_saveProdLocal:',e); }
 }
-async function admTogProd(id,cur,btn){
-  // Cập nhật local
+async function admTogProd(id,cur){
   const p=DEMO_PRODUCTS.find(x=>x.id===id);
   if(p) p.is_active=!cur;
-  try{
-    // Tách ảnh base64 ra lưu riêng để tránh đầy localStorage
-    const imgs = {};
-    const prods = DEMO_PRODUCTS.map(p=>{
-      if(p.image_url && p.image_url.startsWith('data:')){
-        imgs[p.id] = p.image_url;
-        return {...p, image_url:'__local__'};
-      }
-      return p;
-    });
-    localStorage.setItem('vc_products', JSON.stringify(prods));
-    localStorage.setItem('vc_prod_images', JSON.stringify(imgs));
-  }catch(e){ console.warn('saveProducts:',e.message); }
-  // Thử cloud
+  _saveProdLocal();
   if(!IS_DEMO&&db){
     try{ await db.from('products').update({is_active:!cur}).eq('id',id); }
-    catch(e){ console.warn('admTogProd cloud:',e.message); }
+    catch(e){ console.warn('admTogProd:',e.message); }
   }
-  admLoadProducts(); loadProds(); buildHotGrid();
+  admLoadProducts(); loadProds(); renderExpandGrid();
   toast(cur?'Đã ẩn':'Đã hiện');
 }
 
