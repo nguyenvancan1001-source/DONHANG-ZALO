@@ -1929,28 +1929,26 @@ async function saveAdmProd(){
 
   try{
     if(!IS_DEMO && db){
-      let savedId = editId;
       if(editId){
+        // UPDATE sản phẩm cũ
         const {error} = await db.from('products').update(sp).eq('id', editId);
         if(error) throw error;
       } else {
-        const {data, error} = await db.from('products').insert(sp).select('id').single();
+        // INSERT sản phẩm mới — KHÔNG gửi id, để Supabase tự tạo UUID
+        const spInsert = {...sp};
+        delete spInsert.image_url; // xóa nếu null tránh lỗi constraint
+        if(imageUrl) spInsert.image_url = imageUrl;
+        const {error} = await db.from('products').insert(spInsert);
         if(error) throw error;
-        savedId = data?.id || null;
       }
 
-      // Cập nhật local cache với id thật từ DB
-      const localProd = {...sp, id: savedId || ('p'+Date.now())};
-      const li = DEMO_PRODUCTS.findIndex(x=>x.id===(editId||localProd.id));
-      if(li>=0) DEMO_PRODUCTS[li] = {...DEMO_PRODUCTS[li], ...localProd};
-      else DEMO_PRODUCTS.push(localProd);
-
-      await loadProds(); // reload từ cloud
+      await loadProds(); // reload từ cloud để lấy id thật + đồng bộ local
     } else {
       // Demo mode — chỉ lưu local
       const localProd = {...sp, id: editId||('p'+Date.now())};
+      if(!imageUrl) delete localProd.image_url;
       const li = DEMO_PRODUCTS.findIndex(x=>x.id===localProd.id);
-      if(li>=0) DEMO_PRODUCTS[li] = localProd;
+      if(li>=0) DEMO_PRODUCTS[li] = {...DEMO_PRODUCTS[li], ...localProd};
       else DEMO_PRODUCTS.push(localProd);
     }
 
