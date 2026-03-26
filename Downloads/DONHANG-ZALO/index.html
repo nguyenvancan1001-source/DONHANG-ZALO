@@ -1884,7 +1884,8 @@ async function handleProdImgUpload(e){
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
-    toast('❌ ' + (err.message||'Lỗi upload ảnh'));
+    const msg = err.message||JSON.stringify(err)||'Lỗi không xác định';
+    alert('LỖI UPLOAD ẢNH:\n' + msg);
     if(label) label.textContent = '📷 Chọn ảnh từ máy';
   }
 }
@@ -1962,7 +1963,8 @@ async function saveAdmProd(){
 
   }catch(err){
     console.error('saveAdmProd:', err);
-    toast('❌ Lỗi lưu sản phẩm: ' + (err.message||err));
+    const msg = err.message||JSON.stringify(err)||'Lỗi không xác định';
+    alert('LỖI LƯU SẢN PHẨM:\n' + msg);
   }
 }
 
