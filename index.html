@@ -1920,6 +1920,7 @@ let _editPromoId=null;
 let _selPromoType=null;
 
 function openPromoModal(id){
+  // Reset hoàn toàn trạng thái
   _editPromoId=id||null;
   _selPromoType=null;
   document.getElementById('promo-modal-title').textContent=id?'Sửa chương trình KM':'Tạo chương trình KM';
@@ -1927,21 +1928,23 @@ function openPromoModal(id){
   document.getElementById('promo-preview-area').innerHTML='';
   document.getElementById('promo-save-area').style.display='none';
   document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('sel'));
-  // Mở modal TRƯỚC để DOM visible, rồi mới render form
-  document.getElementById('adm-promo-modal-bg').classList.add('open');
+  // Mở modal
+  const bg=document.getElementById('adm-promo-modal-bg');
+  bg.classList.add('open');
+  // Nếu sửa: preload form sau 80ms để DOM visible
   if(id){
     setTimeout(()=>{
       const p=_promoStore.find(x=>x.id===id);
-      if(p){ selPromoType(p.type,p); }
-    },50);
+      if(p) selPromoType(p.type,p);
+    },80);
   }
 }
-function closePromoModal(){ document.getElementById('adm-promo-modal-bg').classList.remove('open'); }
-function editPromo(id){
-  // Ngăn chặn double-click
-  if(document.getElementById('adm-promo-modal-bg').classList.contains('open')) return;
-  openPromoModal(id);
+function closePromoModal(){
+  document.getElementById('adm-promo-modal-bg').classList.remove('open');
+  _editPromoId=null;
+  _selPromoType=null;
 }
+function editPromo(id){ openPromoModal(id); }
 
 function selPromoType(type, existingData){
   _selPromoType=type;
