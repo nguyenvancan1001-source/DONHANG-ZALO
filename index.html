@@ -401,7 +401,42 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pptag-combo{background:#047857;color:#fff}
 .pptag-discount{background:#c2410c;color:#fff}
 .pptag-gift{background:#6d28d9;color:#fff}
-.pptag-sap-het{background:linear-gradient(135deg,#FF0040,#EE4D2D);color:#fff;animation:blink-sap 2s ease-in-out infinite}
+.pptag-sap-het{display:none} /* ẩn khỏi bar, dùng badge absolute thay */
+
+/* Badge SẮP HẾT + đếm ngược — góc trên trái ảnh */
+.sap-het-badge{
+  position:absolute;top:7px;right:7px;z-index:3;align-items:flex-end;
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+}
+.sap-het-pill{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#FFC300;color:#1a1a1a;
+  border-radius:99px;padding:4px 9px 4px 5px;
+  font-size:10px;font-weight:800;letter-spacing:.02em;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+  animation:sapPulse 1.4s ease-in-out infinite;
+  white-space:nowrap;
+}
+.sap-het-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#EE4D2D;flex-shrink:0;
+  animation:sapDot 1.4s ease-in-out infinite;
+  box-shadow:0 0 0 0 rgba(238,77,45,.6);
+}
+.sap-het-cd{
+  background:rgba(0,0,0,.65);color:#FFC300;
+  border-radius:99px;padding:3px 8px;
+  font-size:9px;font-weight:800;letter-spacing:.03em;
+  white-space:nowrap;backdrop-filter:blur(4px);
+}
+@keyframes sapPulse{
+  0%,100%{transform:scale(1);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  50%{transform:scale(1.05);box-shadow:0 3px 12px rgba(255,195,0,.6)}
+}
+@keyframes sapDot{
+  0%,100%{box-shadow:0 0 0 0 rgba(238,77,45,.6)}
+  50%{box-shadow:0 0 0 5px rgba(238,77,45,0)}
+}
 .pptag-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.7);flex-shrink:0}
 
 
@@ -835,6 +870,27 @@ function tickCd(){
   if(cdS) cdS.textContent=String(s).padStart(2,'0');
 }
 tickCd(); setInterval(tickCd,1000);
+// Cập nhật countdown SẮP HẾT trên card mỗi giây
+setInterval(()=>{
+  const hasFlash=_promoStore&&_promoStore.some(p=>p.is_active&&p.type==='flash');
+  if(!hasFlash) return;
+  // Chỉ update text trong .sap-het-cd, không rebuild toàn grid
+  document.querySelectorAll('.sap-het-badge').forEach(badge=>{
+    const card=badge.closest('[id^="hc-"],[id^="ec-"]');
+    if(!card) return;
+    const pid=card.id.replace(/^(hc-|ec-)/,'');
+    const prod=allProds.find(x=>x.id===pid);
+    if(!prod) return;
+    const tags=getPromoTagsForProduct(prod);
+    const cd=getFlashCountdown(tags);
+    const cdEl=badge.querySelector('.sap-het-cd');
+    if(cd&&cdEl) cdEl.textContent=cd;
+    else if(cd&&!cdEl){
+      const pill=badge.querySelector('.sap-het-pill');
+      if(pill){const d=document.createElement('div');d.className='sap-het-cd';d.textContent=cd;badge.appendChild(d);}
+    }
+  });
+},1000);
 
 // ── TICKER ─────────────────────────────────────────
 function buildTicker(){
@@ -2004,13 +2060,26 @@ function getPromoTagsForProduct(prod){
   return tags;
 }
 
+
+// Tính countdown từ flash_end (HH:MM) của promo đầu tiên có flash
+function getFlashCountdown(tags){
+  const flash=tags.find(p=>p.type==='flash'&&p.flash_end);
+  if(!flash) return '';
+  const [hh,mm]=(flash.flash_end||'22:00').split(':').map(Number);
+  const now=new Date();
+  const end=new Date(); end.setHours(hh,mm,0,0);
+  if(end<=now) end.setDate(end.getDate()+1);
+  const d=Math.max(0,end-now);
+  const h=Math.floor(d/3600000);
+  const m=Math.floor((d%3600000)/60000);
+  const s=Math.floor((d%60000)/1000);
+  if(h>0) return `⏰ Còn ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `⏰ Còn ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
 function renderPromoTagBar(prod){
   const tags=getPromoTagsForProduct(prod);
-  const sapHetTag=tags.length>0
-    ? `<span class="pptag pptag-sap-het">🔴 Sắp hết</span>`
-    : '';
   if(!tags.length) return '';
-  const tagHtml=tags.slice(0,2).map(p=>{
+  const tagHtml=tags.slice(0,3).map(p=>{
     let cls='pptag-discount', txt='';
     if(p.type==='flash'){cls='pptag-flash';txt=`⚡ -${p.discount_pct||0}%`;}
     else if(p.type==='bxgy1'){cls='pptag-bxgy';txt='🥛 Mua 1 Tặng 1';}
@@ -2020,7 +2089,7 @@ function renderPromoTagBar(prod){
     else if(p.type==='gift'){cls='pptag-gift';txt='🎀 Quà kèm';}
     return `<span class="pptag ${cls}">${txt}</span>`;
   }).join('');
-  return `<div class="prod-promo-bar">${tagHtml}${sapHetTag}</div>`;
+  return `<div class="prod-promo-bar">${tagHtml}</div>`;
 }
 
 function hotCard(p, prefix='hot'){
@@ -2034,6 +2103,15 @@ function hotCard(p, prefix='hot'){
     <div class="hot-img-box">
       ${p.image_url?`<img src="${p.image_url}" alt="${p.name}">`:`<div class="hot-img-emoji">${emoji}</div>`}
       ${pct?`<div class="hot-badge-tag">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag">HOT</div>`:''}
+      ${(()=>{
+        const tags=getPromoTagsForProduct(p);
+        if(!tags.length) return '';
+        const cd=getFlashCountdown(tags);
+        return `<div class="sap-het-badge">
+          <div class="sap-het-pill"><div class="sap-het-dot"></div>Sắp hết</div>
+          ${cd?`<div class="sap-het-cd">${cd}</div>`:''}
+        </div>`;
+      })()}
     </div>
     <div class="hot-body">
       <div class="hot-name">${p.name}</div>
