@@ -934,19 +934,21 @@ function switchToHero(){
 let allPromos = [];
 
 async function loadPromos(){
-  if(typeof IS_DEMO !== 'undefined' && IS_DEMO){ allPromos=[]; buildHeroPromos(); return; }
+  if(IS_DEMO){
+    _promoStore=[...DEMO_PROMO_FALLBACK];
+    _syncPromosToBuildState(); return;
+  }
   try{
     const tp=new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),4000));
-    const fp=db.from('promotions').select('*').eq('is_active',true).order('created_at',{ascending:false});
+    const fp=db.from('promotions').select('*').order('created_at',{ascending:false});
     const {data,error}=await Promise.race([fp,tp]);
     if(error) throw error;
-    allPromos=data||[];
-    buildHeroPromos(); // re-render với data thật
+    _promoStore=(data&&data.length)?[...data]:[...DEMO_PROMO_FALLBACK];
   }catch(e){
-    console.warn('[Vicomart] promotions load failed, dùng demo:',e.message);
-    allPromos=[];
-    buildHeroPromos();
+    console.warn('[Vicomart] loadPromos failed:',e.message);
+    if(!_promoStore.length) _promoStore=[...DEMO_PROMO_FALLBACK];
   }
+  _syncPromosToBuildState();
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1478,15 +1480,15 @@ async function saveAdmProd(){
   if(IS_DEMO||!db){
     if(admEditProdId){const idx=DEMO_PRODUCTS.findIndex(x=>x.id===admEditProdId);if(idx>=0)Object.assign(DEMO_PRODUCTS[idx],payload);}
     else DEMO_PRODUCTS.push({...payload,id:'d'+Date.now(),image_url:payload.image_url||''});
-    closeAdmProdModal();await loadProds();buildHotGrid();admLoadProducts();toast('✓ Đã lưu sản phẩm (demo)');return;
+    closeAdmProdModal();await loadProds();buildHotGrid();renderExpandGrid();admLoadProducts();toast('✓ Đã lưu sản phẩm (demo)');return;
   }
   try{
     const {error}=admEditProdId
       ?await db.from('products').update(payload).eq('id',admEditProdId)
       :await db.from('products').insert(payload);
     if(error) throw error;
-    closeAdmProdModal();await loadProds();buildHotGrid();admLoadProducts();
-    toast(admEditProdId?'✓ Đã cập nhật':'✓ Đã thêm sản phẩm');
+    closeAdmProdModal();await loadProds();buildHotGrid();renderExpandGrid();admLoadProducts();
+    toast(admEditProdId?'✓ Đã cập nhật (cloud)':'✓ Đã thêm SP (cloud)');
   }catch(e){toast('Lỗi: '+e.message);}
 }
 async function admTogProd(id,cur,btn){
@@ -1505,7 +1507,9 @@ async function admTogProd(id,cur,btn){
    ═══════════════════════════════════════════ */
 
 // In-memory store (replace với Supabase khi deploy)
-let _promoStore = [
+// _promoStore = [] ban đầu, load từ Supabase khi khởi động
+// Chỉ dùng DEMO_PROMO_FALLBACK khi Supabase chưa có data
+const DEMO_PROMO_FALLBACK = [
   {id:'ps1',type:'bxgy1',name:'Sữa Vinamilk mua 1 tặng 1',product:'Sữa tươi Vinamilk',buy:1,get:1,gift_product:'',is_active:true,created_at:new Date().toISOString()},
   {id:'ps2',type:'bxgy2',name:'Trứng gà mua 2 tặng 1',product:'Trứng gà ta',buy:2,get:1,gift_product:'',is_active:true,created_at:new Date().toISOString()},
   {id:'ps3',type:'combo',name:'Combo Gạo + Dầu + Mắm',products:['Gạo ST25 túi 5kg','Dầu ăn Neptune 1L','Nước mắm Chinsu 500ml'],discount_pct:5,is_active:true,created_at:new Date().toISOString()},
@@ -1513,6 +1517,7 @@ let _promoStore = [
   {id:'ps5',type:'flash',name:'Flash Sale Gạo ST25',product:'Gạo ST25 túi 5kg',discount_pct:13,flash_end:'22:00',flash_label:'HÔM NAY 22:00',is_active:true,created_at:new Date().toISOString()},
   {id:'ps6',type:'gift',name:'Đơn từ 200k tặng túi',min_order:200000,gift_item:'Túi đựng hàng miễn phí',is_active:true,created_at:new Date().toISOString()},
 ];
+let _promoStore = []; // sẽ được fill từ Supabase hoặc DEMO_PROMO_FALLBACK
 
 const PROMO_TYPE_META = {
   bxgy1: {label:'Mua 1 Tặng 1',  icon:'🥛', color:'pc-bxgy',    badge:'1+1'},
@@ -1526,17 +1531,10 @@ const PROMO_TYPE_META = {
 // ── RENDER LIST ──
 async function admLoadPromos(){
   const el=document.getElementById('adm-promos-list');
-  // Try Supabase, fallback store
-  let promos=_promoStore;
-  if(db&&!IS_DEMO){
-    try{
-      const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
-      if(!error&&data&&data.length){
-        promos=data;
-        _promoStore=[...data];
-      }
-    }catch(e){}
-  }
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
+  // Luôn load từ Supabase trước, fallback local
+  await _syncPromosFromCloud();
+  const promos=_promoStore.length?_promoStore:DEMO_PROMO_FALLBACK;
   if(!promos.length){
     el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có chương trình nào.<br>Bấm nút + để tạo mới.</div>';
     return;
@@ -1576,15 +1574,33 @@ function renderPromoAdminCard(p){
   </div>`;
 }
 
-function togPromoActive(id,cur){
+async function togPromoActive(id,cur){
+  if(db&&!IS_DEMO){
+    try{
+      const {error}=await db.from('promotions').update({is_active:!cur}).eq('id',id);
+      if(error) throw error;
+      await _syncPromosFromCloud();
+      toast(cur?'Đã tắt KM (cloud)':'Đã bật KM (cloud)');
+      return;
+    }catch(e){ console.warn('togPromo cloud error:',e.message); }
+  }
   const p=_promoStore.find(x=>x.id===id);
-  if(p){ p.is_active=!cur; allPromos=_promoStore.filter(x=>x.is_active); buildHeroPromos(); admLoadPromos(); toast(cur?'Đã tắt KM':'Đã bật KM'); }
+  if(p){ p.is_active=!cur; _syncPromosToBuildState(); toast(cur?'Đã tắt KM':'Đã bật KM'); }
 }
-function delPromo(id){
+async function delPromo(id){
   if(!confirm('Xoá chương trình này?')) return;
+  if(db&&!IS_DEMO){
+    try{
+      const {error}=await db.from('promotions').delete().eq('id',id);
+      if(error) throw error;
+      await _syncPromosFromCloud();
+      toast('Đã xoá (cloud)');
+      return;
+    }catch(e){ console.warn('delPromo cloud error:',e.message); }
+  }
   _promoStore=_promoStore.filter(x=>x.id!==id);
-  allPromos=_promoStore.filter(x=>x.is_active);
-  buildHeroPromos(); admLoadPromos(); toast('Đã xoá');
+  _syncPromosToBuildState();
+  toast('Đã xoá');
 }
 
 // ── PROMO MODAL ──
@@ -1762,16 +1778,67 @@ function updatePromoPreview(){
     ${card}`;
 }
 
-function savePromo(){
+
+// ── PROMO SYNC HELPERS ────────────────────────────
+async function _syncPromosFromCloud(){
+  if(!db||IS_DEMO){
+    if(!_promoStore.length) _promoStore=[...DEMO_PROMO_FALLBACK];
+    _syncPromosToBuildState(); return;
+  }
+  try{
+    const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
+    if(error) throw error;
+    _promoStore = (data&&data.length) ? [...data] : [...DEMO_PROMO_FALLBACK];
+  }catch(e){
+    console.warn('_syncPromosFromCloud:',e.message);
+    if(!_promoStore.length) _promoStore=[...DEMO_PROMO_FALLBACK];
+  }
+  _syncPromosToBuildState();
+}
+
+function _syncPromosToBuildState(){
+  allPromos=_promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
+  buildHeroPromos();
+  admLoadPromos();
+}
+
+async function savePromo(){
   if(!_selPromoType){toast('Chọn loại khuyến mãi');return;}
   const data=getPromoFormData();
   if(!data.name){toast('Nhập tên chương trình');return;}
-  // Validate
   if((data.type==='bxgy1'||data.type==='bxgy2')&&!data.product){toast('Nhập tên sản phẩm');return;}
   if(data.type==='combo'&&(!data.products||data.products.length<2)){toast('Nhập ít nhất 2 sản phẩm combo');return;}
   if(data.type==='flash'&&!data.product){toast('Nhập sản phẩm flash sale');return;}
   if(data.type==='gift'&&!data.gift_item){toast('Nhập tên quà tặng');return;}
 
+  const saveBtn=document.querySelector('#adm-promo-modal .adm-promo-modal button:last-child');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Đang lưu...';}
+
+  // Thử lưu Supabase trước
+  if(db && !IS_DEMO){
+    try{
+      // Convert products array thành text để lưu (Supabase text[] hoặc json)
+      const payload={...data, products: data.products ? data.products : null};
+      let error;
+      if(_editPromoId){
+        ({error}=await db.from('promotions').update(payload).eq('id',_editPromoId));
+      } else {
+        ({error}=await db.from('promotions').insert(payload));
+      }
+      if(error) throw error;
+      // Reload từ Supabase
+      await _syncPromosFromCloud();
+      closePromoModal();
+      toast(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)');
+      _editPromoId=null;
+      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
+      return;
+    }catch(e){
+      console.warn('Supabase savePromo error:',e.message,'→ fallback local');
+    }
+  }
+
+  // Fallback: lưu local _promoStore
   const now=new Date().toISOString();
   if(_editPromoId){
     const idx=_promoStore.findIndex(x=>x.id===_editPromoId);
@@ -1779,12 +1846,11 @@ function savePromo(){
   } else {
     _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
   }
-  allPromos=_promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
-  buildHeroPromos();
-  admLoadPromos();
+  _syncPromosToBuildState();
   closePromoModal();
-  toast(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm chương trình KM');
+  toast(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM');
   _editPromoId=null;
+  if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
 }
 
 // Converter từ _promoStore format sang hero card format
@@ -1833,6 +1899,8 @@ function promoToCardV2(p){
 }
 
 // Override allPromos init với _promoStore
+// Khởi tạo allPromos từ DEMO_PROMO_FALLBACK tạm — sẽ bị replace khi loadPromos() chạy
+_promoStore = [...DEMO_PROMO_FALLBACK];
 allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 
 
