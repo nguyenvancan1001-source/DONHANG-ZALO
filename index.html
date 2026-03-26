@@ -654,6 +654,13 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const ZALO_NOTIFY_URL = '';
 const BRANCHES = ['Vicomart Phú Bài','Vicomart Vinh Thanh','Vicomart Thuận An'];
 
+// Load sản phẩm đã lưu từ localStorage (nếu có)
+(function(){
+  try{
+    const saved=localStorage.getItem('vc_products');
+    if(saved){ const p=JSON.parse(saved); if(p&&p.length){ window._savedProds=p; } }
+  }catch(e){}
+})();
 const DEMO_PRODUCTS = [
   {id:'d01',name:'Gạo ST25 túi 5kg',price:105000,unit:'túi',category:'Lương thực',image_url:'',is_active:true,stock_qty:99},
   {id:'d02',name:'Dầu ăn Neptune 1L',price:52000,unit:'chai',category:'Gia vị',image_url:'',is_active:true,stock_qty:99},
@@ -674,6 +681,11 @@ const DEMO_PRODUCTS = [
   {id:'d17',name:'Muối i-ốt tinh 500g',price:8000,unit:'túi',category:'Lương thực',image_url:'',is_active:true,stock_qty:99},
   {id:'d18',name:'Giấy vệ sinh Bless You',price:52000,unit:'lốc 10',category:'Hóa phẩm',image_url:'',is_active:true,stock_qty:99},
 ];
+// Override với data đã lưu nếu có
+if(window._savedProds && window._savedProds.length){
+  DEMO_PRODUCTS.length=0;
+  window._savedProds.forEach(p=>DEMO_PRODUCTS.push(p));
+}
 </script>
 
 <!-- ═══ SCREEN 1: SHOP ═══════════════════════════════════ -->
@@ -1757,28 +1769,44 @@ async function saveAdmProd(){
     is_active:document.getElementById('apm-active').value==='true',
     is_hot:badge==='hot', is_new:badge==='new',
   };
-  // Demo mode
-  if(IS_DEMO||!db){
-    if(admEditProdId){const idx=DEMO_PRODUCTS.findIndex(x=>x.id===admEditProdId);if(idx>=0)Object.assign(DEMO_PRODUCTS[idx],payload);}
-    else DEMO_PRODUCTS.push({...payload,id:'d'+Date.now(),image_url:payload.image_url||''});
-    closeAdmProdModal();await loadProds();buildHotGrid();renderExpandGrid();admLoadProducts();toast('✓ Đã lưu sản phẩm (demo)');return;
+  // Thử Supabase trước
+  let savedCloud = false;
+  if(!IS_DEMO && db){
+    try{
+      const {error}=admEditProdId
+        ?await db.from('products').update(payload).eq('id',admEditProdId)
+        :await db.from('products').insert(payload);
+      if(error) throw error;
+      savedCloud = true;
+    }catch(e){ console.warn('saveAdmProd cloud error:',e.message); }
   }
-  try{
-    const {error}=admEditProdId
-      ?await db.from('products').update(payload).eq('id',admEditProdId)
-      :await db.from('products').insert(payload);
-    if(error) throw error;
-    closeAdmProdModal();await loadProds();buildHotGrid();renderExpandGrid();admLoadProducts();
-    toast(admEditProdId?'✓ Đã cập nhật (cloud)':'✓ Đã thêm SP (cloud)');
-  }catch(e){toast('Lỗi: '+e.message);}
+  // Luôn cập nhật DEMO_PRODUCTS local
+  if(admEditProdId){
+    const idx=DEMO_PRODUCTS.findIndex(x=>x.id===admEditProdId);
+    if(idx>=0) Object.assign(DEMO_PRODUCTS[idx],payload);
+  } else if(!savedCloud) {
+    DEMO_PRODUCTS.push({...payload,id:'d'+Date.now(),image_url:payload.image_url||''});
+  }
+  // Lưu vào localStorage
+  try{ localStorage.setItem('vc_products', JSON.stringify(DEMO_PRODUCTS)); }catch(e){}
+  closeAdmProdModal();
+  await loadProds(); buildHotGrid(); renderExpandGrid(); admLoadProducts();
+  toast(savedCloud
+    ?(admEditProdId?'✓ Đã cập nhật (cloud)':'✓ Đã thêm SP (cloud)')
+    :(admEditProdId?'✓ Đã cập nhật':'✓ Đã thêm SP'));
 }
 async function admTogProd(id,cur,btn){
-  if(IS_DEMO||!db){
-    const p=DEMO_PRODUCTS.find(x=>x.id===id);if(p)p.is_active=!cur;
-    admLoadProducts();loadProds();buildHotGrid();toast(cur?'Đã ẩn':'Đã hiện');return;
+  // Cập nhật local
+  const p=DEMO_PRODUCTS.find(x=>x.id===id);
+  if(p) p.is_active=!cur;
+  try{ localStorage.setItem('vc_products',JSON.stringify(DEMO_PRODUCTS)); }catch(e){}
+  // Thử cloud
+  if(!IS_DEMO&&db){
+    try{ await db.from('products').update({is_active:!cur}).eq('id',id); }
+    catch(e){ console.warn('admTogProd cloud:',e.message); }
   }
-  await db.from('products').update({is_active:!cur}).eq('id',id);
-  admLoadProducts();loadProds();buildHotGrid();toast(cur?'Đã ẩn':'Đã hiện');
+  admLoadProducts(); loadProds(); buildHotGrid();
+  toast(cur?'Đã ẩn':'Đã hiện');
 }
 
 // ── PROMOS (admin only) ──
