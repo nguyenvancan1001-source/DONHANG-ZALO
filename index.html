@@ -1802,22 +1802,28 @@ function openAdmProdModal(id){
       document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
       document.getElementById('apm-active').value=String(p.is_active!==false);
       // Restore ảnh
-      const imgUrl = p.image_url||imgs[id]||'';
-      if(imgUrl){
+      const imgUrl = p.image_url||'';
+      if(imgUrl && imgUrl.startsWith('http')){
         document.getElementById('apm-img').value=imgUrl;
         document.getElementById('apm-img-thumb').src=imgUrl;
         document.getElementById('apm-img-preview').style.display='block';
       }
     } else if(db){
+      // Fallback: lấy thẳng từ Supabase nếu không có trong local
       db.from('products').select('*').eq('id',id).single().then(({data:p})=>{
         if(!p) return;
-        document.getElementById('apm-name').value=p.name;
-        document.getElementById('apm-price').value=p.price;
+        document.getElementById('apm-name').value=p.name||'';
+        document.getElementById('apm-price').value=p.price||'';
         document.getElementById('apm-old-price').value=p.old_price||'';
         document.getElementById('apm-unit').value=p.unit||'';
         document.getElementById('apm-cat').value=p.category||'Khác';
         document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
         document.getElementById('apm-active').value=String(p.is_active!==false);
+        if(p.image_url && p.image_url.startsWith('http')){
+          document.getElementById('apm-img').value=p.image_url;
+          document.getElementById('apm-img-thumb').src=p.image_url;
+          document.getElementById('apm-img-preview').style.display='block';
+        }
       });
     }
   }
@@ -1892,9 +1898,12 @@ async function saveAdmProd(){
   const price = Number(document.getElementById('apm-price').value);
   if(!name||!price){ toast('Nhập tên và đơn giá'); return; }
 
+  // Lưu editId ngay — tránh bị mất khi async
+  const editId = admEditProdId;
+
   const badge = document.getElementById('apm-badge').value;
   const prod = {
-    id: admEditProdId || ('d'+Date.now()),
+    id: editId || ('p'+Date.now()),
     name, price,
     old_price: Number(document.getElementById('apm-old-price').value)||0,
     unit: document.getElementById('apm-unit').value.trim()||'cái',
@@ -1906,18 +1915,15 @@ async function saveAdmProd(){
     stock_qty: 99,
   };
 
-  // 1. Lưu vào DEMO_PRODUCTS
+  // 1. Lưu vào DEMO_PRODUCTS local
   const idx = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-  if(idx>=0) DEMO_PRODUCTS[idx] = prod;
+  if(idx>=0) DEMO_PRODUCTS[idx] = {...DEMO_PRODUCTS[idx], ...prod};
   else DEMO_PRODUCTS.push(prod);
 
-  // 2. Lưu localStorage ngay — không phụ thuộc cloud
-  _saveProdLocal();
-
-  // 3. Lưu lên Supabase — ảnh phải là URL cloud hoặc https, không lưu base64
+  // 2. Lưu Supabase
   if(!IS_DEMO && db){
     try{
-      // Nếu ảnh vẫn là base64 (chưa qua handleProdImgUpload), upload lên Storage trước
+      // Nếu ảnh vẫn là base64 (trường hợp hiếm), upload lên Storage
       let cloudImageUrl = (prod.image_url && prod.image_url.startsWith('http')) ? prod.image_url : null;
       if(prod.image_url && prod.image_url.startsWith('data:')){
         try{
@@ -1929,46 +1935,53 @@ async function saveAdmProd(){
           if(!upErr){
             const {data:urlData}=db.storage.from('product-images').getPublicUrl(fname);
             cloudImageUrl=urlData.publicUrl;
-            // Cập nhật lại prod để local cũng dùng URL cloud
-            prod.image_url = cloudImageUrl;
-            const idx2=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-            if(idx2>=0) DEMO_PRODUCTS[idx2].image_url=cloudImageUrl;
-          }else{
-            console.warn('img upload err:',upErr.message);
-            cloudImageUrl = null; // không lưu base64 vào DB
+            prod.image_url=cloudImageUrl;
+            const i2=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+            if(i2>=0) DEMO_PRODUCTS[i2].image_url=cloudImageUrl;
           }
-        }catch(ie){ console.warn('img upload:',ie.message); cloudImageUrl=null; }
+        }catch(ie){ console.warn('img upload:',ie.message); }
       }
+
       const sp={
         name:prod.name, price:prod.price, unit:prod.unit,
         category:prod.category, is_active:prod.is_active,
         old_price:prod.old_price||0,
         is_hot:prod.is_hot||false, is_new:prod.is_new||false,
         stock_qty:prod.stock_qty||99,
-        image_url:cloudImageUrl,  // null = giữ nguyên trên DB nếu update
       };
-      // Khi update: chỉ set image_url nếu có giá trị mới
-      const spUpdate = cloudImageUrl ? sp : {...sp};
-      if(!cloudImageUrl) delete spUpdate.image_url;
-      const {error}=admEditProdId
-        ? await db.from('products').update(spUpdate).eq('id',prod.id)
-        : await db.from('products').insert(sp);
-      if(!error){
-        // Đồng bộ local với URL cloud
-        if(cloudImageUrl){
-          const idx=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-          if(idx>=0) DEMO_PRODUCTS[idx].image_url=cloudImageUrl;
+      // Chỉ đưa image_url vào payload nếu có URL thật
+      if(cloudImageUrl) sp.image_url = cloudImageUrl;
+
+      let dbError;
+      if(editId){
+        // UPDATE — giữ nguyên image_url trên DB nếu không có ảnh mới
+        const {error}=await db.from('products').update(sp).eq('id',prod.id);
+        dbError=error;
+      } else {
+        // INSERT — bắt buộc có image_url (có thể null/rỗng)
+        sp.image_url = cloudImageUrl || null;
+        const {error}=await db.from('products').insert(sp);
+        dbError=error;
+        if(!error){
+          // Lấy id thật từ Supabase (auto-generated) rồi cập nhật local
+          const {data:newRow}=await db.from('products')
+            .select('id').eq('name',prod.name).order('created_at',{ascending:false}).limit(1);
+          if(newRow&&newRow[0]){
+            const realId=newRow[0].id;
+            const li=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+            if(li>=0) DEMO_PRODUCTS[li].id=realId;
+          }
         }
-        _saveProdLocal();
-        await loadProds();
       }
+      if(dbError) console.warn('saveAdmProd DB error:',dbError.message);
+      else await loadProds();
     }catch(e){ console.warn('saveAdmProd cloud:',e.message); }
   }
 
+  _saveProdLocal();
   closeAdmProdModal();
   admEditProdId=null;
-  // Dùng DEMO_PRODUCTS local — không reload từ Supabase (tránh bị overwrite)
-  allProds = DEMO_PRODUCTS.filter(p=>p.is_active);
+  allProds = DEMO_PRODUCTS.filter(p=>p.is_active!==false);
   renderExpandGrid();
   admLoadProducts();
   toast('✓ Đã lưu sản phẩm');
