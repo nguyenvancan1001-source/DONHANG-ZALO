@@ -1259,18 +1259,34 @@ function goBack() {
 // ── PRODUCTS ────────────────────────────────────────
 async function loadProds() {
   if (IS_DEMO) {
-    allProds = DEMO_PRODUCTS;
+    allProds = [...DEMO_PRODUCTS];
     buildCats(); renderProds(allProds); buildHotGrid(); return;
   }
   try {
     const { data, error } = await db.from('products')
       .select('*').eq('is_active', true).order('category').order('name');
     if (error) throw error;
-    allProds = (data && data.length) ? data : DEMO_PRODUCTS;
+    if(data && data.length){
+      // Merge: ưu tiên local (có ảnh base64) nếu cùng id
+      const cloudMap = {};
+      data.forEach(p=>cloudMap[p.id]=p);
+      // SP local không có trên cloud → giữ lại
+      const localOnly = DEMO_PRODUCTS.filter(p=>!cloudMap[p.id]);
+      allProds = [...data, ...localOnly];
+    } else {
+      allProds = [...DEMO_PRODUCTS];
+    }
+    // Ghép ảnh local vào SP cloud
+    const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+    allProds = allProds.map(p=>{
+      if(!p.image_url && imgs[p.id]) return {...p, image_url:imgs[p.id]};
+      if(p.image_url==='__local__' && imgs[p.id]) return {...p, image_url:imgs[p.id]};
+      return p;
+    });
     buildCats(); renderProds(allProds); buildHotGrid();
-  } catch {
-    document.getElementById('prod-list').innerHTML =
-      '<div class="loading" style="color:var(--red)">Không tải được sản phẩm.<br>Kiểm tra kết nối và thử lại.</div>';
+  } catch(e) {
+    allProds = [...DEMO_PRODUCTS];
+    buildCats(); renderProds(allProds); buildHotGrid();
   }
 }
 
@@ -1732,10 +1748,20 @@ async function admLoadProducts(){
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
   let prods=[];
   try{
-    const {data,error}=await db.from('products').select('*').order('category').order('name');
-    if(error) throw error;
-    prods=data&&data.length?data:DEMO_PRODUCTS;
-  }catch(e){ prods=DEMO_PRODUCTS; }
+    if(!IS_DEMO && db){
+      const {data,error}=await db.from('products').select('*').order('category').order('name');
+      if(error) throw error;
+      if(data&&data.length) prods=data;
+    }
+  }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
+  // Luôn dùng local nếu cloud trống hoặc lỗi
+  if(!prods.length) prods=_getProdsWithImgs();
+  // Ghép ảnh local vào cloud data
+  const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+  prods=prods.map(p=>{
+    if((!p.image_url||p.image_url==='__local__')&&imgs[p.id]) return {...p,image_url:imgs[p.id]};
+    return p;
+  });
   el.innerHTML=prods.map(p=>{
     const emoji=ADM_EMOJI_MAP[p.category]||'🛒';
     const old=p.old_price&&p.old_price>p.price;
@@ -1878,10 +1904,23 @@ async function saveAdmProd(){
 
   closeAdmProdModal();
   admEditProdId=null;
-  await loadProds();
+  // Dùng DEMO_PRODUCTS local — không reload từ Supabase (tránh bị overwrite)
+  allProds = DEMO_PRODUCTS.filter(p=>p.is_active);
   renderExpandGrid();
   admLoadProducts();
   toast('✓ Đã lưu sản phẩm');
+}
+
+
+function _getProdsWithImgs(){
+  try{
+    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+    return DEMO_PRODUCTS.map(p=>{
+      if((p.image_url==='__local__'||!p.image_url) && imgs[p.id])
+        return {...p, image_url:imgs[p.id]};
+      return p;
+    });
+  }catch(e){ return DEMO_PRODUCTS; }
 }
 
 function _saveProdLocal(){
@@ -2538,11 +2577,13 @@ function _toggleAllProds_orig(){
 
 function renderExpandGrid(){
   const grid=document.getElementById('expand-grid');
-  // Lấy SP không có trong hot grid (các SP còn lại)
-  const hotIds=new Set(Array.from(document.querySelectorAll('#hot-grid .hot-card')).map(el=>{
-    const m=el.id.match(/hc-(.*)/);return m?m[1]:null;
-  }).filter(Boolean));
-  let list=allProds.filter(p=>!hotIds.has(p.id));
+  // Đảm bảo allProds có ảnh
+  const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+  const src=allProds.map(p=>{
+    if((p.image_url==='__local__'||!p.image_url)&&imgs[p.id]) return {...p,image_url:imgs[p.id]};
+    return p;
+  });
+  let list=src.filter(p=>p.is_active!==false);
   const q=document.getElementById('expand-search-inp').value.toLowerCase().trim();
   if(q) list=list.filter(p=>p.name.toLowerCase().includes(q));
   if(_expandActiveCat!=='Tất cả') list=list.filter(p=>p.category===_expandActiveCat);
