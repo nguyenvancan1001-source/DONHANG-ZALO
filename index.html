@@ -427,7 +427,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* Product cards admin */
 .adm-prod-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
-.adm-prod-emoji{font-size:24px;width:40px;text-align:center;flex-shrink:0}
+.adm-prod-emoji{font-size:24px;width:44px;height:44px;text-align:center;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;background:#f8f8f6}
+.adm-prod-emoji img{width:100%;height:100%;object-fit:contain}
 .adm-prod-info{flex:1;min-width:0}
 .adm-prod-name{font-size:13px;font-weight:700;margin-bottom:2px}
 .adm-prod-meta{font-size:11px;color:var(--ink3);font-weight:600}
@@ -1751,29 +1752,31 @@ const ADM_EMOJI_MAP={'Lương thực':'🌾','Gia vị':'🧂','Mì gói':'🍜'
 async function admLoadProducts(){
   const el=document.getElementById('adm-prods-list');
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
-  let prods=[];
+  // Luôn lấy từ local trước (mới nhất, có ảnh)
+  let prods = _getProdsWithImgs();
+  // Thử merge với cloud nếu có
   try{
     if(!IS_DEMO && db){
       const {data,error}=await db.from('products').select('*').order('category').order('name');
-      if(error) throw error;
-      if(data&&data.length) prods=data;
+      if(!error && data && data.length){
+        const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+        // Ưu tiên local: nếu local có SP mới thì giữ, cloud chỉ bổ sung
+        const cloudIds=new Set(data.map(p=>p.id));
+        const localOnly=prods.filter(p=>!cloudIds.has(p.id));
+        prods=[...data.map(p=>{
+          const img=imgs[p.id];
+          return img?{...p,image_url:img}:p;
+        }), ...localOnly];
+      }
     }
   }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
-  // Luôn dùng local nếu cloud trống hoặc lỗi
-  if(!prods.length) prods=_getProdsWithImgs();
-  // Ghép ảnh local vào cloud data
-  const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-  prods=prods.map(p=>{
-    if((!p.image_url||p.image_url==='__local__')&&imgs[p.id]) return {...p,image_url:imgs[p.id]};
-    return p;
-  });
   el.innerHTML=prods.map(p=>{
     const emoji=ADM_EMOJI_MAP[p.category]||'🛒';
     const old=p.old_price&&p.old_price>p.price;
     const pct=old?Math.round((1-p.price/p.old_price)*100):0;
     const isDemo=String(p.id).startsWith('d');
     return `<div class="adm-prod-card" style="${!p.is_active?'opacity:.5':''}">
-      <div class="adm-prod-emoji">${emoji}</div>
+      <div class="adm-prod-emoji">${p.image_url&&p.image_url.length>4?`<img src="${p.image_url}" alt="">`:`<span>${emoji}</span>`}</div>
       <div class="adm-prod-info">
         <div class="adm-prod-name">${p.name}</div>
         <div class="adm-prod-meta">${p.category} · /${p.unit}${p.is_hot?' · 🔥':''}</div>
