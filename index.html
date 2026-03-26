@@ -1794,6 +1794,10 @@ function openAdmProdModal(id){
   document.getElementById('apm-cat').value='Lương thực';
   document.getElementById('apm-badge').value='';
   document.getElementById('apm-active').value='true';
+  document.getElementById('apm-sale-price').value='';
+  document.getElementById('apm-promo-link').value='';
+  document.getElementById('apm-pct-lbl').textContent='';
+  apmBuildPromoSelect();
   if(id){
     // Lấy SP từ local trước (có ảnh), fallback cloud
     const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
@@ -1807,6 +1811,10 @@ function openAdmProdModal(id){
       document.getElementById('apm-cat').value=p.category||'Khác';
       document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
       document.getElementById('apm-active').value=String(p.is_active!==false);
+      // Sale price
+      if(p.sale_price) document.getElementById('apm-sale-price').value=p.sale_price;
+      if(p.promo_id)   document.getElementById('apm-promo-link').value=p.promo_id;
+      apmCalcDiscount();
       // Restore ảnh
       const imgUrl = p.image_url||imgs[id]||'';
       if(imgUrl){
@@ -1905,6 +1913,49 @@ function handleProdImgUrl(val){
     preview.style.display = 'none';
   }
 }
+
+// ── PRODUCT MODAL PROMO HELPERS ──────────────────────
+function apmCalcDiscount(){
+  const price = Number(document.getElementById('apm-price').value)||0;
+  const sale  = Number(document.getElementById('apm-sale-price').value)||0;
+  const lbl   = document.getElementById('apm-pct-lbl');
+  if(sale>0 && price>0 && sale<price){
+    const pct = Math.round((1-sale/price)*100);
+    lbl.textContent = '-'+pct+'%';
+    // Tự set old_price = price nếu chưa có
+    const op = document.getElementById('apm-old-price');
+    if(!op.value) op.value = price;
+  } else {
+    lbl.textContent = '';
+  }
+}
+function apmOnPromoChange(){
+  const sel = document.getElementById('apm-promo-link');
+  const id  = sel.value;
+  if(!id) return;
+  const p = _promoStore.find(x=>x.id===id);
+  if(!p) return;
+  // Tự điền giá KM nếu là discount/flash
+  const price = Number(document.getElementById('apm-price').value)||0;
+  if(price>0 && p.discount_pct){
+    const sale = Math.round(price*(1-p.discount_pct/100));
+    document.getElementById('apm-sale-price').value = sale;
+    apmCalcDiscount();
+  }
+}
+function apmBuildPromoSelect(){
+  const sel = document.getElementById('apm-promo-link');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Không gắn KM --</option>';
+  (_promoStore||[]).filter(p=>p.is_active).forEach(p=>{
+    const meta = PROMO_TYPE_META[p.type]||{};
+    const opt  = document.createElement('option');
+    opt.value  = p.id;
+    opt.textContent = (meta.icon||'')+ ' ' + p.name + (p.discount_pct?' (-'+p.discount_pct+'%)':'');
+    sel.appendChild(opt);
+  });
+}
+
 async function saveAdmProd(){
   const name = document.getElementById('apm-name').value.trim();
   const price = Number(document.getElementById('apm-price').value);
@@ -1922,6 +1973,8 @@ async function saveAdmProd(){
     is_hot: badge==='hot',
     is_new: badge==='new',
     stock_qty: 99,
+    sale_price: Number(document.getElementById('apm-sale-price').value)||0,
+    promo_id: document.getElementById('apm-promo-link').value||null,
   };
 
   // 1. Lưu vào DEMO_PRODUCTS
@@ -2735,13 +2788,17 @@ function renderPromoTagBar(prod){
 function hotCard(p, prefix='hot'){
   const item=cart.find(x=>x.id===p.id), qty=item?item.qty:0;
   const emoji=PROD_EMOJI_MAP[p.category]||'🛒';
-  const oldP=DEMO_OLD_PRICES[p.id]||p.old_price||0;
-  const pct=oldP>p.price?Math.round((1-p.price/oldP)*100):0;
+  // Giá hiển thị: ưu tiên sale_price
+  const displayPrice = (p.sale_price && p.sale_price < p.price) ? p.sale_price : p.price;
+  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (DEMO_OLD_PRICES[p.id]||p.old_price||0);
+  const pct = oldP>displayPrice ? Math.round((1-displayPrice/oldP)*100) : 0;
+  // Tên chương trình KM
+  const linkedPromo = p.promo_id ? _promoStore.find(x=>x.id===p.promo_id) : null;
   const promoBar=renderPromoTagBar(p);
   return `<div class="hot-card${qty>0?' has':''}" id="${prefix==='expand'?'ec':'hc'}-${p.id}">
     <div class="hot-img-box" style="position:relative">
       ${p.image_url?`<img src="${p.image_url}" alt="${p.name}">`:`<div class="hot-img-emoji">${emoji}</div>`}
-      ${pct?`<div class="hot-badge-tag">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag">HOT</div>`:''}
+      ${pct?`<div class="hot-badge-tag">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag">HOT</div>`:p.is_new?`<div class="hot-badge-tag" style="background:#059669">MỚI</div>`:''}
       ${(()=>{
         const tags=getPromoTagsForProduct(p);
         if(!tags.length) return '';
@@ -2757,8 +2814,9 @@ function hotCard(p, prefix='hot'){
       <div class="hot-name">${p.name}</div>
       <div class="hot-add-row">
         <div>
-          <div class="hot-price">${fmt(p.price)}</div>
-          ${oldP&&oldP>p.price?`<div class="hot-old">${fmt(oldP)}</div>`:''}
+          ${linkedPromo?`<div style="font-size:9px;font-weight:700;color:#EE4D2D;margin-bottom:2px">${linkedPromo.name}</div>`:''}
+          <div class="hot-price">${fmt(displayPrice)}</div>
+          ${oldP&&oldP>displayPrice?`<div class="hot-old">${fmt(oldP)}</div>`:''}
         </div>
         <div>
           ${qty>0
@@ -3469,8 +3527,20 @@ document.addEventListener('click', function(e){
     <div class="adm-modal-title" id="adm-prod-modal-title">Thêm sản phẩm</div>
     <div class="adm-field"><label>Tên sản phẩm *</label><input id="apm-name" type="text" placeholder="VD: Gạo ST25 túi 5kg"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="adm-field"><label>Giá bán (đ) *</label><input id="apm-price" type="number" placeholder="25000"></div>
+      <div class="adm-field"><label>Giá bán (đ) *</label><input id="apm-price" type="number" placeholder="25000" oninput="apmCalcDiscount()"></div>
       <div class="adm-field"><label>Giá gốc (đ)</label><input id="apm-old-price" type="number" placeholder="0"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="adm-field">
+        <label>💰 Giá KM (đ) <span id="apm-pct-lbl" style="color:#EE4D2D;font-weight:800;margin-left:4px"></span></label>
+        <input id="apm-sale-price" type="number" placeholder="Để trống nếu không KM" oninput="apmCalcDiscount()">
+      </div>
+      <div class="adm-field">
+        <label>🎯 Gắn chương trình KM</label>
+        <select id="apm-promo-link" onchange="apmOnPromoChange()">
+          <option value="">-- Không gắn --</option>
+        </select>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="adm-field"><label>Đơn vị</label><input id="apm-unit" type="text" placeholder="cái/chai/túi"></div>
@@ -3486,6 +3556,7 @@ document.addEventListener('click', function(e){
         <select id="apm-active"><option value="true">Đang bán</option><option value="false">Tạm ẩn</option></select>
       </div>
     </div>
+
     <div class="adm-field">
       <label>Hình ảnh sản phẩm</label>
       <!-- Preview -->
