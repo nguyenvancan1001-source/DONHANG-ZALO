@@ -59,7 +59,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .screen.behind{transform:translateX(-30%)}
 
 /* ── HEADER ─────────────────────────────────── */
-.header{background:var(--g800);padding:0 16px;height:56px;display:flex;align-items:center;gap:10px;flex-shrink:0;position:relative;z-index:10}
+.header{background:var(--g800);padding:0;min-height:56px;display:flex;flex-direction:column;justify-content:flex-start;flex-shrink:0;position:relative;z-index:10}
+.header-top-row{display:flex;align-items:center;padding:6px 14px 6px;gap:8px;min-height:50px}
+.header-kpi-bar{display:flex;gap:0;border-top:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.15)}
+.hkpi{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.1);cursor:pointer;transition:.1s}
+.hkpi:last-child{border-right:none}
+.hkpi:active{background:rgba(255,255,255,.08)}
+.hkpi-val{font-size:13px;font-weight:800;color:#fff;line-height:1}
+.hkpi-lbl{font-size:9px;font-weight:600;color:rgba(255,255,255,.6);margin-top:1px;white-space:nowrap}
+.hkpi.pending .hkpi-val{color:#FFC300}
+.hkpi.done .hkpi-val{color:#4ade80}
+.hkpi.pending-ship .hkpi-val{color:#f87171}
 .header-back{width:36px;height:36px;background:rgba(255,255,255,.12);border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .header-title{color:#fff;font-size:16px;font-weight:700;flex:1}
 .header-sub{color:rgba(255,255,255,.6);font-size:11px;font-weight:400}
@@ -378,8 +388,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-login-title{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:4px}
 .adm-login-sub{font-size:13px;color:var(--ink2);margin-bottom:20px;font-weight:600}
 .adm-field{margin-bottom:4px}
-.adm-field label{display:block;font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:2px}
-.adm-field input,.adm-field select{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:var(--font);background:#fff;color:var(--ink);outline:none}
+.adm-field label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:3px}
+.adm-field input,.adm-field select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:var(--font);background:#fff;color:var(--ink);outline:none}
 .adm-field input:focus,.adm-field select:focus{border-color:var(--g800)}
 .adm-login-btn{width:100%;padding:13px;background:var(--g800);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;margin-top:4px}
 .adm-login-btn:active{background:var(--g700)}
@@ -463,10 +473,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
 .promo-type-btn{padding:6px 4px;border-radius:8px;border:1.5px solid var(--line);background:#fff;cursor:pointer;text-align:center;transition:.15s;font-family:var(--font)}
 .promo-type-btn.sel{border-color:var(--g800);background:var(--g50)}
-.promo-type-btn .pt-icon{font-size:16px;display:block;margin-bottom:2px}
-.promo-type-btn .pt-name{font-size:10px;font-weight:700;color:var(--ink);line-height:1.2}
+.promo-type-btn .pt-icon{font-size:20px;display:block;margin-bottom:3px}
+.promo-type-btn .pt-name{font-size:12px;font-weight:700;color:var(--ink);line-height:1.2}
 .promo-form-section{background:#f8faf9;border-radius:8px;padding:8px;margin-bottom:6px}
-.promo-form-title{font-size:10px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.promo-form-title{font-size:12px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);align-items:flex-end}
 .adm-promo-modal-bg.open{display:flex}
@@ -622,6 +632,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .hot-card{isolation:isolate}
 .sap-het-badge{z-index:2}
 
+
+/* ── HEADER STATS BAR ──────────────────────── */
+.hdr-top-row{display:flex;align-items:center;gap:8px;width:100%;padding-bottom:5px}
+.hdr-stats-row{display:flex;align-items:center;gap:0;width:100%;border-top:1px solid rgba(255,255,255,.12);padding:4px 0 5px;overflow:hidden}
+.hdr-stat{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;padding:2px 6px 2px 0}
+.hdr-stat+.hdr-stat{border-left:1px solid rgba(255,255,255,.15);padding-left:8px}
+.hdr-stat-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.hdr-stat-body{min-width:0}
+.hdr-stat-val{font-size:14px;font-weight:800;color:#fff;line-height:1}
+.hdr-stat-lbl{font-size:9px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap}
+
 </style>
 </head>
 <body>
@@ -660,24 +681,51 @@ const DEMO_PRODUCTS = [
 
   <!-- HEADER chung cho cả 2 mode -->
   <div class="header" id="shop-header">
-    <div class="header-logo" id="header-logo-area">
-      <div class="logo-mark">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <path d="M2 4.5h14M2 9h10M2 13.5h7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
+    <!-- Hàng 1: Logo + nút quản lý -->
+    <div class="hdr-top-row">
+      <div class="header-logo" id="header-logo-area">
+        <div class="logo-mark">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M2 4.5h14M2 9h10M2 13.5h7" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="header-title" style="font-size:15px;font-weight:800;line-height:1.1">VICOMART</div>
+          <div class="header-sub">Khuyến mãi mỗi ngày</div>
+        </div>
       </div>
-      <div>
-        <div class="header-title" style="font-size:15px;font-weight:800">VICOMART</div>
-        <div class="header-sub">Khuyến mãi mỗi ngày</div>
+      <button class="mgmt-header-btn" id="mgmt-fab" onclick="openAdminPanel()" title="Quản lý">
+        <div class="mgmt-header-dot"></div>
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="5" r="2.5" stroke="#fff" stroke-width="1.5"/>
+          <path d="M2 13c0-3 2-4.5 6-4.5s6 1.5 6 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Hàng 2: Stats tổng quan -->
+    <div class="hdr-stats-row" id="hdr-stats-row">
+      <div class="hdr-stat" onclick="openAdminPanel()">
+        <div class="hdr-stat-dot" style="background:#FFC300"></div>
+        <div class="hdr-stat-body">
+          <div class="hdr-stat-val" id="hdr-total" style="color:#FFC300">—</div>
+          <div class="hdr-stat-lbl">Đơn mới</div>
+        </div>
+      </div>
+      <div class="hdr-stat" onclick="openAdminPanel()">
+        <div class="hdr-stat-dot" style="background:#4ade80"></div>
+        <div class="hdr-stat-body">
+          <div class="hdr-stat-val" id="hdr-done">—</div>
+          <div class="hdr-stat-lbl">Đã giao</div>
+        </div>
+      </div>
+      <div class="hdr-stat" onclick="openAdminPanel()">
+        <div class="hdr-stat-dot" style="background:#fbbf24"></div>
+        <div class="hdr-stat-body">
+          <div class="hdr-stat-val" id="hdr-pending">—</div>
+          <div class="hdr-stat-lbl">Chờ giao</div>
+        </div>
       </div>
     </div>
-    <button class="mgmt-header-btn" id="mgmt-fab" onclick="openAdminPanel()" title="Quản lý">
-      <div class="mgmt-header-dot"></div>
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-        <circle cx="8" cy="5" r="2.5" stroke="#fff" stroke-width="1.5"/>
-        <path d="M2 13c0-3 2-4.5 6-4.5s6 1.5 6 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
   </div>
 
   <!-- ══ HERO MODE ══ -->
@@ -1134,6 +1182,7 @@ async function loadPromos(){
 
 window.addEventListener('DOMContentLoaded', async () => {
   buildHeroPromos(); // render demo ngay lập tức
+  loadHeaderStats();
   loadPromos();      // sau đó load Supabase (không block)
   renderHighlights(); // render highlights từ localStorage
   BRANCHES.forEach(b => {
@@ -1847,17 +1896,22 @@ function openPromoModal(id){
   document.getElementById('promo-form-area').innerHTML='';
   document.getElementById('promo-preview-area').innerHTML='';
   document.getElementById('promo-save-area').style.display='none';
-  // If editing, preselect type
-  if(id){
-    const p=_promoStore.find(x=>x.id===id);
-    if(p){ selPromoType(p.type,p); }
-  }
-  // Reset type buttons
   document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('sel'));
+  // Mở modal TRƯỚC để DOM visible, rồi mới render form
   document.getElementById('adm-promo-modal-bg').classList.add('open');
+  if(id){
+    setTimeout(()=>{
+      const p=_promoStore.find(x=>x.id===id);
+      if(p){ selPromoType(p.type,p); }
+    },50);
+  }
 }
 function closePromoModal(){ document.getElementById('adm-promo-modal-bg').classList.remove('open'); }
-function editPromo(id){ openPromoModal(id); }
+function editPromo(id){
+  // Ngăn chặn double-click
+  if(document.getElementById('adm-promo-modal-bg').classList.contains('open')) return;
+  openPromoModal(id);
+}
 
 function selPromoType(type, existingData){
   _selPromoType=type;
@@ -2721,6 +2775,39 @@ function saveHighlights(){
 window.addEventListener('DOMContentLoaded', ()=>{
   renderHighlights();
 });
+
+
+// ── HEADER STATS ──────────────────────────────
+async function loadHeaderStats(){
+  try{
+    const today = new Date().toISOString().split('T')[0];
+    let orders = [];
+    if(db && !IS_DEMO){
+      const {data,error} = await db.from('orders')
+        .select('status,total,created_at')
+        .gte('created_at', today + 'T00:00:00Z');
+      if(!error) orders = data || [];
+    }
+    // Demo fallback
+    if(!orders.length && typeof _demoOrdersStore !== 'undefined' && _demoOrdersStore){
+      orders = _demoOrdersStore.filter(o=>{
+        const d = new Date(o.created_at);
+        return d.toDateString() === new Date().toDateString();
+      });
+      if(!orders.length) orders = _demoOrders(); // show demo data
+    }
+    const newOrders = orders.filter(o=>o.status==='pending').length;
+    const done      = orders.filter(o=>o.status==='done' || o.status==='ready').length;
+    const pending   = orders.filter(o=>o.status==='processing' || o.status==='pending').length;
+    const revenue   = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
+    const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    el('hdr-total',   newOrders || '0');
+    el('hdr-done',    done      || '0');
+    el('hdr-pending', pending   || '0');
+  }catch(e){ console.warn('loadHeaderStats:',e.message); }
+}
+async function loadHeaderKpi(){ await loadHeaderStats(); }
+
 
 </script>
 
