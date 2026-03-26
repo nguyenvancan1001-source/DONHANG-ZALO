@@ -1786,7 +1786,7 @@ function openAdmProdModal(id){
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
   // Reset input file để có thể chọn lại ảnh lần 2, 3...
-  const fileInput = document.querySelector('#adm-prod-modal input[type="file"]');
+  const fileInput = document.getElementById('apm-file-input');
   if(fileInput) fileInput.value='';
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
@@ -3490,12 +3490,12 @@ document.addEventListener('click', function(e){
         <img id="apm-img-thumb" src="" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid var(--line);object-fit:contain">
       </div>
       <!-- Upload file -->
+      <input type="file" id="apm-file-input" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
       <div style="display:flex;gap:6px;margin-bottom:5px">
-        <label class="adm-img-upload-label" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
+        <button type="button" class="adm-img-upload-label" onclick="document.getElementById('apm-file-input').value='';document.getElementById('apm-file-input').click();" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
           📷 Chọn ảnh từ máy
-          <input type="file" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
-        </label>
-        <button type="button" onclick="document.getElementById('apm-img-preview').style.display='none';document.getElementById('apm-img').value=''" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
+        </button>
+        <button type="button" onclick="document.getElementById('apm-img-preview').style.display='none';document.getElementById('apm-img').value='';document.getElementById('apm-file-input').value='';" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
       </div>
       <!-- URL fallback -->
       <input id="apm-img" type="url" placeholder="Hoặc dán link ảnh https://..." oninput="handleProdImgUrl(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font);outline:none">
