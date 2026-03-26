@@ -2139,16 +2139,18 @@ function updatePromoPreview(){
 // ── PROMO SYNC HELPERS ────────────────────────────
 async function _syncPromosFromCloud(){
   if(!db||IS_DEMO){
-    if(!_promoStore.length) _promoStore=[...DEMO_PROMO_FALLBACK];
     _syncPromosToBuildState(); return;
   }
   try{
     const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
     if(error) throw error;
-    _promoStore = (data&&data.length) ? [...data] : [...DEMO_PROMO_FALLBACK];
+    if(data&&data.length){
+      _promoStore=[...data];
+      try{localStorage.setItem('vc_promos',JSON.stringify(_promoStore));}catch(e){}
+    }
   }catch(e){
-    console.warn('_syncPromosFromCloud:',e.message);
-    if(!_promoStore.length) _promoStore=[...DEMO_PROMO_FALLBACK];
+    console.warn('_syncPromosFromCloud:',e.message,'→ dùng local');
+    // Giữ nguyên _promoStore hiện tại, không override
   }
   _syncPromosToBuildState();
 }
@@ -2177,7 +2179,9 @@ async function savePromo(){
   // Thử lưu Supabase
   if(db && !IS_DEMO){
     try{
-      const payload={...data, products: data.products||null};
+      // Loại bỏ các field không có trong schema Supabase
+      const {icon:_icon, ...dataClean} = data;
+      const payload={...dataClean, products: dataClean.products||null};
       let error;
       if(_editPromoId){
         ({error}=await db.from('promotions').update(payload).eq('id',_editPromoId));
@@ -2191,6 +2195,7 @@ async function savePromo(){
       savedToCloud=true;
     }catch(e){
       console.warn('Supabase savePromo error:',e.message,'→ lưu local');
+      savedToCloud=false;
     }
   }
 
