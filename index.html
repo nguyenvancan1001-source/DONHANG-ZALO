@@ -279,7 +279,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-section-title::after,.hot-section-title::after{content:'';flex:1;height:1px;background:var(--line)}
 
 /* PROMO CARD 2 tầng */
-.pc{border-radius:14px;overflow:hidden;margin-bottom:8px;cursor:pointer;transition:.12s}
+.pc{border-radius:14px;overflow:hidden;margin-bottom:8px;cursor:default;transition:.12s}
 .pc:active{opacity:.93;transform:scale(.99)}
 /* Màu nền theo index */
 .pc-0{background:linear-gradient(135deg,#0D47A1 0%,#1976D2 60%,#42A5F5 100%)}
@@ -340,14 +340,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── ADMIN PANEL ──────────────────────────────── */
 .adm-overlay{position:fixed;inset:0;z-index:200;display:flex;pointer-events:none;visibility:hidden}
-.adm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;transition:opacity .3s;pointer-events:none}
+.adm-backdrop{display:none}
 .adm-overlay.open{pointer-events:all;visibility:visible}
-.adm-overlay.open .adm-backdrop{opacity:1;pointer-events:all}
-.adm-panel{position:absolute;right:0;top:0;bottom:0;width:min(88vw,380px);background:var(--white);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.18);pointer-events:all}
-.adm-overlay.open .adm-panel{transform:translateX(0)}
+.adm-panel{
+  position:absolute;inset:0;
+  width:100%;max-width:100%;
+  background:var(--bg);
+  transform:translateY(100%);
+  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+  pointer-events:all;
+}
+.adm-overlay.open .adm-panel{transform:translateY(0)}
 
 /* Admin header */
-.adm-hdr{background:linear-gradient(135deg,#0D47A1,#1565C0);padding:16px 16px 14px;flex-shrink:0}
+.adm-hdr{background:linear-gradient(135deg,#0D47A1,#1565C0);padding:16px 16px 14px;flex-shrink:0;padding-top:calc(16px + env(safe-area-inset-top))}
 .adm-hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .adm-hdr-title{color:#fff;font-size:16px;font-weight:800}
 .adm-close-btn{width:32px;height:32px;background:rgba(255,255,255,.15);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -356,14 +363,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-role-staff{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)}
 
 /* Admin nav tabs */
-.adm-nav{display:flex;background:#f8f8f6;border-bottom:1px solid var(--line);flex-shrink:0}
-.adm-tab{flex:1;padding:11px 6px;text-align:center;font-size:12px;font-weight:700;color:var(--ink3);border:none;background:none;cursor:pointer;font-family:var(--font);border-bottom:2px solid transparent;transition:.15s}
+.adm-nav{display:flex;background:#f8f8f6;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.adm-nav::-webkit-scrollbar{display:none}
+.adm-tab{flex:1;padding:13px 10px;text-align:center;font-size:13px;font-weight:700;color:var(--ink3);border:none;background:none;cursor:pointer;font-family:var(--font);border-bottom:3px solid transparent;transition:.15s;white-space:nowrap}
 .adm-tab.on{color:var(--g800);border-bottom-color:var(--g800)}
 
 /* Admin body */
-.adm-body{flex:1;overflow-y:auto}
+.adm-body{flex:1;overflow-y:auto;background:var(--bg)}
 .adm-body::-webkit-scrollbar{display:none}
-.adm-section{padding:14px}
+.adm-section{padding:16px}
 
 /* Login form */
 .adm-login-wrap{padding:24px 16px}
@@ -396,10 +404,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-st-sel.cancelled{background:#fee2e2;color:#991b1b}
 
 /* KPI row */
-.adm-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.adm-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .adm-kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .adm-kpi-lbl{font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.adm-kpi-val{font-size:20px;font-weight:800;color:var(--ink)}
+.adm-kpi-val{font-size:24px;font-weight:800;color:var(--ink)}
 
 /* Product cards admin */
 .adm-prod-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
@@ -414,7 +422,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-add-btn{width:100%;padding:12px;background:var(--g800);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:var(--font);cursor:pointer;margin-bottom:10px}
 
 /* Modal trong admin */
-.adm-modal-bg{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);align-items:flex-end}
+.adm-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);align-items:flex-end}
 .adm-modal-bg.open{display:flex}
 .adm-modal-box{background:#fff;border-radius:18px 18px 0 0;padding:20px 16px 32px;width:100%}
 .adm-modal-title{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:14px}
@@ -447,8 +455,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pc-mini-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;position:relative;z-index:1}
 .pc-mini{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:3px 8px;font-size:10px;font-weight:700}
 /* Action buttons on card */
-.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:1}
-.pc-act-btn{flex:1;padding:7px;border-radius:8px;font-size:11px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);color:#fff}
+.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:5}
+.pc-act-btn{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15);color:#fff;pointer-events:all;position:relative;z-index:5}
 .pc-act-btn.danger{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.4)}
 
 /* ── ADMIN PROMO FORM ────────────────────────── */
@@ -460,7 +468,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-form-section{background:#f8faf9;border-radius:10px;padding:12px;margin-bottom:10px}
 .promo-form-title{font-size:11px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:350;background:rgba(0,0,0,.55);align-items:flex-end}
+.adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);align-items:flex-end}
 .adm-promo-modal-bg.open{display:flex}
 .adm-promo-modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 16px 40px}
 .adm-promo-modal::-webkit-scrollbar{display:none}
