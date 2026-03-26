@@ -339,10 +339,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .vab-icon.open{transform:rotate(180deg)}
 
 /* ── ADMIN PANEL ──────────────────────────────── */
-.adm-overlay{position:fixed;inset:0;z-index:200;display:flex;pointer-events:none}
+.adm-overlay{position:fixed;inset:0;z-index:200;display:flex;pointer-events:none;visibility:hidden}
 .adm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;transition:opacity .3s;pointer-events:none}
+.adm-overlay.open{pointer-events:all;visibility:visible}
 .adm-overlay.open .adm-backdrop{opacity:1;pointer-events:all}
-.adm-panel{position:absolute;right:0;top:0;bottom:0;width:min(88vw,380px);background:var(--white);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.18)}
+.adm-panel{position:absolute;right:0;top:0;bottom:0;width:min(88vw,380px);background:var(--white);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.18);pointer-events:all}
 .adm-overlay.open .adm-panel{transform:translateX(0)}
 
 /* Admin header */
