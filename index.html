@@ -387,9 +387,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-login-wrap{padding:24px 16px}
 .adm-login-title{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:4px}
 .adm-login-sub{font-size:13px;color:var(--ink2);margin-bottom:20px;font-weight:600}
-.adm-field{margin-bottom:4px}
-.adm-field label{display:block;font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:3px}
-.adm-field input,.adm-field select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;font-family:var(--font);background:#fff;color:var(--ink);outline:none}
+.adm-field{margin-bottom:3px}
+.adm-field label{display:block;font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:2px}
+.adm-field input,.adm-field select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font);background:#fff;color:var(--ink);outline:none}
 .adm-field input:focus,.adm-field select:focus{border-color:var(--g800)}
 .adm-login-btn{width:100%;padding:13px;background:var(--g800);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;margin-top:4px}
 .adm-login-btn:active{background:var(--g700)}
@@ -470,17 +470,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pc-act-btn.danger{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.4)}
 
 /* ── ADMIN PROMO FORM ────────────────────────── */
-.promo-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px}
-.promo-type-btn{padding:6px 4px;border-radius:8px;border:1.5px solid var(--line);background:#fff;cursor:pointer;text-align:center;transition:.15s;font-family:var(--font)}
+.promo-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:8px}
+.promo-type-btn{padding:4px 3px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;text-align:center;transition:.15s;font-family:var(--font)}
 .promo-type-btn.sel{border-color:var(--g800);background:var(--g50)}
-.promo-type-btn .pt-icon{font-size:20px;display:block;margin-bottom:3px}
-.promo-type-btn .pt-name{font-size:12px;font-weight:700;color:var(--ink);line-height:1.2}
-.promo-form-section{background:#f8faf9;border-radius:8px;padding:8px;margin-bottom:6px}
-.promo-form-title{font-size:12px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.promo-type-btn .pt-icon{font-size:14px;display:block;margin-bottom:1px}
+.promo-type-btn .pt-name{font-size:10px;font-weight:700;color:var(--ink);line-height:1.2}
+.promo-form-section{background:#f8faf9;border-radius:6px;padding:6px;margin-bottom:4px}
+.promo-form-title{font-size:10px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);align-items:flex-end}
 .adm-promo-modal-bg.open{display:flex}
-.adm-promo-modal{background:#fff;border-radius:14px 14px 0 0;width:100%;max-height:82vh;overflow-y:auto;padding:12px 12px 24px}
+.adm-promo-modal{background:#fff;border-radius:12px 12px 0 0;width:100%;max-height:78vh;overflow-y:auto;padding:10px 10px 20px}
 .adm-promo-modal::-webkit-scrollbar{display:none}
 
 
@@ -609,8 +609,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── ICON PICKER ──────────────────────────────── */
 .icon-picker-wrap{margin-bottom:6px}
-.icon-picker-label{font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:3px;display:block}
-.icon-picker-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;max-height:72px;overflow-y:auto;background:#f8faf9;border:1px solid var(--line);border-radius:8px;padding:5px;scrollbar-width:thin}
+.icon-picker-label{font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:2px;display:block}
+.icon-picker-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:2px;max-height:52px;overflow-y:auto;background:#f8faf9;border:1px solid var(--line);border-radius:6px;padding:4px;scrollbar-width:thin}
 .icon-picker-grid::-webkit-scrollbar{width:3px}
 .icon-picker-grid::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
 .ip-btn{width:36px;height:36px;border-radius:8px;border:1.5px solid transparent;background:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.1s;flex-shrink:0}
@@ -1833,7 +1833,7 @@ function renderPromoAdminCard(p){
   else if(p.type==='flash') desc=`⚡ ${p.product||'SP'} -${p.discount_pct||0}% · Kết thúc ${p.flash_label||''}`;
   else if(p.type==='gift') desc=`Đơn từ ${fmt(p.min_order||0)} → Tặng: ${p.gift_item||'Quà'}`;
 
-  return `<div class="pc ${meta.color}" style="margin-bottom:3px">
+  return `<div class="pc ${meta.color}" style="margin-bottom:2px">
     <div class="pc-top">
       <div class="pc-icon">${meta.icon}</div>
       <div style="flex:1;min-width:0">
@@ -1950,7 +1950,7 @@ function selPromoType(type, existingData){
       <input type="hidden" id="pf-icon" value="${selIcon}">
     </div>
 
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Tên chương trình *</label>
       <input id="pf-name" type="text" placeholder="VD: Sữa Vinamilk mua 1 tặng 1" value="${p.name||''}">
     </div>`;
@@ -1958,7 +1958,7 @@ function selPromoType(type, existingData){
   if(type==='bxgy1'||type==='bxgy2'){
     const buyN=type==='bxgy1'?1:2;
     formHtml+=`
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Sản phẩm áp dụng *</label>
       <input id="pf-product" type="text" placeholder="VD: Sữa tươi Vinamilk / Trứng gà ta" value="${p.product||''}">
     </div>
@@ -1972,13 +1972,13 @@ function selPromoType(type, existingData){
         <input id="pf-get" type="number" min="1" value="${p.get||1}" placeholder="1">
       </div>
     </div>
-    <div class="adm-field" style="margin-top:3px;margin-bottom:0">
+    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
       <label>SP được tặng (trống = tặng chính SP đó)</label>
       <input id="pf-gift-product" type="text" placeholder="VD: để trống → mua Sữa tặng Sữa" value="${p.gift_product||''}">
     </div>`;
   } else if(type==='combo'){
     formHtml+=`
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Danh sách SP combo (mỗi SP 1 dòng) *</label>
       <textarea id="pf-combo-products" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;font-family:var(--font);resize:none;outline:none" placeholder="Gạo ST25 túi 5kg&#10;Dầu ăn Neptune 1L&#10;Nước mắm Chinsu">${(p.products||[]).join('\n')}</textarea>
     </div>
@@ -1988,7 +1988,7 @@ function selPromoType(type, existingData){
     </div>`;
   } else if(type==='discount'){
     formHtml+=`
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Sản phẩm áp dụng (trống = tất cả SP)</label>
       <input id="pf-product" type="text" placeholder="VD: Bột giặt OMO / để trống = tất cả" value="${p.product||''}">
     </div>
@@ -1998,7 +1998,7 @@ function selPromoType(type, existingData){
     </div>`;
   } else if(type==='flash'){
     formHtml+=`
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Sản phẩm flash sale *</label>
       <input id="pf-product" type="text" placeholder="VD: Gạo ST25 túi 5kg" value="${p.product||''}">
     </div>
@@ -2012,13 +2012,13 @@ function selPromoType(type, existingData){
         <input id="pf-flash-end" type="time" value="${p.flash_end||'22:00'}">
       </div>
     </div>
-    <div class="adm-field" style="margin-top:3px;margin-bottom:0">
+    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
       <label>Nhãn hiển thị</label>
       <input id="pf-flash-label" type="text" placeholder="VD: HÔM NAY 22:00" value="${p.flash_label||'HÔM NAY 22:00'}">
     </div>`;
   } else if(type==='gift'){
     formHtml+=`
-    <div class="adm-field" style="margin-bottom:3px">
+    <div class="adm-field" style="margin-bottom:2px">
       <label>Mua từ (đồng) *</label>
       <input id="pf-min-order" type="number" min="0" value="${p.min_order||200000}" placeholder="200000">
     </div>
@@ -2043,7 +2043,7 @@ function selPromoType(type, existingData){
         <input id="pf-date-to" type="date" value="${p.date_to||''}">
       </div>
     </div>
-    <div class="adm-field" style="margin-top:3px;margin-bottom:0">
+    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
       <label>Trạng thái</label>
       <select id="pf-active" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-family:var(--font);outline:none;background:#fff">
         <option value="true" ${p.is_active!==false?'selected':''}>🟢 Đang bật</option>
@@ -2687,7 +2687,7 @@ function initHighlightEditor(){
       <!-- Emoji picker -->
       <div id="emoji-picker-${i}" style="display:none;flex-wrap:wrap;gap:4px;margin-bottom:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px">
         ${EMOJIS.map(e=>`<button onclick="pickEmoji(${i},'${e}')"
-          style="width:26px;height:26px;border:none;background:transparent;font-size:15px;cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center"
+          style="width:22px;height:22px;border:none;background:transparent;font-size:13px;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center"
           onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'">${e}</button>`).join('')}
         <input type="text" placeholder="Nhập emoji khác..." id="custom-emoji-${i}"
           style="flex:1;min-width:100px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:var(--font)"
@@ -2930,7 +2930,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
             </div>
 
             <!-- Upload từ máy -->
-            <div style="margin-bottom:3px">
+            <div style="margin-bottom:2px">
               <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Tải ảnh từ máy tính:</div>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
                 <div style="background:var(--g50);border:1.5px dashed var(--g700);border-radius:10px;padding:12px 16px;flex:1;text-align:center;font-size:13px;font-weight:600;color:var(--g800)">
@@ -2941,7 +2941,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
             </div>
 
             <!-- Nhập URL ảnh -->
-            <div style="margin-bottom:3px">
+            <div style="margin-bottom:2px">
               <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">Hoặc nhập URL ảnh có sẵn:</div>
               <div style="display:flex;gap:6px">
                 <input id="og-url-input" type="url" placeholder="https://..." value=""
