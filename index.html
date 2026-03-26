@@ -1455,11 +1455,12 @@ function toast(msg) {
    ═══════════════════════════════════════════════ */
 
 // ── ACCOUNTS (demo — thay bằng Supabase Auth thực tế) ──
-const ADM_ACCOUNTS = [
-  {user:'admin',      pass:'vcm@2026',      role:'admin',  name:'Quản trị viên',    branch:''},
-  {user:'phubai',     pass:'phubai@123',    role:'staff',  name:'Cửa hàng Phú Bài', branch:'Vicomart Phú Bài'},
-  {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',  name:'Cửa hàng Vinh Thanh', branch:'Vicomart Vinh Thanh'},
-  {user:'thuanan',    pass:'thuanan@123',   role:'staff',  name:'Cửa hàng Thuận An', branch:'Vicomart Thuận An'},
+// Tài khoản demo fallback (dùng khi Supabase Auth chưa setup)
+const ADM_ACCOUNTS_DEMO = [
+  {user:'admin',      pass:'vcm@2026',      role:'admin',  name:'Quản trị viên',        branch:''},
+  {user:'phubai',     pass:'phubai@123',    role:'staff',  name:'Cửa hàng Phú Bài',     branch:'Vicomart Phú Bài'},
+  {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',  name:'Cửa hàng Vinh Thanh',  branch:'Vicomart Vinh Thanh'},
+  {user:'thuanan',    pass:'thuanan@123',   role:'staff',  name:'Cửa hàng Thuận An',    branch:'Vicomart Thuận An'},
 ];
 
 const ADM_ST_LABEL = {pending:'Chờ xác nhận',processing:'Đang xử lý',ready:'Sẵn sàng',done:'Hoàn thành',cancelled:'Đã huỷ'};
@@ -1477,23 +1478,64 @@ function openAdminPanel(){
 function closeAdminPanel(){
   document.getElementById('adm-overlay').classList.remove('open');
 }
-function doAdmLogin(){
+async function doAdmLogin(){
   const u = document.getElementById('adm-user').value.trim().toLowerCase();
   const p = document.getElementById('adm-pass').value;
   const b = document.getElementById('adm-branch').value;
-  const acc = ADM_ACCOUNTS.find(a => a.user===u && a.pass===p);
-  if(!acc){ document.getElementById('adm-login-err').textContent='Sai tài khoản hoặc mật khẩu'; return; }
+  const errEl = document.getElementById('adm-login-err');
+  const btn = document.querySelector('.adm-login-btn');
+  errEl.textContent = '';
+  if(btn){ btn.disabled=true; btn.textContent='Đang đăng nhập...'; }
+
+  // Thử Supabase Auth trước
+  if(db && !IS_DEMO){
+    try{
+      // Email format: username@vicomart.vn
+      const email = u + '@vicomart.vn';
+      const { data, error } = await db.auth.signInWithPassword({ email, password: p });
+      if(!error && data.user){
+        const meta = data.user.user_metadata || {};
+        admUser = {
+          user: u,
+          name: meta.name || u,
+          role: meta.role || 'staff',
+          branch: meta.branch || '',
+          selectedBranch: b || meta.branch || '',
+          email: data.user.email,
+          _supabase: true,
+        };
+        localStorage.setItem('vc_adm_session', JSON.stringify(admUser));
+        if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
+        showAdmApp();
+        return;
+      }
+    }catch(e){ console.warn('Supabase auth error:', e.message); }
+  }
+
+  // Fallback: demo accounts
+  const acc = ADM_ACCOUNTS_DEMO.find(a => a.user===u && a.pass===p);
+  if(!acc){
+    errEl.textContent='Sai tài khoản hoặc mật khẩu';
+    if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
+    return;
+  }
   admUser = {...acc, selectedBranch: b || acc.branch};
   localStorage.setItem('vc_adm_session', JSON.stringify(admUser));
+  if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
   showAdmApp();
 }
-function doAdmLogout(){
+async function doAdmLogout(){
+  // Đăng xuất Supabase Auth nếu dùng
+  if(admUser && admUser._supabase && db){
+    try{ await db.auth.signOut(); }catch(e){}
+  }
   admUser = null;
   localStorage.removeItem('vc_adm_session');
   document.getElementById('adm-app-view').style.display='none';
   document.getElementById('adm-login-view').style.display='block';
   document.getElementById('adm-pass').value='';
   document.getElementById('adm-login-err').textContent='';
+  document.getElementById('adm-user').value='';
 }
 function showAdmApp(){
   document.getElementById('adm-login-view').style.display='none';
@@ -2139,7 +2181,7 @@ allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 
 // ── USERS (admin only) ──
 function admRenderUsers(){
-  document.getElementById('adm-users-list').innerHTML=ADM_ACCOUNTS.map(a=>`
+  document.getElementById('adm-users-list').innerHTML=ADM_ACCOUNTS_DEMO.map(a=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)">
       <div style="width:34px;height:34px;border-radius:50%;background:${a.role==='admin'?'var(--g800)':'#e0f2fe'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${a.role==='admin'?'👑':'👤'}</div>
       <div style="flex:1">
@@ -2318,8 +2360,29 @@ function refreshBothGrids(id){
 }
 
 // ── INIT: check saved session ──
-(function initAdmSession(){
+(async function initAdmSession(){
   try{
+    // Check Supabase session
+    if(db && !IS_DEMO){
+      const { data } = await db.auth.getSession();
+      if(data.session && data.session.user){
+        const u = data.session.user;
+        const meta = u.user_metadata || {};
+        const username = u.email.replace('@vicomart.vn','');
+        admUser = {
+          user: username,
+          name: meta.name || username,
+          role: meta.role || 'staff',
+          branch: meta.branch || '',
+          selectedBranch: meta.branch || '',
+          email: u.email,
+          _supabase: true,
+        };
+        localStorage.setItem('vc_adm_session', JSON.stringify(admUser));
+        return;
+      }
+    }
+    // Fallback localStorage
     const saved=localStorage.getItem('vc_adm_session');
     if(saved){ admUser=JSON.parse(saved); }
   }catch(e){}
