@@ -1785,8 +1785,10 @@ function openAdmProdModal(id){
   ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
-  // Tạo lại input file mới hoàn toàn — không bao giờ bị khóa
-  resetFileInput();
+  // Xoá input tạm nếu còn sót
+  const tmp = document.getElementById('_tmp_file_input');
+  if(tmp) tmp.remove();
+  clearProdImg();
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
   document.getElementById('apm-cat').value='Lương thực';
@@ -1835,19 +1837,34 @@ function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cs
 
 function clearProdImg(){
   document.getElementById('apm-img-preview').style.display='none';
+  document.getElementById('apm-img-thumb').src='';
   document.getElementById('apm-img').value='';
-  document.getElementById('apm-file-input').value='';
+  const btn = document.getElementById('apm-pick-btn');
+  if(btn) btn.textContent='📷 Chọn ảnh từ máy';
 }
 
-function resetFileInput(){
-  const el = document.getElementById('apm-file-input');
-  if(el) el.value='';
+function pickProdImage(){
+  // Tạo input file tạm trong body — không bao giờ bị block
+  const old = document.getElementById('_tmp_file_input');
+  if(old) old.remove();
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.id = '_tmp_file_input';
+  inp.accept = 'image/*';
+  inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px';
+  inp.addEventListener('change', handleProdImgUpload);
+  document.body.appendChild(inp);
+  inp.click();
 }
 
 async function handleProdImgUpload(e){
   const file = e.target.files[0];
+  // Xoá input tạm ngay
+  const tmp = document.getElementById('_tmp_file_input');
+  if(tmp) tmp.remove();
   if(!file) return;
-  toast('⏳ Đang xử lý ảnh...');
+  const btn = document.getElementById('apm-pick-btn');
+  if(btn) btn.textContent='⏳ Đang xử lý...';
 
   try{
     // 1. Nén ảnh
@@ -1906,12 +1923,12 @@ async function handleProdImgUpload(e){
     document.getElementById('apm-img').value = finalUrl;
     document.getElementById('apm-img-thumb').src = finalUrl;
     document.getElementById('apm-img-preview').style.display = 'block';
-    document.getElementById('apm-file-input').value = '';
+    if(btn) btn.textContent='✓ Đã chọn ảnh — Chọn lại';
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
     toast('❌ Lỗi xử lý ảnh: ' + (err.message||''));
-    document.getElementById('apm-file-input').value = '';
+    if(btn) btn.textContent='📷 Chọn ảnh từ máy';
   }
 }
 
@@ -3500,9 +3517,10 @@ document.addEventListener('click', function(e){
       </div>
       <!-- Upload file -->
       <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
-        <input type="file" id="apm-file-input" accept="image/*"
-          style="flex:1;padding:6px 8px;border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;background:var(--g50);color:var(--g800);cursor:pointer"
-          onchange="handleProdImgUpload(event)">
+        <button type="button" id="apm-pick-btn" onclick="pickProdImage()"
+          style="flex:1;padding:9px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:13px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center">
+          📷 Chọn ảnh từ máy
+        </button>
         <button type="button" onclick="clearProdImg()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
       </div>
       <!-- URL fallback -->
