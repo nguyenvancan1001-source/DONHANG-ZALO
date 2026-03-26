@@ -1270,28 +1270,25 @@ async function loadProds() {
   }
   try {
     const { data, error } = await db.from('products')
-      .select('*').eq('is_active', true).order('category').order('name');
+      .select('*').order('category').order('name');
     if (error) throw error;
     if(data && data.length){
-      // Merge: ưu tiên local (có ảnh base64) nếu cùng id
-      const cloudMap = {};
-      data.forEach(p=>cloudMap[p.id]=p);
-      // SP local không có trên cloud → giữ lại
-      const localOnly = DEMO_PRODUCTS.filter(p=>!cloudMap[p.id]);
-      allProds = [...data, ...localOnly];
+      // Cloud là nguồn chính — ghép ảnh local nếu có
+      const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+      allProds = data.map(p=>({
+        ...p,
+        image_url: imgs[p.id] || p.image_url || ''
+      }));
+      // Cập nhật DEMO_PRODUCTS từ cloud để đồng bộ local
+      DEMO_PRODUCTS.length = 0;
+      allProds.forEach(p => DEMO_PRODUCTS.push(p));
+      _saveProdLocal();
     } else {
-      allProds = [...DEMO_PRODUCTS];
+      allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
     }
-    // Ghép ảnh local vào SP cloud
-    const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-    allProds = allProds.map(p=>{
-      if(!p.image_url && imgs[p.id]) return {...p, image_url:imgs[p.id]};
-      if(p.image_url==='__local__' && imgs[p.id]) return {...p, image_url:imgs[p.id]};
-      return p;
-    });
     buildCats(); renderProds(allProds); buildHotGrid();
   } catch(e) {
-    allProds = [...DEMO_PRODUCTS];
+    allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
     buildCats(); renderProds(allProds); buildHotGrid();
   }
 }
@@ -1752,24 +1749,18 @@ const ADM_EMOJI_MAP={'Lương thực':'🌾','Gia vị':'🧂','Mì gói':'🍜'
 async function admLoadProducts(){
   const el=document.getElementById('adm-prods-list');
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
-  // Luôn lấy từ local trước (mới nhất, có ảnh)
-  let prods = _getProdsWithImgs();
-  // Thử merge với cloud nếu có
+  // Load từ cloud trước, fallback local
+  let prods = [];
   try{
     if(!IS_DEMO && db){
       const {data,error}=await db.from('products').select('*').order('category').order('name');
       if(!error && data && data.length){
         const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-        // Ưu tiên local: nếu local có SP mới thì giữ, cloud chỉ bổ sung
-        const cloudIds=new Set(data.map(p=>p.id));
-        const localOnly=prods.filter(p=>!cloudIds.has(p.id));
-        prods=[...data.map(p=>{
-          const img=imgs[p.id];
-          return img?{...p,image_url:img}:p;
-        }), ...localOnly];
+        prods=data.map(p=>({...p, image_url:imgs[p.id]||p.image_url||''}));
       }
     }
   }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
+  if(!prods.length) prods = _getProdsWithImgs();
   el.innerHTML=prods.map(p=>{
     const emoji=ADM_EMOJI_MAP[p.category]||'🛒';
     const old=p.old_price&&p.old_price>p.price;
@@ -1840,29 +1831,68 @@ function openAdmProdModal(id){
 }
 function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cssText='display:none'; }
 
-function handleProdImgUpload(e){
+async function handleProdImgUpload(e){
   const file = e.target.files[0];
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    // Nén ảnh xuống max 400x400 trước khi lưu
-    const img = new Image();
-    img.onload = function(){
-      const canvas = document.createElement('canvas');
-      const MAX = 400;
-      let w = img.width, h = img.height;
-      if(w > h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
-      else { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
-      canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      const compressed = canvas.toDataURL('image/jpeg', 0.75);
-      document.getElementById('apm-img').value = compressed;
-      document.getElementById('apm-img-thumb').src = compressed;
-      document.getElementById('apm-img-preview').style.display = 'block';
+
+  const label = document.querySelector('.adm-img-upload-label');
+  if(label) label.textContent = '⏳ Đang upload...';
+
+  // Nén ảnh trước
+  const compressed = await new Promise(resolve=>{
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const canvas = document.createElement('canvas');
+        const MAX = 800;
+        let w=img.width, h=img.height;
+        if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}
+        else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        canvas.toBlob(blob=>resolve(blob),'image/jpeg',0.82);
+      };
+      img.src=ev.target.result;
     };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
+
+  // Upload lên Supabase Storage
+  let finalUrl = null;
+  if(db && !IS_DEMO){
+    try{
+      const fname = `prod_${Date.now()}.jpg`;
+      const {error} = await db.storage.from('product-images')
+        .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
+      if(!error){
+        const {data} = db.storage.from('product-images').getPublicUrl(fname);
+        finalUrl = data.publicUrl;
+        toast('✓ Ảnh đã upload cloud');
+      }
+    }catch(err){ console.warn('Storage upload:', err.message); }
+  }
+
+  // Fallback: base64 local nếu cloud lỗi
+  if(!finalUrl){
+    const reader2 = new FileReader();
+    reader2.onload = ev=>{
+      finalUrl = ev.target.result;
+      document.getElementById('apm-img').value = finalUrl;
+      document.getElementById('apm-img-thumb').src = finalUrl;
+      document.getElementById('apm-img-preview').style.display = 'block';
+      if(label) label.textContent = '📷 Chọn ảnh từ máy';
+      toast('⚠️ Lưu ảnh local (chưa đồng bộ)');
+    };
+    const blobUrl = URL.createObjectURL(compressed);
+    reader2.readAsDataURL(compressed);
+    return;
+  }
+
+  document.getElementById('apm-img').value = finalUrl;
+  document.getElementById('apm-img-thumb').src = finalUrl;
+  document.getElementById('apm-img-preview').style.display = 'block';
+  if(label) label.textContent = '📷 Chọn ảnh từ máy';
 }
 
 function handleProdImgUrl(val){
@@ -3456,7 +3486,7 @@ document.addEventListener('click', function(e){
       </div>
       <!-- Upload file -->
       <div style="display:flex;gap:6px;margin-bottom:5px">
-        <label style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
+        <label class="adm-img-upload-label" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
           📷 Chọn ảnh từ máy
           <input type="file" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
         </label>
