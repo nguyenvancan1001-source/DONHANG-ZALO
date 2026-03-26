@@ -1785,6 +1785,9 @@ function openAdmProdModal(id){
   ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
+  // Reset input file để có thể chọn lại ảnh lần 2, 3...
+  const fileInput = document.querySelector('#adm-prod-modal input[type="file"]');
+  if(fileInput) fileInput.value='';
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
   document.getElementById('apm-cat').value='Lương thực';
