@@ -1785,9 +1785,8 @@ function openAdmProdModal(id){
   ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img-thumb').src='';
-  // Reset input file để có thể chọn lại ảnh lần 2, 3...
-  const fileInput = document.getElementById('apm-file-input');
-  if(fileInput) fileInput.value='';
+  // Tạo lại input file mới hoàn toàn — không bao giờ bị khóa
+  resetFileInput();
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
   document.getElementById('apm-cat').value='Lương thực';
@@ -1834,11 +1833,33 @@ function openAdmProdModal(id){
 }
 function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cssText='display:none'; }
 
+function clearProdImg(){
+  document.getElementById('apm-img-preview').style.display='none';
+  document.getElementById('apm-img').value='';
+  resetFileInput();
+}
+
+function resetFileInput(){
+  // Xoá và tạo lại input file hoàn toàn mới — không bao giờ bị khóa
+  const wrap = document.getElementById('apm-file-wrap');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  const label = document.createElement('label');
+  label.id = 'apm-file-label';
+  label.style.cssText = 'flex:1;width:100%;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px';
+  label.textContent = '📷 Chọn ảnh từ máy';
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  input.addEventListener('change', handleProdImgUpload);
+  label.appendChild(input);
+  wrap.appendChild(label);
+}
+
 async function handleProdImgUpload(e){
   const file = e.target.files[0];
   if(!file) return;
-  // Reset ngay để lần sau vẫn chọn được dù cùng file
-  e.target.value = '';
   const label = document.getElementById('apm-file-label');
   if(label) label.textContent = '⏳ Đang upload...';
 
@@ -1899,12 +1920,12 @@ async function handleProdImgUpload(e){
     document.getElementById('apm-img').value = finalUrl;
     document.getElementById('apm-img-thumb').src = finalUrl;
     document.getElementById('apm-img-preview').style.display = 'block';
-    if(label) label.textContent = '📷 Chọn ảnh từ máy';
+    resetFileInput(); // tạo lại input mới để chọn ảnh khác được ngay
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
     toast('❌ Lỗi xử lý ảnh: ' + (err.message||''));
-    if(label) label.textContent = '📷 Chọn ảnh từ máy';
+    resetFileInput();
   }
 }
 
@@ -3493,12 +3514,9 @@ document.addEventListener('click', function(e){
       </div>
       <!-- Upload file -->
       <div style="display:flex;gap:6px;margin-bottom:5px">
-        <label for="apm-file-input" class="adm-img-upload-label" id="apm-file-label" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
-          📷 Chọn ảnh từ máy
-        </label>
-        <button type="button" onclick="document.getElementById('apm-img-preview').style.display='none';document.getElementById('apm-img').value='';document.getElementById('apm-file-input').value='';" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
+        <div id="apm-file-wrap" style="flex:1"></div>
+        <button type="button" onclick="clearProdImg()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
       </div>
-      <input type="file" id="apm-file-input" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
       <!-- URL fallback -->
       <input id="apm-img" type="url" placeholder="Hoặc dán link ảnh https://..." oninput="handleProdImgUrl(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font);outline:none">
     </div>
