@@ -349,9 +349,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .vab-icon.open{transform:rotate(180deg)}
 
 /* ── ADMIN PANEL ──────────────────────────────── */
-.adm-overlay{position:fixed;inset:0;z-index:200;display:none;pointer-events:none}
-.adm-backdrop{display:none}
-.adm-overlay.open{display:flex;pointer-events:all}
+.adm-overlay{position:fixed;inset:0;z-index:200;display:none}
+.adm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);cursor:pointer}
+
 .adm-panel{
   position:absolute;inset:0;
   width:100%;max-width:100%;
@@ -1545,13 +1545,13 @@ let admEditProdId = null;
 
 // ── LOGIN / LOGOUT ──
 function openAdminPanel(){
-  document.getElementById('adm-overlay').style.display='flex';
-  document.getElementById('adm-overlay').style.pointerEvents='all';
+  const el = document.getElementById('adm-overlay');
+  el.style.cssText = 'display:flex;position:fixed;inset:0;z-index:200;';
   if(admUser) showAdmApp();
 }
 function closeAdminPanel(){
-  document.getElementById('adm-overlay').style.display='none';
-  document.getElementById('adm-overlay').style.pointerEvents='none';
+  const el = document.getElementById('adm-overlay');
+  el.style.cssText = 'display:none;';
 }
 async function doAdmLogin(){
   const u = document.getElementById('adm-user').value.trim().toLowerCase();
