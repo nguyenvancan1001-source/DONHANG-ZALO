@@ -1836,32 +1836,18 @@ function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cs
 function clearProdImg(){
   document.getElementById('apm-img-preview').style.display='none';
   document.getElementById('apm-img').value='';
-  resetFileInput();
+  document.getElementById('apm-file-input').value='';
 }
 
 function resetFileInput(){
-  // Xoá và tạo lại input file hoàn toàn mới — không bao giờ bị khóa
-  const wrap = document.getElementById('apm-file-wrap');
-  if(!wrap) return;
-  wrap.innerHTML = '';
-  const label = document.createElement('label');
-  label.id = 'apm-file-label';
-  label.style.cssText = 'flex:1;width:100%;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px';
-  label.textContent = '📷 Chọn ảnh từ máy';
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.style.display = 'none';
-  input.addEventListener('change', handleProdImgUpload);
-  label.appendChild(input);
-  wrap.appendChild(label);
+  const el = document.getElementById('apm-file-input');
+  if(el) el.value='';
 }
 
 async function handleProdImgUpload(e){
   const file = e.target.files[0];
   if(!file) return;
-  const label = document.getElementById('apm-file-label');
-  if(label) label.textContent = '⏳ Đang upload...';
+  toast('⏳ Đang xử lý ảnh...');
 
   try{
     // 1. Nén ảnh
@@ -1920,12 +1906,12 @@ async function handleProdImgUpload(e){
     document.getElementById('apm-img').value = finalUrl;
     document.getElementById('apm-img-thumb').src = finalUrl;
     document.getElementById('apm-img-preview').style.display = 'block';
-    resetFileInput(); // tạo lại input mới để chọn ảnh khác được ngay
+    document.getElementById('apm-file-input').value = '';
 
   }catch(err){
     console.error('handleProdImgUpload:', err);
     toast('❌ Lỗi xử lý ảnh: ' + (err.message||''));
-    resetFileInput();
+    document.getElementById('apm-file-input').value = '';
   }
 }
 
@@ -3513,8 +3499,10 @@ document.addEventListener('click', function(e){
         <img id="apm-img-thumb" src="" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid var(--line);object-fit:contain">
       </div>
       <!-- Upload file -->
-      <div style="display:flex;gap:6px;margin-bottom:5px">
-        <div id="apm-file-wrap" style="flex:1"></div>
+      <div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">
+        <input type="file" id="apm-file-input" accept="image/*"
+          style="flex:1;padding:6px 8px;border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;background:var(--g50);color:var(--g800);cursor:pointer"
+          onchange="handleProdImgUpload(event)">
         <button type="button" onclick="clearProdImg()" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
       </div>
       <!-- URL fallback -->
