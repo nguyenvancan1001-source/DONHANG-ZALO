@@ -349,9 +349,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .vab-icon.open{transform:rotate(180deg)}
 
 /* ── ADMIN PANEL ──────────────────────────────── */
-.adm-overlay{position:fixed;inset:0;z-index:200;display:flex;pointer-events:none;visibility:hidden}
+.adm-overlay{position:fixed;inset:0;z-index:200;display:none;pointer-events:none}
 .adm-backdrop{display:none}
-.adm-overlay.open{pointer-events:all;visibility:visible}
+.adm-overlay.open{display:flex;pointer-events:all}
 .adm-panel{
   position:absolute;inset:0;
   width:100%;max-width:100%;
@@ -1545,11 +1545,13 @@ let admEditProdId = null;
 
 // ── LOGIN / LOGOUT ──
 function openAdminPanel(){
-  document.getElementById('adm-overlay').classList.add('open');
+  document.getElementById('adm-overlay').style.display='flex';
+  document.getElementById('adm-overlay').style.pointerEvents='all';
   if(admUser) showAdmApp();
 }
 function closeAdminPanel(){
-  document.getElementById('adm-overlay').classList.remove('open');
+  document.getElementById('adm-overlay').style.display='none';
+  document.getElementById('adm-overlay').style.pointerEvents='none';
 }
 async function doAdmLogin(){
   const u = document.getElementById('adm-user').value.trim().toLowerCase();
@@ -2648,7 +2650,8 @@ function captureAppAsOg(){
   const btn = document.getElementById('capture-btn');
   if(btn){ btn.disabled=true; btn.textContent='📸 Đang chụp...'; }
   // Đóng admin panel tạm
-  document.getElementById('adm-overlay').classList.remove('open');
+  document.getElementById('adm-overlay').style.display='none';
+  document.getElementById('adm-overlay').style.pointerEvents='none';
   setTimeout(async () => {
     try{
       // Dùng html2canvas để chụp hero banner
@@ -2691,7 +2694,8 @@ function captureAppAsOg(){
       toast('Lỗi chụp: ' + e.message);
     } finally {
       // Mở lại admin
-      document.getElementById('adm-overlay').classList.add('open');
+      document.getElementById('adm-overlay').style.display='flex';
+  document.getElementById('adm-overlay').style.pointerEvents='all';
       swAdmTab('media');
       if(btn){ btn.disabled=false; btn.textContent='📸 Chụp banner app làm ảnh preview'; }
     }
