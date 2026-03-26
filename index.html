@@ -1875,20 +1875,7 @@ const PROMO_TYPE_META = {
 // ── RENDER LIST ──
 async function admLoadPromos(){
   const el=document.getElementById('adm-promos-list');
-  // Gắn event delegation 1 lần duy nhất
-  if(!el._delegated){
-    el._delegated=true;
-    el.addEventListener('click',function(e){
-      const btn=e.target.closest('[data-action]');
-      if(!btn) return;
-      e.stopPropagation();
-      const action=btn.dataset.action;
-      const id=btn.dataset.id;
-      if(action==='edit') editPromo(id);
-      else if(action==='tog') togPromoActive(id, btn.dataset.active==='true');
-      else if(action==='del') delPromo(id);
-    });
-  }
+
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
   // Luôn load từ Supabase trước, fallback local
   await _syncPromosFromCloud();
@@ -2385,8 +2372,8 @@ function admRenderUsers(){
           <div style="font-size:11px;color:var(--ink3)">@${a.user}${a.branch?' · '+a.branch:''}</div>
         </div>
         <span style="background:${a.role==='admin'?'#FFC300':a.role==='manager'?'#d1fae5':'#dbeafe'};color:${a.role==='admin'?'#0D47A1':a.role==='manager'?'#065f46':'#0D47A1'};font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;flex-shrink:0">${a.role==='admin'?'ADMIN':a.role==='manager'?'QUẢN LÝ':'NV'}</span>
-        <button data-action="edit" data-idx="${i}" style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer">✏️</button>
-        ${a.role!=='admin'?`<button data-action="del" data-idx="${i}" style="padding:5px 10px;border:1px solid #fca5a5;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#dc2626">🗑</button>`:''}
+        <button data-action="edit-acc" data-idx="${i}" style="padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:12px;cursor:pointer">✏️</button>
+        ${a.role!=='admin'?`<button data-action="del-acc" data-idx="${i}" style="padding:5px 10px;border:1px solid #fca5a5;border-radius:6px;background:#fff;font-size:12px;cursor:pointer;color:#dc2626">🗑</button>`:''}
       </div>
       <div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:4px">
         ${(PERMS[a.role]||[]).map(p=>`<span style="background:#f1f5f9;color:#475569;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">${p}</span>`).join('')}
@@ -3003,6 +2990,22 @@ async function loadHeaderStats(){
 }
 async function loadHeaderKpi(){ await loadHeaderStats(); }
 
+
+
+// ── GLOBAL EVENT DELEGATION cho tất cả nút admin ──
+document.addEventListener('click', function(e){
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  e.stopPropagation();
+  const action = btn.dataset.action;
+  const id = btn.dataset.id;
+  const idx = btn.dataset.idx !== undefined ? parseInt(btn.dataset.idx) : null;
+  if(action==='edit')    editPromo(id);
+  else if(action==='tog') togPromoActive(id, btn.dataset.active==='true');
+  else if(action==='del') delPromo(id);
+  else if(action==='edit-acc') editAccount(idx);
+  else if(action==='del-acc')  delAccount(idx);
+}, true); // useCapture=true để bắt trước mọi handler khác
 
 </script>
 
