@@ -1902,21 +1902,44 @@ async function saveAdmProd(){
   // 2. Lưu localStorage ngay — không phụ thuộc cloud
   _saveProdLocal();
 
-  // 3. Thử cloud (background) — đầy đủ cột sau khi chạy alter_products.sql
+  // 3. Lưu lên Supabase + upload ảnh lên Storage
   if(!IS_DEMO && db){
     try{
+      // Upload ảnh base64 lên Supabase Storage
+      let cloudImageUrl = (prod.image_url&&prod.image_url.startsWith('http'))?prod.image_url:null;
+      if(prod.image_url && prod.image_url.startsWith('data:')){
+        try{
+          const base64=prod.image_url.split(',')[1];
+          const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
+          const fname=`prod_${prod.id}.jpg`;
+          const {error:upErr}=await db.storage.from('product-images')
+            .upload(fname,bytes,{contentType:'image/jpeg',upsert:true});
+          if(!upErr){
+            const {data:urlData}=db.storage.from('product-images').getPublicUrl(fname);
+            cloudImageUrl=urlData.publicUrl;
+          }
+        }catch(ie){ console.warn('img upload:',ie.message); }
+      }
       const sp={
         name:prod.name, price:prod.price, unit:prod.unit,
         category:prod.category, is_active:prod.is_active,
         old_price:prod.old_price||0,
         is_hot:prod.is_hot||false, is_new:prod.is_new||false,
         stock_qty:prod.stock_qty||99,
-        // Chỉ lưu URL http lên cloud, không lưu base64
-        image_url:(prod.image_url&&prod.image_url.startsWith('http'))?prod.image_url:null,
+        image_url:cloudImageUrl,
       };
-      admEditProdId
+      const {error}=admEditProdId
         ? await db.from('products').update(sp).eq('id',prod.id)
         : await db.from('products').insert(sp);
+      if(!error){
+        // Cập nhật URL cloud vào local nếu upload thành công
+        if(cloudImageUrl&&cloudImageUrl.startsWith('http')){
+          const idx=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+          if(idx>=0) DEMO_PRODUCTS[idx].image_url=cloudImageUrl;
+          _saveProdLocal();
+        }
+        await loadProds();
+      }
     }catch(e){ console.warn('saveAdmProd cloud:',e.message); }
   }
 
