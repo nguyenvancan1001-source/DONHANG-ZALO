@@ -1960,13 +1960,17 @@ function apmFillPromoSelect(){
 }
 
 function apmSelectPromo(promoId){
-  const box  = document.getElementById('apm-promo-box');
-  const wrap = document.getElementById('apm-price-wrap');
+  const box   = document.getElementById('apm-promo-box');
+  const lbl   = document.getElementById('apm-price-label');
   if(!promoId){
-    box.style.display  = 'none';
-    wrap.style.display = 'block';
+    box.style.display = 'none';
+    if(lbl) lbl.textContent = 'Giá bán (đ) *';
+    document.getElementById('apm-discount-pct').value='';
+    document.getElementById('apm-promo-label').textContent='—';
     return;
   }
+  if(lbl) lbl.textContent = 'Giá KM (đ) *';
+  box.style.display = 'block';
   const promos = (_promoStore && _promoStore.length) ? _promoStore : DEMO_PROMO_FALLBACK;
   const promo  = promos.find(p=>p.id===promoId);
   box.style.display  = 'block';
@@ -1987,8 +1991,7 @@ function apmSelectPromo(promoId){
 }
 
 function apmTogglePromo(){
-  // Legacy — dùng apmSelectPromo thay thế
-  const sel  = document.getElementById('apm-promo-select');
+  const sel = document.getElementById('apm-promo-select');
   apmSelectPromo(sel ? sel.value : '');
 }
 
@@ -3597,18 +3600,20 @@ document.addEventListener('click', function(e){
         <option value="">— Không áp dụng —</option>
       </select>
     </div>
+    <!-- Giá bán — dùng chung cho cả có/không KM -->
+    <div class="adm-field" id="apm-price-wrap">
+      <label id="apm-price-label">Giá bán (đ) *</label>
+      <input id="apm-price" type="number" placeholder="25000" oninput="apmCalc()">
+    </div>
+    <!-- Box KM mở rộng -->
     <div id="apm-promo-box" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px;margin-bottom:6px">
       <div style="font-size:11px;font-weight:800;color:#e65100;margin-bottom:8px" id="apm-promo-desc">—</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end">
-        <div class="adm-field" style="margin:0">
-          <label style="font-size:10px">Giá KM (đ)</label>
-          <input id="apm-price" type="number" placeholder="25000" oninput="apmCalc()" style="border:1px solid #ffe082;background:#fff">
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
         <div class="adm-field" style="margin:0">
           <label style="font-size:10px">% Giảm</label>
           <input id="apm-discount-pct" type="number" placeholder="0" min="0" max="100" oninput="apmCalcFromPct()" style="border:1px solid #ffe082;background:#fff">
         </div>
-        <div style="font-size:11px;color:#e65100;font-weight:700;padding-bottom:6px" id="apm-promo-label">—</div>
+        <div style="font-size:12px;color:#e65100;font-weight:800;padding-bottom:6px" id="apm-promo-label">—</div>
       </div>
       <div class="adm-field" style="margin-top:8px;margin-bottom:0">
         <label style="font-size:10px">Tên hiển thị trên thẻ SP</label>
@@ -3622,11 +3627,6 @@ document.addEventListener('click', function(e){
           <option value="flash">⚡ Flash Sale</option>
         </select>
       </div>
-    </div>
-    <!-- Giá bán thực tế (ẩn khi có KM) -->
-    <div id="apm-price-wrap" class="adm-field">
-      <label>Giá bán (đ) *</label>
-      <input id="apm-price" type="number" placeholder="25000">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="adm-field"><label>Danh mục</label>
