@@ -672,7 +672,19 @@ const BRANCHES = ['Vicomart Phú Bài','Vicomart Vinh Thanh','Vicomart Thuận A
 (function(){
   try{
     const saved=localStorage.getItem('vc_products');
-    if(saved){ const p=JSON.parse(saved); if(p&&p.length){ window._savedProds=p; } }
+    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+    if(saved){
+      const p=JSON.parse(saved);
+      if(p&&p.length){
+        // Ghép lại ảnh base64
+        window._savedProds=p.map(prod=>{
+          if(prod.image_url==='__local__' && imgs[prod.id]){
+            return {...prod, image_url: imgs[prod.id]};
+          }
+          return prod;
+        });
+      }
+    }
   }catch(e){}
 })();
 const DEMO_PRODUCTS = [
@@ -1750,6 +1762,8 @@ function openAdmProdModal(id){
   admEditProdId=id||null;
   document.getElementById('adm-prod-modal-title').textContent=id?'Sửa sản phẩm':'Thêm sản phẩm mới';
   ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
+  document.getElementById('apm-img-preview').style.display='none';
+  document.getElementById('apm-img-thumb').src='';
   ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
   document.getElementById('apm-unit').value='';
   document.getElementById('apm-cat').value='Lương thực';
@@ -1778,9 +1792,45 @@ function openAdmProdModal(id){
       });
     }
   }
-  document.getElementById('adm-prod-modal').classList.add('open');
+  document.getElementById('adm-prod-modal').style.cssText='display:flex;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);align-items:flex-end';
 }
-function closeAdmProdModal(){ document.getElementById('adm-prod-modal').classList.remove('open'); }
+function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cssText='display:none'; }
+
+function handleProdImgUpload(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    // Nén ảnh xuống max 400x400 trước khi lưu
+    const img = new Image();
+    img.onload = function(){
+      const canvas = document.createElement('canvas');
+      const MAX = 400;
+      let w = img.width, h = img.height;
+      if(w > h){ if(w>MAX){h=Math.round(h*MAX/w);w=MAX;} }
+      else { if(h>MAX){w=Math.round(w*MAX/h);h=MAX;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      document.getElementById('apm-img').value = compressed;
+      document.getElementById('apm-img-thumb').src = compressed;
+      document.getElementById('apm-img-preview').style.display = 'block';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleProdImgUrl(val){
+  const thumb = document.getElementById('apm-img-thumb');
+  const preview = document.getElementById('apm-img-preview');
+  if(val && val.startsWith('http')){
+    thumb.src = val;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
 async function saveAdmProd(){
   const name=document.getElementById('apm-name').value.trim();
   const price=Number(document.getElementById('apm-price').value);
@@ -1813,7 +1863,19 @@ async function saveAdmProd(){
     DEMO_PRODUCTS.push({...payload,id:'d'+Date.now(),image_url:payload.image_url||''});
   }
   // Lưu vào localStorage
-  try{ localStorage.setItem('vc_products', JSON.stringify(DEMO_PRODUCTS)); }catch(e){}
+  try{
+    // Tách ảnh base64 ra lưu riêng để tránh đầy localStorage
+    const imgs = {};
+    const prods = DEMO_PRODUCTS.map(p=>{
+      if(p.image_url && p.image_url.startsWith('data:')){
+        imgs[p.id] = p.image_url;
+        return {...p, image_url:'__local__'};
+      }
+      return p;
+    });
+    localStorage.setItem('vc_products', JSON.stringify(prods));
+    localStorage.setItem('vc_prod_images', JSON.stringify(imgs));
+  }catch(e){ console.warn('saveProducts:',e.message); }
   closeAdmProdModal();
   await loadProds(); buildHotGrid(); renderExpandGrid(); admLoadProducts();
   toast(savedCloud
@@ -1824,7 +1886,19 @@ async function admTogProd(id,cur,btn){
   // Cập nhật local
   const p=DEMO_PRODUCTS.find(x=>x.id===id);
   if(p) p.is_active=!cur;
-  try{ localStorage.setItem('vc_products',JSON.stringify(DEMO_PRODUCTS)); }catch(e){}
+  try{
+    // Tách ảnh base64 ra lưu riêng để tránh đầy localStorage
+    const imgs = {};
+    const prods = DEMO_PRODUCTS.map(p=>{
+      if(p.image_url && p.image_url.startsWith('data:')){
+        imgs[p.id] = p.image_url;
+        return {...p, image_url:'__local__'};
+      }
+      return p;
+    });
+    localStorage.setItem('vc_products', JSON.stringify(prods));
+    localStorage.setItem('vc_prod_images', JSON.stringify(imgs));
+  }catch(e){ console.warn('saveProducts:',e.message); }
   // Thử cloud
   if(!IS_DEMO&&db){
     try{ await db.from('products').update({is_active:!cur}).eq('id',id); }
@@ -3289,7 +3363,23 @@ document.addEventListener('click', function(e){
         <select id="apm-active"><option value="true">Đang bán</option><option value="false">Tạm ẩn</option></select>
       </div>
     </div>
-    <div class="adm-field"><label>URL hình ảnh</label><input id="apm-img" type="url" placeholder="https://..."></div>
+    <div class="adm-field">
+      <label>Hình ảnh sản phẩm</label>
+      <!-- Preview -->
+      <div id="apm-img-preview" style="display:none;margin-bottom:6px;text-align:center">
+        <img id="apm-img-thumb" src="" style="max-width:100%;max-height:120px;border-radius:8px;border:1px solid var(--line);object-fit:contain">
+      </div>
+      <!-- Upload file -->
+      <div style="display:flex;gap:6px;margin-bottom:5px">
+        <label style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
+          📷 Chọn ảnh từ máy
+          <input type="file" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
+        </label>
+        <button type="button" onclick="document.getElementById('apm-img-preview').style.display='none';document.getElementById('apm-img').value=''" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
+      </div>
+      <!-- URL fallback -->
+      <input id="apm-img" type="url" placeholder="Hoặc dán link ảnh https://..." oninput="handleProdImgUrl(this.value)" style="width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:12px;font-family:var(--font);outline:none">
+    </div>
     <div class="adm-modal-acts">
       <button class="adm-modal-cancel" onclick="closeAdmProdModal()">Huỷ</button>
       <button class="adm-modal-save" onclick="saveAdmProd()">Lưu sản phẩm</button>
