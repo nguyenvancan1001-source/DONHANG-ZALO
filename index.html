@@ -350,17 +350,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── ADMIN PANEL ──────────────────────────────── */
 .adm-overlay{position:fixed;inset:0;z-index:200;display:none}
-.adm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5);cursor:pointer}
+.adm-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4);cursor:pointer;z-index:0}
 
 .adm-panel{
   position:absolute;inset:0;
   width:100%;max-width:100%;
   background:var(--bg);
-  transform:translateY(100%);
-  transition:transform .35s cubic-bezier(.4,0,.2,1);
+  transform:translateY(0);
   display:flex;flex-direction:column;
   pointer-events:all;
-  overflow:hidden;
+  overflow:visible;
+  z-index:1;
 }
 .adm-overlay.open .adm-panel{transform:translateY(0)}
 
@@ -380,7 +380,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-tab.on{color:var(--g800);border-bottom-color:var(--g800)}
 
 /* Admin body */
-.adm-body{flex:1;overflow-y:auto;background:var(--bg)}
+.adm-body{flex:1;overflow-y:auto;background:var(--bg);position:relative}
 .adm-body::-webkit-scrollbar{display:none}
 .adm-section{padding:16px}
 
@@ -479,7 +479,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-form-section{background:#f8faf9;border-radius:6px;padding:6px;margin-bottom:4px}
 .promo-form-title{font-size:10px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.adm-promo-modal-bg{display:none;position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);align-items:flex-end;border-radius:inherit}
+.adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);align-items:flex-end}
 /* .adm-promo-modal-bg.open handled by JS */
 .adm-promo-modal{background:#fff;border-radius:12px 12px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:10px 10px 16px}
 .adm-promo-modal::-webkit-scrollbar{display:none}
@@ -582,14 +582,16 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .mgmt-header-btn{
   margin-left:auto;
   width:36px;height:36px;border-radius:50%;
-  background:rgba(255,255,255,.15);
-  border:1.5px solid rgba(255,255,255,.3);
+  background:rgba(255,255,255,.2);
+  border:2px solid rgba(255,255,255,.5);
   color:#fff;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   transition:.15s;
   flex-shrink:0;
   position:relative;
+  z-index:20;
+  pointer-events:all;
 }
 .mgmt-header-btn:active{background:rgba(255,255,255,.28);transform:scale(.95)}
 .mgmt-header-dot{
@@ -635,7 +637,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 
 /* ── HEADER STATS BAR ──────────────────────── */
-.hdr-top-row{display:flex;align-items:center;gap:8px;width:100%;padding-bottom:5px}
+.hdr-top-row{display:flex;align-items:center;gap:8px;width:100%;padding-bottom:5px;justify-content:space-between}
 .hdr-stats-row{display:flex;align-items:center;gap:0;width:100%;border-top:1px solid rgba(255,255,255,.12);padding:4px 0 5px;overflow:hidden}
 .hdr-stat{display:flex;align-items:center;gap:5px;flex:1;cursor:pointer;padding:2px 6px 2px 0}
 .hdr-stat+.hdr-stat{border-left:1px solid rgba(255,255,255,.15);padding-left:8px}
@@ -1529,12 +1531,21 @@ function toast(msg) {
 
 // ── ACCOUNTS (demo — thay bằng Supabase Auth thực tế) ──
 // Tài khoản demo fallback (dùng khi Supabase Auth chưa setup)
-const ADM_ACCOUNTS_DEMO = [
+const ADM_ACCOUNTS_DEFAULT = [
   {user:'admin',      pass:'vcm@2026',      role:'admin',  name:'Quản trị viên',        branch:''},
   {user:'phubai',     pass:'phubai@123',    role:'staff',  name:'Cửa hàng Phú Bài',     branch:'Vicomart Phú Bài'},
   {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',  name:'Cửa hàng Vinh Thanh',  branch:'Vicomart Vinh Thanh'},
   {user:'thuanan',    pass:'thuanan@123',   role:'staff',  name:'Cửa hàng Thuận An',    branch:'Vicomart Thuận An'},
 ];
+// Load từ localStorage, fallback default
+let ADM_ACCOUNTS_DEMO = (()=>{
+  try{
+    const s=localStorage.getItem('vc_accounts');
+    if(s){ const d=JSON.parse(s); if(d&&d.length) return d; }
+  }catch(e){}
+  return [...ADM_ACCOUNTS_DEFAULT];
+})();
+function saveAccounts(){ try{localStorage.setItem('vc_accounts',JSON.stringify(ADM_ACCOUNTS_DEMO));}catch(e){} }
 
 const ADM_ST_LABEL = {pending:'Chờ xác nhận',processing:'Đang xử lý',ready:'Sẵn sàng',done:'Hoàn thành',cancelled:'Đã huỷ'};
 const ADM_ST_OPT = Object.entries(ADM_ST_LABEL).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
@@ -1615,6 +1626,7 @@ async function doAdmLogout(){
 function showAdmApp(){
   document.getElementById('adm-login-view').style.display='none';
   const av = document.getElementById('adm-app-view');
+  av.style.removeProperty('display');
   av.style.display='flex';
   av.style.flexDirection='column';
   av.style.height='100%';
@@ -2319,15 +2331,63 @@ allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 
 // ── USERS (admin only) ──
 function admRenderUsers(){
-  document.getElementById('adm-users-list').innerHTML=ADM_ACCOUNTS_DEMO.map(a=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)">
-      <div style="width:34px;height:34px;border-radius:50%;background:${a.role==='admin'?'var(--g800)':'#e0f2fe'};display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">${a.role==='admin'?'👑':'👤'}</div>
-      <div style="flex:1">
+  const list=document.getElementById('adm-users-list');
+  list.innerHTML=ADM_ACCOUNTS_DEMO.map((a,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)">
+      <div style="width:32px;height:32px;border-radius:50%;background:${a.role==='admin'?'var(--g800)':'#e0f2fe'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${a.role==='admin'?'👑':'👤'}</div>
+      <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:700">${a.name}</div>
-        <div style="font-size:11px;color:var(--ink3);font-weight:600">@${a.user}${a.branch?' · '+a.branch:''}</div>
+        <div style="font-size:11px;color:var(--ink3)">@${a.user}${a.branch?' · '+a.branch:''}</div>
       </div>
-      <span style="background:${a.role==='admin'?'#FFC300':'#dbeafe'};color:${a.role==='admin'?'#1a1a1a':'#1e40af'};font-size:10px;font-weight:800;padding:3px 9px;border-radius:99px">${a.role==='admin'?'ADMIN':'NHÂN VIÊN'}</span>
+      <span style="background:${a.role==='admin'?'#FFC300':'#dbeafe'};color:${a.role==='admin'?'#0D47A1':'#0D47A1'};font-size:10px;font-weight:800;padding:2px 8px;border-radius:99px;flex-shrink:0">${a.role==='admin'?'ADMIN':'NV'}</span>
+      <button onclick="editAccount(${i})" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;font-family:var(--font)">✏️</button>
+      ${a.role!=='admin'?`<button onclick="delAccount(${i})" style="padding:4px 8px;border:1px solid #fca5a5;border-radius:6px;background:#fff;font-size:11px;cursor:pointer;color:#dc2626;font-family:var(--font)">🗑</button>`:''}
     </div>`).join('');
+}
+
+function editAccount(i){
+  const a=ADM_ACCOUNTS_DEMO[i];
+  document.getElementById('ua-idx').value=i;
+  document.getElementById('ua-name').value=a.name;
+  document.getElementById('ua-user').value=a.user;
+  document.getElementById('ua-pass').value=a.pass;
+  document.getElementById('ua-role').value=a.role;
+  document.getElementById('ua-branch').value=a.branch||'';
+  document.getElementById('ua-modal').style.display='flex';
+}
+function addAccount(){
+  document.getElementById('ua-idx').value='';
+  document.getElementById('ua-name').value='';
+  document.getElementById('ua-user').value='';
+  document.getElementById('ua-pass').value='';
+  document.getElementById('ua-role').value='staff';
+  document.getElementById('ua-branch').value='';
+  document.getElementById('ua-modal').style.display='flex';
+}
+function closeAccountModal(){ document.getElementById('ua-modal').style.display='none'; }
+function saveAccount(){
+  const idx=document.getElementById('ua-idx').value;
+  const acc={
+    name: document.getElementById('ua-name').value.trim(),
+    user: document.getElementById('ua-user').value.trim().toLowerCase(),
+    pass: document.getElementById('ua-pass').value.trim(),
+    role: document.getElementById('ua-role').value,
+    branch: document.getElementById('ua-branch').value,
+  };
+  if(!acc.name||!acc.user||!acc.pass){ toast('Nhập đủ thông tin'); return; }
+  if(idx===''){ ADM_ACCOUNTS_DEMO.push(acc); }
+  else { ADM_ACCOUNTS_DEMO[parseInt(idx)]={...ADM_ACCOUNTS_DEMO[parseInt(idx)],...acc}; }
+  saveAccounts();
+  closeAccountModal();
+  admRenderUsers();
+  toast('✓ Đã lưu tài khoản');
+}
+function delAccount(i){
+  if(!confirm('Xoá tài khoản này?')) return;
+  ADM_ACCOUNTS_DEMO.splice(i,1);
+  saveAccounts();
+  admRenderUsers();
+  toast('Đã xoá');
 }
 
 // ── DEMO ORDERS ──
@@ -2913,7 +2973,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
       <div class="adm-login-wrap">
         <div class="adm-login-title">Đăng nhập quản lý</div>
         <div class="adm-login-sub">Dành cho quản trị viên & nhân viên Vicomart</div>
-        <div class="adm-field"><label>Tài khoản</label><input id="adm-user" type="text" placeholder="admin / staff1..."></div>
+        <div class="adm-field"><label>Tài khoản</label><input id="adm-user" type="text" placeholder="admin / phubai / vinhthanh / thuanan"></div>
         <div class="adm-field"><label>Mật khẩu</label><input id="adm-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAdmLogin()"></div>
         <div class="adm-field"><label>Chi nhánh</label>
           <select id="adm-branch">
@@ -2929,7 +2989,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
     </div>
 
     <!-- LOGGED IN STATE -->
-    <div id="adm-app-view" style="display:none;flex-direction:column;height:100%;display:none">
+    <div id="adm-app-view" style="display:none;flex-direction:column;height:100%">
       <div class="adm-hdr">
         <div class="adm-hdr-top">
           <div>
@@ -2987,12 +3047,43 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
 
         <!-- Users tab (admin only) -->
         <div id="adm-tab-users" class="adm-section" style="display:none">
-          <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:8px">
-            <div style="font-size:13px;font-weight:800;margin-bottom:10px">🔐 Tài khoản hệ thống</div>
+          <button onclick="addAccount()" style="width:100%;padding:10px;background:var(--g800);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;margin-bottom:10px">+ Thêm tài khoản mới</button>
+          <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px">
+            <div style="font-size:12px;font-weight:800;margin-bottom:8px">🔐 Tài khoản hệ thống</div>
             <div id="adm-users-list"></div>
           </div>
-          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:600;color:#92400e">
-            ⚠️ Đây là tài khoản demo. Trong môi trường thật, kết nối với Supabase Auth để quản lý phân quyền an toàn hơn.
+
+          <!-- Modal thêm/sửa tài khoản -->
+          <div id="ua-modal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);align-items:flex-end">
+            <div style="background:#fff;border-radius:14px 14px 0 0;width:100%;padding:16px 14px 28px">
+              <div style="font-size:14px;font-weight:800;margin-bottom:12px">Tài khoản</div>
+              <input type="hidden" id="ua-idx">
+              <div style="margin-bottom:8px"><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Họ tên</label><input id="ua-name" type="text" placeholder="VD: Cửa hàng Phú Bài" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Tài khoản</label><input id="ua-user" type="text" placeholder="phubai" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none"></div>
+                <div><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Mật khẩu</label><input id="ua-pass" type="text" placeholder="••••••" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+                <div><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Quyền</label>
+                  <select id="ua-role" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none">
+                    <option value="admin">Admin</option>
+                    <option value="staff" selected>Nhân viên</option>
+                  </select>
+                </div>
+                <div><label style="font-size:11px;font-weight:700;color:var(--ink2);display:block;margin-bottom:2px">Chi nhánh</label>
+                  <select id="ua-branch" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;font-family:var(--font);outline:none">
+                    <option value="">Tất cả</option>
+                    <option value="Vicomart Phú Bài">Phú Bài</option>
+                    <option value="Vicomart Vinh Thanh">Vinh Thanh</option>
+                    <option value="Vicomart Thuận An">Thuận An</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onclick="closeAccountModal()" style="flex:1;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">Huỷ</button>
+                <button onclick="saveAccount()" style="flex:1;padding:10px;background:var(--g800);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer">💾 Lưu</button>
+              </div>
+            </div>
           </div>
         </div>
 
