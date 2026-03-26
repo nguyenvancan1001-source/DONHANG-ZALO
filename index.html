@@ -678,13 +678,15 @@ const BRANCHES = ['Vicomart Phú Bài','Vicomart Vinh Thanh','Vicomart Thuận A
 (function(){
   try{
     const saved=localStorage.getItem('vc_products');
+    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
     if(saved){
       const p=JSON.parse(saved);
       if(p&&p.length){
-        // Ảnh là URL cloud — không cần ghép từ localStorage
+        // Ghép lại ảnh base64
         window._savedProds=p.map(prod=>{
-          // Bỏ __local__ cũ nếu còn sót
-          if(prod.image_url==='__local__') return {...prod, image_url:''};
+          if(prod.image_url==='__local__' && imgs[prod.id]){
+            return {...prod, image_url: imgs[prod.id]};
+          }
           return prod;
         });
       }
@@ -1271,10 +1273,11 @@ async function loadProds() {
       .select('*').order('category').order('name');
     if (error) throw error;
     if(data && data.length){
-      // Cloud là nguồn chính — ưu tiên image_url trên cloud tuyệt đối
+      // Cloud là nguồn chính — ghép ảnh local nếu có
+      const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
       allProds = data.map(p=>({
         ...p,
-        image_url: p.image_url || ''
+        image_url: imgs[p.id] || p.image_url || ''
       }));
       // Cập nhật DEMO_PRODUCTS từ cloud để đồng bộ local
       DEMO_PRODUCTS.length = 0;
@@ -1752,7 +1755,8 @@ async function admLoadProducts(){
     if(!IS_DEMO && db){
       const {data,error}=await db.from('products').select('*').order('category').order('name');
       if(!error && data && data.length){
-        prods=data.map(p=>({...p, image_url:p.image_url||''}));
+        const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+        prods=data.map(p=>({...p, image_url:imgs[p.id]||p.image_url||''}));
       }
     }
   }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
@@ -1791,8 +1795,10 @@ function openAdmProdModal(id){
   document.getElementById('apm-badge').value='';
   document.getElementById('apm-active').value='true';
   if(id){
-    // Lấy SP từ cloud/allProds
-    let p=allProds.find(x=>x.id===id)||DEMO_PRODUCTS.find(x=>x.id===id);
+    // Lấy SP từ local trước (có ảnh), fallback cloud
+    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+    let p=_getProdsWithImgs().find(x=>x.id===id)||allProds.find(x=>x.id===id)||DEMO_PRODUCTS.find(x=>x.id===id);
+    if(!p&&imgs[id]){ p={id,image_url:imgs[id]}; }
     if(p){
       document.getElementById('apm-name').value=p.name||'';
       document.getElementById('apm-price').value=p.price||'';
@@ -1802,28 +1808,22 @@ function openAdmProdModal(id){
       document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
       document.getElementById('apm-active').value=String(p.is_active!==false);
       // Restore ảnh
-      const imgUrl = p.image_url||'';
-      if(imgUrl && imgUrl.startsWith('http')){
+      const imgUrl = p.image_url||imgs[id]||'';
+      if(imgUrl){
         document.getElementById('apm-img').value=imgUrl;
         document.getElementById('apm-img-thumb').src=imgUrl;
         document.getElementById('apm-img-preview').style.display='block';
       }
     } else if(db){
-      // Fallback: lấy thẳng từ Supabase nếu không có trong local
       db.from('products').select('*').eq('id',id).single().then(({data:p})=>{
         if(!p) return;
-        document.getElementById('apm-name').value=p.name||'';
-        document.getElementById('apm-price').value=p.price||'';
+        document.getElementById('apm-name').value=p.name;
+        document.getElementById('apm-price').value=p.price;
         document.getElementById('apm-old-price').value=p.old_price||'';
         document.getElementById('apm-unit').value=p.unit||'';
         document.getElementById('apm-cat').value=p.category||'Khác';
         document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
         document.getElementById('apm-active').value=String(p.is_active!==false);
-        if(p.image_url && p.image_url.startsWith('http')){
-          document.getElementById('apm-img').value=p.image_url;
-          document.getElementById('apm-img-thumb').src=p.image_url;
-          document.getElementById('apm-img-preview').style.display='block';
-        }
       });
     }
   }
@@ -1858,29 +1858,41 @@ async function handleProdImgUpload(e){
     reader.readAsDataURL(file);
   });
 
-  // Upload lên Supabase Storage — bắt buộc cloud, không fallback base64
-  if(!db || IS_DEMO){
-    toast('⚠️ Chưa kết nối Supabase — không thể upload ảnh');
-    if(label) label.textContent = '📷 Chọn ảnh từ máy';
+  // Upload lên Supabase Storage
+  let finalUrl = null;
+  if(db && !IS_DEMO){
+    try{
+      const fname = `prod_${Date.now()}.jpg`;
+      const {error} = await db.storage.from('product-images')
+        .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
+      if(!error){
+        const {data} = db.storage.from('product-images').getPublicUrl(fname);
+        finalUrl = data.publicUrl;
+        toast('✓ Ảnh đã upload cloud');
+      }
+    }catch(err){ console.warn('Storage upload:', err.message); }
+  }
+
+  // Fallback: base64 local nếu cloud lỗi
+  if(!finalUrl){
+    const reader2 = new FileReader();
+    reader2.onload = ev=>{
+      finalUrl = ev.target.result;
+      document.getElementById('apm-img').value = finalUrl;
+      document.getElementById('apm-img-thumb').src = finalUrl;
+      document.getElementById('apm-img-preview').style.display = 'block';
+      if(label) label.textContent = '📷 Chọn ảnh từ máy';
+      toast('⚠️ Lưu ảnh local (chưa đồng bộ)');
+    };
+    const blobUrl = URL.createObjectURL(compressed);
+    reader2.readAsDataURL(compressed);
     return;
   }
-  try{
-    const fname = `prod_${Date.now()}.jpg`;
-    const {error} = await db.storage.from('product-images')
-      .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
-    if(error) throw error;
-    const {data} = db.storage.from('product-images').getPublicUrl(fname);
-    const finalUrl = data.publicUrl;
-    document.getElementById('apm-img').value = finalUrl;
-    document.getElementById('apm-img-thumb').src = finalUrl;
-    document.getElementById('apm-img-preview').style.display = 'block';
-    if(label) label.textContent = '📷 Chọn ảnh từ máy';
-    toast('✓ Ảnh đã upload cloud — đồng bộ mọi máy');
-  }catch(err){
-    console.warn('Storage upload:', err.message);
-    toast('❌ Upload ảnh thất bại: ' + err.message);
-    if(label) label.textContent = '📷 Chọn ảnh từ máy';
-  }
+
+  document.getElementById('apm-img').value = finalUrl;
+  document.getElementById('apm-img-thumb').src = finalUrl;
+  document.getElementById('apm-img-preview').style.display = 'block';
+  if(label) label.textContent = '📷 Chọn ảnh từ máy';
 }
 
 function handleProdImgUrl(val){
@@ -1898,12 +1910,9 @@ async function saveAdmProd(){
   const price = Number(document.getElementById('apm-price').value);
   if(!name||!price){ toast('Nhập tên và đơn giá'); return; }
 
-  // Lưu editId ngay — tránh bị mất khi async
-  const editId = admEditProdId;
-
   const badge = document.getElementById('apm-badge').value;
   const prod = {
-    id: editId || ('p'+Date.now()),
+    id: admEditProdId || ('d'+Date.now()),
     name, price,
     old_price: Number(document.getElementById('apm-old-price').value)||0,
     unit: document.getElementById('apm-unit').value.trim()||'cái',
@@ -1915,73 +1924,67 @@ async function saveAdmProd(){
     stock_qty: 99,
   };
 
-  // 1. Lưu vào DEMO_PRODUCTS local
+  // 1. Lưu vào DEMO_PRODUCTS
   const idx = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-  if(idx>=0) DEMO_PRODUCTS[idx] = {...DEMO_PRODUCTS[idx], ...prod};
+  if(idx>=0) DEMO_PRODUCTS[idx] = prod;
   else DEMO_PRODUCTS.push(prod);
 
-  // 2. Lưu Supabase
+  // 2. Lưu localStorage ngay — không phụ thuộc cloud
+  _saveProdLocal();
+
+  // 3. Lưu lên Supabase + upload ảnh lên Storage
   if(!IS_DEMO && db){
     try{
-      // Nếu ảnh vẫn là base64 (trường hợp hiếm), upload lên Storage
-      let cloudImageUrl = (prod.image_url && prod.image_url.startsWith('http')) ? prod.image_url : null;
+      console.log('[Vicomart] Saving to cloud...', prod.name);
+      // Upload ảnh base64 lên Supabase Storage
+      let cloudImageUrl = (prod.image_url&&prod.image_url.startsWith('http'))?prod.image_url:null;
       if(prod.image_url && prod.image_url.startsWith('data:')){
         try{
           const base64=prod.image_url.split(',')[1];
           const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
-          const fname=`prod_${prod.id}_${Date.now()}.jpg`;
+          const fname=`prod_${prod.id}.jpg`;
+          console.log('[Vicomart] Uploading image to storage...');
           const {error:upErr}=await db.storage.from('product-images')
             .upload(fname,bytes,{contentType:'image/jpeg',upsert:true});
-          if(!upErr){
+          if(upErr){ console.warn('[Vicomart] Image upload error:', upErr.message); }
+          else{
             const {data:urlData}=db.storage.from('product-images').getPublicUrl(fname);
             cloudImageUrl=urlData.publicUrl;
-            prod.image_url=cloudImageUrl;
-            const i2=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-            if(i2>=0) DEMO_PRODUCTS[i2].image_url=cloudImageUrl;
+            console.log('[Vicomart] Image uploaded:', cloudImageUrl);
           }
         }catch(ie){ console.warn('img upload:',ie.message); }
       }
-
       const sp={
         name:prod.name, price:prod.price, unit:prod.unit,
         category:prod.category, is_active:prod.is_active,
         old_price:prod.old_price||0,
         is_hot:prod.is_hot||false, is_new:prod.is_new||false,
         stock_qty:prod.stock_qty||99,
+        image_url:cloudImageUrl,
       };
-      // Chỉ đưa image_url vào payload nếu có URL thật
-      if(cloudImageUrl) sp.image_url = cloudImageUrl;
-
-      let dbError;
-      if(editId){
-        // UPDATE — giữ nguyên image_url trên DB nếu không có ảnh mới
-        const {error}=await db.from('products').update(sp).eq('id',prod.id);
-        dbError=error;
+      const {data:insertData, error}=admEditProdId
+        ? await db.from('products').update(sp).eq('id',prod.id)
+        : await db.from('products').insert(sp);
+      if(error){
+        console.error('[Vicomart] DB save error:', error.message, error.code);
+        toast('⚠️ Lưu cloud lỗi: '+error.message);
       } else {
-        // INSERT — bắt buộc có image_url (có thể null/rỗng)
-        sp.image_url = cloudImageUrl || null;
-        const {error}=await db.from('products').insert(sp);
-        dbError=error;
-        if(!error){
-          // Lấy id thật từ Supabase (auto-generated) rồi cập nhật local
-          const {data:newRow}=await db.from('products')
-            .select('id').eq('name',prod.name).order('created_at',{ascending:false}).limit(1);
-          if(newRow&&newRow[0]){
-            const realId=newRow[0].id;
-            const li=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-            if(li>=0) DEMO_PRODUCTS[li].id=realId;
-          }
+        console.log('[Vicomart] Saved to cloud ✅', insertData);
+        // Cập nhật URL cloud vào local nếu upload thành công
+        if(cloudImageUrl&&cloudImageUrl.startsWith('http')){
+          const idx=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+          if(idx>=0) DEMO_PRODUCTS[idx].image_url=cloudImageUrl;
+          _saveProdLocal();
         }
+        await loadProds();
       }
-      if(dbError) console.warn('saveAdmProd DB error:',dbError.message);
-      else await loadProds();
     }catch(e){ console.warn('saveAdmProd cloud:',e.message); }
   }
 
-  _saveProdLocal();
   closeAdmProdModal();
   admEditProdId=null;
-  allProds = DEMO_PRODUCTS.filter(p=>p.is_active!==false);
+  // Dùng DEMO_PRODUCTS local — không reload từ Supabase (tránh bị overwrite)
+  allProds = DEMO_PRODUCTS.filter(p=>p.is_active);
   renderExpandGrid();
   admLoadProducts();
   toast('✓ Đã lưu sản phẩm');
@@ -1989,21 +1992,28 @@ async function saveAdmProd(){
 
 
 function _getProdsWithImgs(){
-  // Ảnh luôn là URL cloud (https://...) — không cần ghép từ localStorage nữa
-  return DEMO_PRODUCTS;
+  try{
+    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+    return DEMO_PRODUCTS.map(p=>{
+      if((p.image_url==='__local__'||!p.image_url) && imgs[p.id])
+        return {...p, image_url:imgs[p.id]};
+      return p;
+    });
+  }catch(e){ return DEMO_PRODUCTS; }
 }
 
 function _saveProdLocal(){
   try{
-    // Lưu sản phẩm với image_url là URL cloud — không lưu base64
+    const imgs={};
     const prods=DEMO_PRODUCTS.map(p=>{
-      if(p.image_url && p.image_url.startsWith('data:'))
-        return {...p, image_url:''}; // loại bỏ base64 khỏi local cache
+      if(p.image_url&&p.image_url.startsWith('data:')){
+        imgs[p.id]=p.image_url;
+        return {...p,image_url:'__local__'};
+      }
       return p;
     });
     localStorage.setItem('vc_products',JSON.stringify(prods));
-    // Xóa vc_prod_images cũ vì không còn dùng
-    localStorage.removeItem('vc_prod_images');
+    localStorage.setItem('vc_prod_images',JSON.stringify(imgs));
   }catch(e){ console.warn('_saveProdLocal:',e); }
 }
 async function admTogProd(id,cur){
@@ -2646,9 +2656,10 @@ function _toggleAllProds_orig(){
 
 function renderExpandGrid(){
   const grid=document.getElementById('expand-grid');
-  // Ảnh từ cloud — dùng allProds trực tiếp
+  // Đảm bảo allProds có ảnh
+  const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
   const src=allProds.map(p=>{
-    if(p.image_url==='__local__') return {...p,image_url:''};
+    if((p.image_url==='__local__'||!p.image_url)&&imgs[p.id]) return {...p,image_url:imgs[p.id]};
     return p;
   });
   let list=src.filter(p=>p.is_active!==false);
@@ -3483,10 +3494,10 @@ document.addEventListener('click', function(e){
       </div>
       <!-- Upload file -->
       <div style="display:flex;gap:6px;margin-bottom:5px">
-        <label class="adm-img-upload-label" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
+        <button type="button" class="adm-img-upload-label" onclick="document.getElementById('apm-file-inp').value='';document.getElementById('apm-file-inp').click()" style="flex:1;padding:7px 10px;background:var(--g50);border:1.5px dashed var(--g700);border-radius:7px;font-size:12px;font-weight:700;color:var(--g800);cursor:pointer;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px">
           📷 Chọn ảnh từ máy
-          <input type="file" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
-        </label>
+        </button>
+        <input type="file" id="apm-file-inp" accept="image/*" style="display:none" onchange="handleProdImgUpload(event)">
         <button type="button" onclick="document.getElementById('apm-img-preview').style.display='none';document.getElementById('apm-img').value=''" style="padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:11px;cursor:pointer;color:var(--ink3)">✕ Xoá</button>
       </div>
       <!-- URL fallback -->
