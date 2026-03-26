@@ -1867,7 +1867,9 @@ async function togPromoActive(id,cur){
     }catch(e){ console.warn('togPromo cloud error:',e.message); }
   }
   const p=_promoStore.find(x=>x.id===id);
-  if(p){ p.is_active=!cur; _syncPromosToBuildState(); toast(cur?'Đã tắt KM':'Đã bật KM'); }
+  if(p){ p.is_active=!cur; _syncPromosToBuildState(); admLoadPromos();
+    try{localStorage.setItem('vc_promos',JSON.stringify(_promoStore));}catch(e){}
+    toast(cur?'Đã tắt KM':'Đã bật KM'); }
 }
 async function delPromo(id){
   if(!confirm('Xoá chương trình này?')) return;
@@ -1881,8 +1883,8 @@ async function delPromo(id){
     }catch(e){ console.warn('delPromo cloud error:',e.message); }
   }
   _promoStore=_promoStore.filter(x=>x.id!==id);
-  _syncPromosToBuildState();
-  toast('Đã xoá');
+  try{localStorage.setItem('vc_promos',JSON.stringify(_promoStore));}catch(e){}
+  _syncPromosToBuildState(); admLoadPromos(); toast('Đã xoá');
 }
 
 // ── PROMO MODAL ──
@@ -2138,14 +2140,16 @@ async function savePromo(){
   if(data.type==='flash'&&!data.product){toast('Nhập sản phẩm flash sale');return;}
   if(data.type==='gift'&&!data.gift_item){toast('Nhập tên quà tặng');return;}
 
-  const saveBtn=document.querySelector('#adm-promo-modal .adm-promo-modal button:last-child');
+  const saveBtn=document.querySelector('.adm-promo-modal button:last-child');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Đang lưu...';}
 
-  // Thử lưu Supabase trước
+  const now=new Date().toISOString();
+  let savedToCloud=false;
+
+  // Thử lưu Supabase
   if(db && !IS_DEMO){
     try{
-      // Convert products array thành text để lưu (Supabase text[] hoặc json)
-      const payload={...data, products: data.products ? data.products : null};
+      const payload={...data, products: data.products||null};
       let error;
       if(_editPromoId){
         ({error}=await db.from('promotions').update(payload).eq('id',_editPromoId));
@@ -2153,29 +2157,34 @@ async function savePromo(){
         ({error}=await db.from('promotions').insert(payload));
       }
       if(error) throw error;
-      // Reload từ Supabase
       await _syncPromosFromCloud();
-      closePromoModal();
-      toast(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)');
-      _editPromoId=null;
-      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
-      return;
+      savedToCloud=true;
     }catch(e){
-      console.warn('Supabase savePromo error:',e.message,'→ fallback local');
+      console.warn('Supabase savePromo error:',e.message,'→ lưu local');
     }
   }
 
-  // Fallback: lưu local _promoStore
-  const now=new Date().toISOString();
+  // Lưu local (luôn làm — dù cloud thành công hay không)
   if(_editPromoId){
     const idx=_promoStore.findIndex(x=>x.id===_editPromoId);
     if(idx>=0) _promoStore[idx]={..._promoStore[idx],...data};
   } else {
-    _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
+    if(!savedToCloud){
+      _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
+    }
   }
+
+  // Lưu vào localStorage để không mất khi thoát
+  try{ localStorage.setItem('vc_promos',JSON.stringify(_promoStore)); }catch(e){}
+
+  // Cập nhật màn hình chính + danh sách admin
   _syncPromosToBuildState();
+  admLoadPromos();
+
   closePromoModal();
-  toast(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM');
+  toast(savedToCloud
+    ?(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)')
+    :(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM'));
   _editPromoId=null;
   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
 }
@@ -2230,6 +2239,14 @@ function promoToCardV2(p){
 // Override allPromos init với _promoStore
 // Khởi tạo allPromos từ DEMO_PROMO_FALLBACK tạm — sẽ bị replace khi loadPromos() chạy
 _promoStore = [...DEMO_PROMO_FALLBACK];
+// Khởi động: load từ localStorage nếu có (ưu tiên hơn demo)
+try{
+  const saved=localStorage.getItem('vc_promos');
+  if(saved){
+    const parsed=JSON.parse(saved);
+    if(parsed&&parsed.length) _promoStore=parsed;
+  }
+}catch(e){}
 allPromos = _promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));
 
 
