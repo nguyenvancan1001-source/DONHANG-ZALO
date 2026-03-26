@@ -289,7 +289,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-section-title::after,.hot-section-title::after{content:'';flex:1;height:1px;background:var(--line)}
 
 /* PROMO CARD 2 tầng */
-.pc{border-radius:14px;overflow:hidden;margin-bottom:8px;cursor:default;transition:.12s}
+.pc{border-radius:14px;overflow:visible;margin-bottom:8px;cursor:default;transition:.12s}
 .pc:active{opacity:.93;transform:scale(.99)}
 /* Màu nền theo index */
 .pc-0{background:linear-gradient(135deg,#0D47A1 0%,#1976D2 60%,#42A5F5 100%)}
@@ -338,8 +338,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── EXPAND ALL PRODUCTS ──────────────────────── */
 .expand-section{padding:0 14px 14px}
-.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;overflow:hidden;max-height:0;transition:max-height .45s cubic-bezier(.4,0,.2,1)}
-.expand-grid.open{max-height:9999px}
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+
 .expand-sep{display:flex;align-items:center;gap:8px;margin:4px 0 10px;padding:0 14px}
 .expand-sep-line{flex:1;height:1px;background:var(--line)}
 .expand-sep-txt{font-size:11px;font-weight:700;color:var(--ink3);white-space:nowrap}
@@ -466,8 +466,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pc-mini-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;position:relative;z-index:1}
 .pc-mini{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:3px 8px;font-size:10px;font-weight:700}
 /* Action buttons on card */
-.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:5}
-.pc-act-btn{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15);color:#fff;pointer-events:all;position:relative;z-index:5}
+.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:10}
+.pc-act-btn{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15);color:#fff;pointer-events:all;position:relative;z-index:10}
 .pc-act-btn.danger{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.4)}
 
 /* ── ADMIN PROMO FORM ────────────────────────── */
@@ -809,23 +809,12 @@ if(window._savedProds && window._savedProds.length){
       <div id="hero-promo-list"></div>
     </div>
 
-    <!-- Hot products grid + expand all -->
-    <div class="hot-section">
-      <div class="hot-section-title">🔥 SẢN PHẨM HOT HÔM NAY</div>
-      <div class="hot-grid" id="hot-grid"></div>
-    </div>
+    <!-- Tất cả sản phẩm -->
+    <div class="expand-section" style="padding-top:8px">
 
-    <!-- Expand section: tất cả SP khác -->
-    <div class="expand-section">
-      <button class="view-all-btn" id="view-all-btn" onclick="toggleAllProds()">
-        <span id="vab-txt">XEM TẤT CẢ SẢN PHẨM VÀ ĐẶT HÀNG</span>
-        <svg class="vab-icon" id="vab-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M4 6l4 4 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
 
       <!-- Search + cat khi expand -->
-      <div id="expand-search-wrap" style="display:none;margin-bottom:10px">
+      <div id="expand-search-wrap" style="display:block;margin-bottom:10px">
         <div class="search-inner" style="border:1.5px solid var(--line);border-radius:99px;padding:9px 14px;background:#fff;display:flex;align-items:center;gap:8px">
           <svg width="14" height="14" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="#9a9a9a" stroke-width="1.4"/><path d="M10.5 10.5l3 3" stroke="#9a9a9a" stroke-width="1.4" stroke-linecap="round"/></svg>
           <input id="expand-search-inp" placeholder="Tìm sản phẩm..." oninput="filterExpandProds()" autocomplete="off" style="flex:1;border:none;background:transparent;font-size:14px;font-family:var(--font);color:var(--ink);outline:none">
@@ -835,7 +824,7 @@ if(window._savedProds && window._savedProds.length){
         </div>
       </div>
 
-      <div class="expand-grid" id="expand-grid"></div>
+      <div class="expand-grid open" id="expand-grid"></div>
     </div>
 
     <div class="hero-bottom-pad"></div>
@@ -1207,16 +1196,17 @@ async function loadPromos(){
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  buildHeroPromos(); // render demo ngay lập tức
+  buildHeroPromos();
   loadHeaderStats();
-  loadPromos();      // sau đó load Supabase (không block)
-  renderHighlights(); // render highlights từ localStorage
+  loadPromos();
+  renderHighlights();
   BRANCHES.forEach(b => {
     const o = document.createElement('option');
     o.value = b; o.textContent = b;
     document.getElementById('f-branch').appendChild(o);
   });
   await loadProds();
+  renderExpandGrid(); // Hiện tất cả SP ngay luôn
   renderCartBar();
 });
 
@@ -1912,10 +1902,10 @@ function renderPromoAdminCard(p){
       ${p.type==='flash'?`<span class="pc-mini">⏰ ${p.flash_label||''}</span>`:''}
       ${p.discount_pct?`<span class="pc-mini">-${p.discount_pct}%</span>`:''}
     </div>
-    <div class="pc-acts">
-      <button class="pc-act-btn" data-action="edit" data-id="${p.id}" onclick="event.stopPropagation()">✏️ Sửa</button>
-      <button class="pc-act-btn" data-action="tog" data-id="${p.id}" data-active="${p.is_active}" onclick="event.stopPropagation()">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
-      <button class="pc-act-btn danger" data-action="del" data-id="${p.id}" onclick="event.stopPropagation()">🗑</button>
+    <div class="pc-acts" onclick="event.stopPropagation()">
+      <button class="pc-act-btn" data-action="edit" data-id="${p.id}">✏️ Sửa</button>
+      <button class="pc-act-btn" data-action="tog" data-id="${p.id}" data-active="${p.is_active}">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
+      <button class="pc-act-btn danger" data-action="del" data-id="${p.id}">🗑</button>
     </div>
   </div>`;
 }
@@ -2446,7 +2436,8 @@ function _demoOrders(){
 let _expandOpen=false;
 let _expandActiveCat='Tất cả';
 
-function toggleAllProds(){
+function toggleAllProds(){ /* removed */ }
+function _toggleAllProds_orig(){
   _expandOpen=!_expandOpen;
   const grid=document.getElementById('expand-grid');
   const icon=document.getElementById('vab-icon');
