@@ -209,9 +209,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 /* ── HERO BANNER ─────────────────────────────── */
 .hero-wrap{flex-shrink:0;overflow-y:auto;flex:1}.hero-wrap::-webkit-scrollbar{display:none}
 .hero-banner{
-  background:linear-gradient(135deg,#B71C1C 0%,#E53935 30%,#EE4D2D 60%,#FF6D00 100%);
-  padding:14px 14px 12px;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#7B0000 0%,#C62828 25%,#EE4D2D 55%,#FF8F00 85%,#FFD600 100%);
+  padding:16px 14px 14px;position:relative;overflow:hidden;
   border-bottom:3px solid #FFC300;
+  box-shadow:0 4px 20px rgba(180,0,0,.3);
 }
 /* Lớp texture poster */
 .hero-banner::before{
@@ -250,25 +251,28 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .hb-title .t2{
   display:block;
   font-family:'Bebas Neue','Anton','Arial Black',sans-serif;
-  font-size:42px;font-weight:400;
-  letter-spacing:.08em;text-transform:uppercase;
+  font-size:48px;font-weight:400;
+  letter-spacing:.06em;text-transform:uppercase;
   color:#FFC300;
   text-shadow:
-    2px 2px 0 rgba(150,60,0,.7),
-    4px 4px 0 rgba(100,30,0,.4),
-    0 6px 24px rgba(0,0,0,.5);
-  line-height:.92;
-  -webkit-text-stroke:1px rgba(255,180,0,.2);
+    0 0 20px rgba(255,200,0,.6),
+    3px 3px 0 rgba(150,60,0,.8),
+    5px 5px 0 rgba(100,30,0,.4);
+  line-height:.9;
+  -webkit-text-stroke:1.5px rgba(255,150,0,.3);
 }
 .hb-title .t3{
   display:block;
   font-family:'Bebas Neue','Anton','Arial Black',sans-serif;
-  font-size:18px;font-weight:400;
-  letter-spacing:.35em;text-transform:uppercase;
-  color:#fff;
-  text-shadow:0 2px 8px rgba(0,0,0,.5);
-  margin-top:1px;
-  opacity:.95;
+  font-size:16px;font-weight:400;
+  letter-spacing:.4em;text-transform:uppercase;
+  color:rgba(255,255,255,.95);
+  text-shadow:0 1px 6px rgba(0,0,0,.5);
+  margin-top:3px;
+  background:rgba(0,0,0,.2);
+  padding:2px 10px;
+  border-radius:4px;
+  display:inline-block;
 }
 .hb-sub{
   font-size:10px;color:rgba(255,255,255,.85);font-weight:600;
@@ -316,12 +320,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .hot-card{background:var(--white);border-radius:12px;border:1px solid var(--line);overflow:hidden;position:relative;transition:.12s;cursor:pointer;display:flex;flex-direction:column}
 .hot-card.has{border-color:var(--g700);background:var(--g50)}
 .hot-card:active{transform:scale(.99)}
-.hot-img-box{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#f8f8f6;position:relative;overflow:hidden}
+.hot-img-box{width:100%;aspect-ratio:2/3;background:#fff;display:flex;align-items:center;justify-content:center;background:#f8f8f6;position:relative;overflow:hidden}
 .hot-img-emoji{font-size:52px;line-height:1}
 .hot-img-box img{width:100%;height:100%;object-fit:contain;padding:8px;background:#f8f8f6}
 .hot-badge-tag{position:absolute;top:7px;left:7px;background:#EE4D2D;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;z-index:1}
-.hot-body{padding:8px 10px 10px;flex:1;display:flex;flex-direction:column}
-.hot-name{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px;line-height:1.3;flex:1}
+.hot-body{padding:6px 8px 8px;display:flex;flex-direction:column;min-height:0}
+.hot-name{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hot-price{font-size:14px;font-weight:800;color:#EE4D2D}
 .hot-old{font-size:10px;color:var(--ink3);text-decoration:line-through;font-weight:600}
 .hot-add-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
@@ -338,8 +342,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 
 /* ── EXPAND ALL PRODUCTS ──────────────────────── */
-.expand-section{padding:0 12px 14px}
-.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.expand-section{padding:0 10px 14px}
+.expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
 
 .expand-sep{display:flex;align-items:center;gap:8px;margin:4px 0 10px;padding:0 14px}
 .expand-sep-line{flex:1;height:1px;background:var(--line)}
@@ -823,7 +827,7 @@ if(window._savedProds && window._savedProds.length){
     </div>
 
     <!-- Tất cả sản phẩm -->
-    <div class="expand-section" style="padding-top:8px">
+    <div class="expand-section" style="padding-top:6px;padding-left:8px;padding-right:8px">
 
 
       <!-- Search + cat khi expand -->
