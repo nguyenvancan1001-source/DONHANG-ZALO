@@ -1931,12 +1931,14 @@ function openPromoModal(id){
   // Mở modal
   const bg=document.getElementById('adm-promo-modal-bg');
   bg.classList.add('open');
-  // Nếu sửa: preload form sau 80ms để DOM visible
+  // Nếu sửa: preload form sau khi modal hiển thị hoàn toàn
   if(id){
-    setTimeout(()=>{
-      const p=_promoStore.find(x=>x.id===id);
-      if(p) selPromoType(p.type,p);
-    },80);
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        const p=_promoStore.find(x=>x.id===id);
+        if(p) selPromoType(p.type,p);
+      });
+    });
   }
 }
 function closePromoModal(){
