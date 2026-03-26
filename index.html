@@ -678,15 +678,13 @@ const BRANCHES = ['Vicomart Phú Bài','Vicomart Vinh Thanh','Vicomart Thuận A
 (function(){
   try{
     const saved=localStorage.getItem('vc_products');
-    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
     if(saved){
       const p=JSON.parse(saved);
       if(p&&p.length){
-        // Ghép lại ảnh base64
+        // Ảnh là URL cloud — không cần ghép từ localStorage
         window._savedProds=p.map(prod=>{
-          if(prod.image_url==='__local__' && imgs[prod.id]){
-            return {...prod, image_url: imgs[prod.id]};
-          }
+          // Bỏ __local__ cũ nếu còn sót
+          if(prod.image_url==='__local__') return {...prod, image_url:''};
           return prod;
         });
       }
@@ -1273,11 +1271,10 @@ async function loadProds() {
       .select('*').order('category').order('name');
     if (error) throw error;
     if(data && data.length){
-      // Cloud là nguồn chính — ghép ảnh local nếu có
-      const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+      // Cloud là nguồn chính — ưu tiên image_url trên cloud tuyệt đối
       allProds = data.map(p=>({
         ...p,
-        image_url: imgs[p.id] || p.image_url || ''
+        image_url: p.image_url || ''
       }));
       // Cập nhật DEMO_PRODUCTS từ cloud để đồng bộ local
       DEMO_PRODUCTS.length = 0;
@@ -1755,8 +1752,7 @@ async function admLoadProducts(){
     if(!IS_DEMO && db){
       const {data,error}=await db.from('products').select('*').order('category').order('name');
       if(!error && data && data.length){
-        const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-        prods=data.map(p=>({...p, image_url:imgs[p.id]||p.image_url||''}));
+        prods=data.map(p=>({...p, image_url:p.image_url||''}));
       }
     }
   }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
@@ -1795,10 +1791,8 @@ function openAdmProdModal(id){
   document.getElementById('apm-badge').value='';
   document.getElementById('apm-active').value='true';
   if(id){
-    // Lấy SP từ local trước (có ảnh), fallback cloud
-    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-    let p=_getProdsWithImgs().find(x=>x.id===id)||allProds.find(x=>x.id===id)||DEMO_PRODUCTS.find(x=>x.id===id);
-    if(!p&&imgs[id]){ p={id,image_url:imgs[id]}; }
+    // Lấy SP từ cloud/allProds
+    let p=allProds.find(x=>x.id===id)||DEMO_PRODUCTS.find(x=>x.id===id);
     if(p){
       document.getElementById('apm-name').value=p.name||'';
       document.getElementById('apm-price').value=p.price||'';
@@ -1858,41 +1852,29 @@ async function handleProdImgUpload(e){
     reader.readAsDataURL(file);
   });
 
-  // Upload lên Supabase Storage
-  let finalUrl = null;
-  if(db && !IS_DEMO){
-    try{
-      const fname = `prod_${Date.now()}.jpg`;
-      const {error} = await db.storage.from('product-images')
-        .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
-      if(!error){
-        const {data} = db.storage.from('product-images').getPublicUrl(fname);
-        finalUrl = data.publicUrl;
-        toast('✓ Ảnh đã upload cloud');
-      }
-    }catch(err){ console.warn('Storage upload:', err.message); }
-  }
-
-  // Fallback: base64 local nếu cloud lỗi
-  if(!finalUrl){
-    const reader2 = new FileReader();
-    reader2.onload = ev=>{
-      finalUrl = ev.target.result;
-      document.getElementById('apm-img').value = finalUrl;
-      document.getElementById('apm-img-thumb').src = finalUrl;
-      document.getElementById('apm-img-preview').style.display = 'block';
-      if(label) label.textContent = '📷 Chọn ảnh từ máy';
-      toast('⚠️ Lưu ảnh local (chưa đồng bộ)');
-    };
-    const blobUrl = URL.createObjectURL(compressed);
-    reader2.readAsDataURL(compressed);
+  // Upload lên Supabase Storage — bắt buộc cloud, không fallback base64
+  if(!db || IS_DEMO){
+    toast('⚠️ Chưa kết nối Supabase — không thể upload ảnh');
+    if(label) label.textContent = '📷 Chọn ảnh từ máy';
     return;
   }
-
-  document.getElementById('apm-img').value = finalUrl;
-  document.getElementById('apm-img-thumb').src = finalUrl;
-  document.getElementById('apm-img-preview').style.display = 'block';
-  if(label) label.textContent = '📷 Chọn ảnh từ máy';
+  try{
+    const fname = `prod_${Date.now()}.jpg`;
+    const {error} = await db.storage.from('product-images')
+      .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
+    if(error) throw error;
+    const {data} = db.storage.from('product-images').getPublicUrl(fname);
+    const finalUrl = data.publicUrl;
+    document.getElementById('apm-img').value = finalUrl;
+    document.getElementById('apm-img-thumb').src = finalUrl;
+    document.getElementById('apm-img-preview').style.display = 'block';
+    if(label) label.textContent = '📷 Chọn ảnh từ máy';
+    toast('✓ Ảnh đã upload cloud — đồng bộ mọi máy');
+  }catch(err){
+    console.warn('Storage upload:', err.message);
+    toast('❌ Upload ảnh thất bại: ' + err.message);
+    if(label) label.textContent = '📷 Chọn ảnh từ máy';
+  }
 }
 
 function handleProdImgUrl(val){
@@ -1932,23 +1914,30 @@ async function saveAdmProd(){
   // 2. Lưu localStorage ngay — không phụ thuộc cloud
   _saveProdLocal();
 
-  // 3. Lưu lên Supabase + upload ảnh lên Storage
+  // 3. Lưu lên Supabase — ảnh phải là URL cloud hoặc https, không lưu base64
   if(!IS_DEMO && db){
     try{
-      // Upload ảnh base64 lên Supabase Storage
-      let cloudImageUrl = (prod.image_url&&prod.image_url.startsWith('http'))?prod.image_url:null;
+      // Nếu ảnh vẫn là base64 (chưa qua handleProdImgUpload), upload lên Storage trước
+      let cloudImageUrl = (prod.image_url && prod.image_url.startsWith('http')) ? prod.image_url : null;
       if(prod.image_url && prod.image_url.startsWith('data:')){
         try{
           const base64=prod.image_url.split(',')[1];
           const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
-          const fname=`prod_${prod.id}.jpg`;
+          const fname=`prod_${prod.id}_${Date.now()}.jpg`;
           const {error:upErr}=await db.storage.from('product-images')
             .upload(fname,bytes,{contentType:'image/jpeg',upsert:true});
           if(!upErr){
             const {data:urlData}=db.storage.from('product-images').getPublicUrl(fname);
             cloudImageUrl=urlData.publicUrl;
+            // Cập nhật lại prod để local cũng dùng URL cloud
+            prod.image_url = cloudImageUrl;
+            const idx2=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
+            if(idx2>=0) DEMO_PRODUCTS[idx2].image_url=cloudImageUrl;
+          }else{
+            console.warn('img upload err:',upErr.message);
+            cloudImageUrl = null; // không lưu base64 vào DB
           }
-        }catch(ie){ console.warn('img upload:',ie.message); }
+        }catch(ie){ console.warn('img upload:',ie.message); cloudImageUrl=null; }
       }
       const sp={
         name:prod.name, price:prod.price, unit:prod.unit,
@@ -1956,18 +1945,21 @@ async function saveAdmProd(){
         old_price:prod.old_price||0,
         is_hot:prod.is_hot||false, is_new:prod.is_new||false,
         stock_qty:prod.stock_qty||99,
-        image_url:cloudImageUrl,
+        image_url:cloudImageUrl,  // null = giữ nguyên trên DB nếu update
       };
+      // Khi update: chỉ set image_url nếu có giá trị mới
+      const spUpdate = cloudImageUrl ? sp : {...sp};
+      if(!cloudImageUrl) delete spUpdate.image_url;
       const {error}=admEditProdId
-        ? await db.from('products').update(sp).eq('id',prod.id)
+        ? await db.from('products').update(spUpdate).eq('id',prod.id)
         : await db.from('products').insert(sp);
       if(!error){
-        // Cập nhật URL cloud vào local nếu upload thành công
-        if(cloudImageUrl&&cloudImageUrl.startsWith('http')){
+        // Đồng bộ local với URL cloud
+        if(cloudImageUrl){
           const idx=DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
           if(idx>=0) DEMO_PRODUCTS[idx].image_url=cloudImageUrl;
-          _saveProdLocal();
         }
+        _saveProdLocal();
         await loadProds();
       }
     }catch(e){ console.warn('saveAdmProd cloud:',e.message); }
@@ -1984,28 +1976,21 @@ async function saveAdmProd(){
 
 
 function _getProdsWithImgs(){
-  try{
-    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-    return DEMO_PRODUCTS.map(p=>{
-      if((p.image_url==='__local__'||!p.image_url) && imgs[p.id])
-        return {...p, image_url:imgs[p.id]};
-      return p;
-    });
-  }catch(e){ return DEMO_PRODUCTS; }
+  // Ảnh luôn là URL cloud (https://...) — không cần ghép từ localStorage nữa
+  return DEMO_PRODUCTS;
 }
 
 function _saveProdLocal(){
   try{
-    const imgs={};
+    // Lưu sản phẩm với image_url là URL cloud — không lưu base64
     const prods=DEMO_PRODUCTS.map(p=>{
-      if(p.image_url&&p.image_url.startsWith('data:')){
-        imgs[p.id]=p.image_url;
-        return {...p,image_url:'__local__'};
-      }
+      if(p.image_url && p.image_url.startsWith('data:'))
+        return {...p, image_url:''}; // loại bỏ base64 khỏi local cache
       return p;
     });
     localStorage.setItem('vc_products',JSON.stringify(prods));
-    localStorage.setItem('vc_prod_images',JSON.stringify(imgs));
+    // Xóa vc_prod_images cũ vì không còn dùng
+    localStorage.removeItem('vc_prod_images');
   }catch(e){ console.warn('_saveProdLocal:',e); }
 }
 async function admTogProd(id,cur){
@@ -2648,10 +2633,9 @@ function _toggleAllProds_orig(){
 
 function renderExpandGrid(){
   const grid=document.getElementById('expand-grid');
-  // Đảm bảo allProds có ảnh
-  const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+  // Ảnh từ cloud — dùng allProds trực tiếp
   const src=allProds.map(p=>{
-    if((p.image_url==='__local__'||!p.image_url)&&imgs[p.id]) return {...p,image_url:imgs[p.id]};
+    if(p.image_url==='__local__') return {...p,image_url:''};
     return p;
   });
   let list=src.filter(p=>p.is_active!==false);
