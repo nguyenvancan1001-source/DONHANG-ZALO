@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#0f3d25">
+<meta name="theme-color" content="#1565C0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
+<meta name="version" content="2.1">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Khuyến mãi mỗi ngày | Đặt hàng siêu thị</title>
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.1</title>
+<!-- v2.1 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -16,7 +18,7 @@
 <meta property="og:url"         content="https://donhang.vicomart.vn">
 <meta property="og:title"       content="⚡ FLASH SALE – Vicomart Khuyến Mãi Mỗi Ngày!">
 <meta property="og:description" content="🔥 Giảm giá sốc · 🎁 Mua 1 Tặng 1 · 🧺 Combo tiết kiệm · 🚚 Miễn phí giao hàng. Đặt hàng ngay – giao tận nhà trong ngày!">
-<meta property="og:image"       content="https://donhang.vicomart.vn/og-image.jpg" id="meta-og-image">
+<meta property="og:image"       content="https://donhang.vicomart.vn/og-image.jpg?v=2" id="meta-og-image">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height"content="630">
 <meta property="og:locale"      content="vi_VN">
@@ -25,18 +27,21 @@
 <meta name="twitter:card"        content="summary_large_image">
 <meta name="twitter:title"       content="⚡ FLASH SALE – Vicomart Khuyến Mãi Mỗi Ngày!">
 <meta name="twitter:description" content="🔥 Giảm giá sốc · 🎁 Mua 1 Tặng 1 · 🧺 Combo tiết kiệm · 🚚 Miễn phí giao hàng">
-<meta name="twitter:image"       content="https://donhang.vicomart.vn/og-image.jpg" id="meta-tw-image">
+<meta name="twitter:image"       content="https://donhang.vicomart.vn/og-image.jpg?v=2" id="meta-tw-image">
 
 <!-- Zalo specific -->
 <meta property="zalo:url"        content="https://donhang.vicomart.vn">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Black+Han+Sans&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@700;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ── TOKENS ─────────────────────────────────── */
 :root {
-  --g900:#0f3d25; --g800:#1a5c38; --g700:#1e6b40;
-  --g100:#e8f5ee; --g50:#f2faf5;
+  --g900:#0D47A1; --g800:#1565C0; --g700:#1976D2;
+  --g100:#BBDEFB; --g50:#E3F2FD;
   --ink:#1a1a1a; --ink2:#5a5a5a; --ink3:#9a9a9a;
   --line:#ebebeb; --bg:#f7f7f5; --white:#ffffff;
   --red:#e53e3e; --amber:#e8960a;
@@ -58,7 +63,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .header-back{width:36px;height:36px;background:rgba(255,255,255,.12);border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
 .header-title{color:#fff;font-size:16px;font-weight:700;flex:1}
 .header-sub{color:rgba(255,255,255,.6);font-size:11px;font-weight:400}
-.header-logo{display:flex;align-items:center;gap:8px}
+.header-logo{display:flex;align-items:center;gap:8px;flex:1}
 .logo-mark{width:32px;height:32px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center}
 
 /* ── CATEGORY BAR ───────────────────────────── */
@@ -107,7 +112,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
   display:flex;align-items:center;gap:12px;
   padding:12px 16px;
   cursor:pointer;z-index:150;
-  box-shadow:0 -4px 20px rgba(15,61,37,.3);
+  box-shadow:0 -4px 20px rgba(21,101,192,.3);
   transform:translateY(100%);opacity:0;
   transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s ease;
   pointer-events:none;
@@ -192,25 +197,82 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── HERO BANNER ─────────────────────────────── */
 .hero-wrap{flex-shrink:0;overflow-y:auto;flex:1}.hero-wrap::-webkit-scrollbar{display:none}
-.hero-banner{background:linear-gradient(135deg,#EE4D2D 0%,#FF6B35 50%,#FF9500 100%);padding:16px 16px 14px;position:relative;overflow:hidden}
-.hero-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:rgba(255,195,0,.13);border-radius:50%}
-.hero-banner::after{content:'';position:absolute;bottom:-30px;left:-10px;width:120px;height:120px;background:rgba(255,69,0,.1);border-radius:50%}
-.hb-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:1}
-.hb-badge{display:inline-flex;align-items:center;gap:5px;background:#FFC300;color:#7B2500;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;margin-bottom:7px;letter-spacing:.05em}
-.hb-title{font-size:26px;font-weight:800;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(150,0,0,.3)}
-.hb-sub{font-size:11px;color:rgba(255,255,255,.8);font-weight:600;margin-top:5px}
-.hb-cd{flex-shrink:0;background:#FFC300;border-radius:12px;padding:8px 10px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.25);text-align:center}
-.hb-cd-lbl{font-size:9px;color:#7B2500;font-weight:800;letter-spacing:.06em;margin-bottom:5px;white-space:nowrap}
-.hb-cd-row{display:flex;align-items:center;gap:3px}
-.hb-cd-box{background:#CC0022;border-radius:6px;padding:5px 7px;min-width:36px;text-align:center}
-.hb-cd-n{font-size:24px;font-weight:800;color:#fff;display:block;line-height:1}
-.hb-cd-u{font-size:8px;font-weight:700;color:rgba(255,255,255,.7);display:block;margin-top:1px}
-.hb-cd-sep{font-size:18px;font-weight:900;color:#CC0022;margin:0 1px}
-.ticker{background:linear-gradient(90deg,#CC0022,#EE1133,#CC0022);padding:7px 0;overflow:hidden;flex-shrink:0;border-top:2px solid #FFC300;border-bottom:2px solid #FFC300}
-.ticker-inner{display:flex;animation:tick 20s linear infinite;white-space:nowrap;will-change:transform}
-@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.tick-item{font-size:12px;font-weight:700;color:#FFC300;padding:0 14px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-.tick-dot{width:5px;height:5px;background:#FFC300;border-radius:50%;flex-shrink:0}
+.hero-banner{
+  background:linear-gradient(135deg,#B71C1C 0%,#E53935 30%,#EE4D2D 60%,#FF6D00 100%);
+  padding:14px 14px 12px;position:relative;overflow:hidden;
+  border-bottom:3px solid #FFC300;
+}
+/* Lớp texture poster */
+.hero-banner::before{
+  content:'';position:absolute;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(
+    45deg,transparent,transparent 8px,
+    rgba(255,255,255,.025) 8px,rgba(255,255,255,.025) 9px
+  );
+  pointer-events:none;z-index:0;
+}
+.hero-banner::after{
+  content:'';position:absolute;top:-20px;right:-30px;
+  width:140px;height:140px;
+  background:rgba(255,195,0,.18);border-radius:50%;
+  pointer-events:none;
+}
+.hb-top{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:1}
+/* Badge trạng thái */
+.hb-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#FFC300;color:#7B2500;
+  font-size:9px;font-weight:800;padding:3px 10px;
+  border-radius:99px;margin-bottom:6px;letter-spacing:.06em;
+  box-shadow:0 2px 8px rgba(255,195,0,.4);
+}
+/* Title kiểu poster */
+.hb-title{
+  font-size:0px;font-weight:900;color:#fff;line-height:1;
+  position:relative;z-index:1;
+}
+.hb-title .t1{
+  display:block;font-size:13px;font-weight:800;
+  letter-spacing:.25em;text-transform:uppercase;
+  color:rgba(255,255,255,.85);margin-bottom:1px;
+}
+.hb-title .t2{
+  display:block;
+  font-family:'Bebas Neue','Anton','Arial Black',sans-serif;
+  font-size:42px;font-weight:400;
+  letter-spacing:.08em;text-transform:uppercase;
+  color:#FFC300;
+  text-shadow:
+    2px 2px 0 rgba(150,60,0,.7),
+    4px 4px 0 rgba(100,30,0,.4),
+    0 6px 24px rgba(0,0,0,.5);
+  line-height:.92;
+  -webkit-text-stroke:1px rgba(255,180,0,.2);
+}
+.hb-title .t3{
+  display:block;
+  font-family:'Bebas Neue','Anton','Arial Black',sans-serif;
+  font-size:18px;font-weight:400;
+  letter-spacing:.35em;text-transform:uppercase;
+  color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.5);
+  margin-top:1px;
+  opacity:.95;
+}
+.hb-sub{
+  font-size:10px;color:rgba(255,255,255,.85);font-weight:600;
+  margin-top:6px;letter-spacing:.02em;position:relative;z-index:1;
+  display:flex;align-items:center;gap:4px;flex-wrap:wrap;
+}
+.hb-sub-dot{width:3px;height:3px;background:rgba(255,255,255,.5);border-radius:50%;flex-shrink:0}
+.hb-cd{flex-shrink:0;background:#FFC300;border-radius:10px;padding:6px 8px;border:2px solid #fff;box-shadow:0 4px 16px rgba(0,0,0,.25);text-align:center}
+.hb-cd-lbl{font-size:8px;color:#7B2500;font-weight:800;letter-spacing:.06em;margin-bottom:4px;white-space:nowrap}
+.hb-cd-row{display:flex;align-items:center;gap:2px}
+.hb-cd-box{background:#CC0022;border-radius:5px;padding:4px 5px;min-width:30px;text-align:center}
+.hb-cd-n{font-size:18px;font-weight:800;color:#fff;display:block;line-height:1}
+.hb-cd-u{font-size:7px;font-weight:700;color:rgba(255,255,255,.7);display:block;margin-top:1px}
+.hb-cd-sep{font-size:14px;font-weight:900;color:#CC0022;margin:0 1px}
+
 .promo-section,.hot-section{padding:14px 14px 2px}
 .promo-section-title,.hot-section-title{font-size:12px;font-weight:800;color:var(--ink);margin-bottom:10px;display:flex;align-items:center;gap:7px;text-transform:uppercase;letter-spacing:.05em}
 .promo-section-title::after,.hot-section-title::after{content:'';flex:1;height:1px;background:var(--line)}
@@ -219,12 +281,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pc{border-radius:14px;overflow:hidden;margin-bottom:8px;cursor:pointer;transition:.12s}
 .pc:active{opacity:.93;transform:scale(.99)}
 /* Màu nền theo index */
-.pc-0{background:linear-gradient(135deg,#064e3b 0%,#047857 100%)}
-.pc-1{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 100%)}
-.pc-2{background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 100%)}
-.pc-3{background:linear-gradient(135deg,#7c2d12 0%,#c2410c 100%)}
-.pc-4{background:linear-gradient(135deg,#881337 0%,#be123c 100%)}
-.pc-5{background:linear-gradient(135deg,#1e3a5f 0%,#0369a1 100%)}
+.pc-0{background:linear-gradient(135deg,#0D47A1 0%,#1976D2 60%,#42A5F5 100%)}
+.pc-1{background:linear-gradient(135deg,#1B5E20 0%,#2E7D32 60%,#43A047 100%)}
+.pc-2{background:linear-gradient(135deg,#6A1B9A 0%,#8E24AA 60%,#AB47BC 100%)}
+.pc-3{background:linear-gradient(135deg,#B71C1C 0%,#E53935 60%,#EF5350 100%)}
+.pc-4{background:linear-gradient(135deg,#E65100 0%,#F57C00 60%,#FFA726 100%)}
+.pc-5{background:linear-gradient(135deg,#004D40 0%,#00796B 60%,#26A69A 100%)}
 /* Tầng trên */
 .pc-top{padding:10px 12px 8px;display:flex;align-items:center;gap:9px}
 .pc-icon{width:38px;height:38px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.2)}
@@ -283,12 +345,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-overlay.open .adm-panel{transform:translateX(0)}
 
 /* Admin header */
-.adm-hdr{background:linear-gradient(135deg,var(--g900),var(--g800));padding:16px 16px 14px;flex-shrink:0}
+.adm-hdr{background:linear-gradient(135deg,#0D47A1,#1565C0);padding:16px 16px 14px;flex-shrink:0}
 .adm-hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .adm-hdr-title{color:#fff;font-size:16px;font-weight:800}
 .adm-close-btn{width:32px;height:32px;background:rgba(255,255,255,.15);border:none;border-radius:50%;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .adm-role-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700}
-.adm-role-admin{background:#FFC300;color:#1a1a1a}
+.adm-role-admin{background:#FFC300;color:#0D47A1}
 .adm-role-staff{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3)}
 
 /* Admin nav tabs */
@@ -368,12 +430,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── PROMO CARDS BẮT MẮT ─────────────────────── */
 /* Đã có .pc .pc-0..5, bổ sung thêm variants */
-.pc-flash{background:linear-gradient(135deg,#FF0040 0%,#EE4D2D 40%,#FF9500 100%);position:relative;overflow:hidden}
+.pc-flash{background:linear-gradient(135deg,#B71C1C 0%,#E53935 40%,#FF6D00 100%);position:relative;overflow:hidden}
 .pc-flash::after{content:'⚡';position:absolute;right:-4px;bottom:-8px;font-size:64px;opacity:.12;pointer-events:none}
-.pc-bxgy{background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);position:relative}
-.pc-combo{background:linear-gradient(135deg,#064e3b 0%,#047857 100%)}
-.pc-discount{background:linear-gradient(135deg,#7c2d12 0%,#c2410c 100%)}
-.pc-gift{background:linear-gradient(135deg,#4c1d95 0%,#6d28d9 100%)}
+.pc-bxgy{background:linear-gradient(135deg,#0D47A1 0%,#1565C0 60%,#1E88E5 100%);position:relative}
+.pc-combo{background:linear-gradient(135deg,#1B5E20 0%,#388E3C 60%,#66BB6A 100%)}
+.pc-discount{background:linear-gradient(135deg,#E65100 0%,#F4511E 60%,#FF7043 100%)}
+.pc-gift{background:linear-gradient(135deg,#6A1B9A 0%,#8E24AA 60%,#CE93D8 100%)}
 /* Pill trạng thái */
 .pc-status-on{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;margin-bottom:6px}
 .pc-status-on::before{content:'';width:6px;height:6px;background:#4ade80;border-radius:50%;flex-shrink:0}
@@ -463,8 +525,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* ── 4 Ô NỔI BẬT ─────────────────────────────── */
 .hb-highlights{
-  display:flex;gap:6px;
-  padding:8px 12px 13px;
+  display:flex;gap:5px;
+  padding:6px 12px 10px;
   position:relative;z-index:1;
   overflow-x:auto;scrollbar-width:none;
 }
@@ -491,28 +553,29 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .hb-hl-discount{background:#CC0022;color:#fff}
 .hb-hl-discount .hb-hl-txt{color:#fff}
 .hb-hl-discount .hb-hl-hot{background:#fde68a}
-.hb-hl-ship{background:#fff;color:#1a5c38}
-.hb-hl-ship .hb-hl-txt{color:#1a5c38}
+.hb-hl-ship{background:#fff;color:#1565C0}
+.hb-hl-ship .hb-hl-txt{color:#1565C0}
 
 
-/* ── FAB QUẢN LÝ ──────────────────────────────── */
-.mgmt-fab{
-  position:fixed;right:14px;top:60px;z-index:150;
-  background:rgba(15,61,37,.85);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  border:1.5px solid rgba(255,255,255,.2);
-  color:#fff;border-radius:99px;
-  padding:8px 14px 8px 10px;
-  display:flex;align-items:center;gap:6px;
-  cursor:pointer;font-family:var(--font);
-  font-size:12px;font-weight:800;
-  box-shadow:0 4px 16px rgba(0,0,0,.25);
-  transition:.15s;letter-spacing:.02em;
+/* ── NÚT QUẢN LÝ TRONG HEADER ─────────────────── */
+.mgmt-header-btn{
+  margin-left:auto;
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(255,255,255,.15);
+  border:1.5px solid rgba(255,255,255,.3);
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:.15s;
+  flex-shrink:0;
+  position:relative;
 }
-.mgmt-fab:active{transform:scale(.95);opacity:.9}
-.mgmt-fab-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:#4ade80;flex-shrink:0;
+.mgmt-header-btn:active{background:rgba(255,255,255,.28);transform:scale(.95)}
+.mgmt-header-dot{
+  position:absolute;top:1px;right:1px;
+  width:8px;height:8px;border-radius:50%;
+  background:#4ade80;
+  border:1.5px solid var(--g800);
   animation:pulse 2s infinite;
 }
 
@@ -586,7 +649,13 @@ const DEMO_PRODUCTS = [
         <div class="header-sub">Khuyến mãi mỗi ngày</div>
       </div>
     </div>
-
+    <button class="mgmt-header-btn" id="mgmt-fab" onclick="openAdminPanel()" title="Quản lý">
+      <div class="mgmt-header-dot"></div>
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="5" r="2.5" stroke="#fff" stroke-width="1.5"/>
+        <path d="M2 13c0-3 2-4.5 6-4.5s6 1.5 6 4.5" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
 
   <!-- ══ HERO MODE ══ -->
@@ -596,8 +665,10 @@ const DEMO_PRODUCTS = [
       <div class="hb-top">
         <div>
           <div class="hb-badge">⚡ ĐANG DIỄN RA · HÔM NAY</div>
-          <div class="hb-title">FLASH SALE<br>HẤP DẪN HÔM NAY</div>
-          <div class="hb-sub">Ưu đãi hôm nay · Tiếp cận 100% khách hàng</div>
+          <div class="hb-title">
+            <span class="t2">FLASH SALE</span>
+            <span class="t3">DUY NHẤT HÔM NAY</span>
+          </div>
         </div>
         <div class="hb-cd">
           <div class="hb-cd-lbl">KẾT THÚC SAU</div>
@@ -634,10 +705,7 @@ const DEMO_PRODUCTS = [
       </div>
     </div>
 
-    <!-- Ticker -->
-    <div class="ticker">
-      <div class="ticker-inner" id="ticker-inner"></div>
-    </div>
+
 
     <!-- Promo list -->
     <div class="promo-section">
@@ -1043,7 +1111,6 @@ async function loadPromos(){
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  buildTicker();
   buildHeroPromos(); // render demo ngay lập tức
   loadPromos();      // sau đó load Supabase (không block)
   renderHighlights(); // render highlights từ localStorage
@@ -2645,7 +2712,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
         <!-- Promos tab (admin only) -->
         <div id="adm-tab-promos" style="display:none">
           <div class="adm-section">
-            <button class="adm-add-btn" onclick="openPromoModal()" style="background:linear-gradient(135deg,var(--g800),var(--g700))">
+            <button class="adm-add-btn" onclick="openPromoModal()" style="background:linear-gradient(135deg,#1565C0,#1976D2)">
               ⚡ Tạo chương trình khuyến mãi mới
             </button>
           </div>
@@ -2826,15 +2893,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 </div>
 
 
-<!-- FAB QUẢN LÝ -->
-<button class="mgmt-fab" id="mgmt-fab" onclick="openAdminPanel()">
-  <div class="mgmt-fab-dot"></div>
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-    <circle cx="8" cy="5" r="2.5" stroke="#fff" stroke-width="1.4"/>
-    <path d="M2 13c0-3 2-4.5 6-4.5s6 1.5 6 4.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
-  </svg>
-  Quản lý
-</button>
 
 </body>
 </html>
