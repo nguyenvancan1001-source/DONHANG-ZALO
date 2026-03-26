@@ -360,6 +360,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
   transition:transform .35s cubic-bezier(.4,0,.2,1);
   display:flex;flex-direction:column;
   pointer-events:all;
+  overflow:hidden;
 }
 .adm-overlay.open .adm-panel{transform:translateY(0)}
 
@@ -478,9 +479,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-form-section{background:#f8faf9;border-radius:6px;padding:6px;margin-bottom:4px}
 .promo-form-title{font-size:10px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.55);align-items:flex-end}
-.adm-promo-modal-bg.open{display:flex}
-.adm-promo-modal{background:#fff;border-radius:12px 12px 0 0;width:100%;max-height:78vh;overflow-y:auto;padding:10px 10px 20px}
+.adm-promo-modal-bg{display:none;position:absolute;inset:0;z-index:50;background:rgba(0,0,0,.6);align-items:flex-end;border-radius:inherit}
+/* .adm-promo-modal-bg.open handled by JS */
+.adm-promo-modal{background:#fff;border-radius:12px 12px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:10px 10px 16px}
 .adm-promo-modal::-webkit-scrollbar{display:none}
 
 
@@ -642,6 +643,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .hdr-stat-body{min-width:0}
 .hdr-stat-val{font-size:14px;font-weight:800;color:#fff;line-height:1}
 .hdr-stat-lbl{font-size:9px;color:rgba(255,255,255,.65);font-weight:600;white-space:nowrap}
+
+
+/* Modal KM 2 cột */
+.pm-layout{display:flex;gap:8px;align-items:flex-start}
+.pm-left{flex-shrink:0;width:120px}
+.pm-right{flex:1;min-width:0}
+.promo-type-grid-v{display:flex;flex-direction:column;gap:3px}
+.promo-type-btn-v{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-family:var(--font);text-align:left;width:100%;transition:.12s}
+.promo-type-btn-v.sel{border-color:var(--g800);background:var(--g50)}
+.promo-type-btn-v .pt-icon{font-size:16px;flex-shrink:0}
+.promo-type-btn-v .pt-name{font-size:11px;font-weight:700;color:var(--ink);line-height:1.2}
 
 </style>
 </head>
@@ -1920,40 +1932,46 @@ let _editPromoId=null;
 let _selPromoType=null;
 
 function openPromoModal(id){
-  // Reset hoàn toàn trạng thái
-  _editPromoId=id||null;
-  _selPromoType=null;
-  document.getElementById('promo-modal-title').textContent=id?'Sửa chương trình KM':'Tạo chương trình KM';
-  document.getElementById('promo-form-area').innerHTML='';
-  document.getElementById('promo-preview-area').innerHTML='';
-  document.getElementById('promo-save-area').style.display='none';
-  document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('sel'));
-  // Mở modal
-  const bg=document.getElementById('adm-promo-modal-bg');
-  bg.classList.add('open');
-  // Nếu sửa: đợi modal animation xong rồi render form
+  _editPromoId = id || null;
+  _selPromoType = null;
+
+  // Reset UI
+  document.getElementById('promo-modal-title').textContent = id ? 'Sửa chương trình KM' : 'Tạo chương trình KM';
+  document.getElementById('promo-form-area').innerHTML = '';
+  document.getElementById('promo-preview-area').innerHTML = '';
+  document.getElementById('promo-save-area').style.display = 'none';
+  document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('sel'));
+
+  // Hiện modal (dùng style trực tiếp — chắc chắn hơn classList)
+  const bg = document.getElementById('adm-promo-modal-bg');
+  bg.style.display = 'flex';
+
+  // Nếu có id (sửa) → load form ngay
   if(id){
-    setTimeout(()=>{
-      const p=_promoStore.find(x=>x.id===id);
-      if(p){
-        selPromoType(p.type,p);
-        // Scroll modal về đầu
-        const modal=document.getElementById('adm-promo-modal');
-        if(modal) modal.scrollTop=0;
-      }
-    },150);
+    const p = _promoStore.find(x => x.id === id);
+    if(p) selPromoType(p.type, p);
+  } else {
+    // Tạo mới: tự chọn loại đầu tiên để hiện form ngay
+    selPromoType('flash');
   }
+  const modal = document.getElementById('adm-promo-modal');
+  if(modal) modal.scrollTop = 0;
 }
+
 function closePromoModal(){
-  document.getElementById('adm-promo-modal-bg').classList.remove('open');
-  _editPromoId=null;
-  _selPromoType=null;
+  const bg = document.getElementById('adm-promo-modal-bg');
+  bg.style.display = 'none';
+  _editPromoId = null;
+  _selPromoType = null;
 }
-function editPromo(id){ openPromoModal(id); }
+
+function editPromo(id){
+  openPromoModal(id);
+}
 
 function selPromoType(type, existingData){
   _selPromoType=type;
-  document.querySelectorAll('.promo-type-btn').forEach(b=>b.classList.remove('sel'));
+  document.querySelectorAll('.promo-type-btn,.promo-type-btn-v').forEach(b=>b.classList.remove('sel'));
   const btn=document.getElementById('ptype-'+type);
   if(btn) btn.classList.add('sel');
   const formEl=document.getElementById('promo-form-area');
@@ -3064,6 +3082,51 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
   </div>
 </div>
 
+<div class="adm-promo-modal-bg" id="adm-promo-modal-bg">
+  <div class="adm-promo-modal" id="adm-promo-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:14px;font-weight:800;color:var(--ink)" id="promo-modal-title">Tạo chương trình KM</div>
+      <button onclick="closePromoModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2)">×</button>
+    </div>
+
+    <!-- Layout 2 cột -->
+    <div class="pm-layout">
+      <!-- Cột trái: chọn loại -->
+      <div class="pm-left">
+        <div style="font-size:9px;font-weight:700;color:var(--ink3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Loại KM</div>
+        <div class="promo-type-grid-v">
+          <button class="promo-type-btn-v" id="ptype-bxgy1" onclick="selPromoType('bxgy1')">
+            <span class="pt-icon">🥛</span><span class="pt-name">Mua 1 Tặng 1</span>
+          </button>
+          <button class="promo-type-btn-v" id="ptype-bxgy2" onclick="selPromoType('bxgy2')">
+            <span class="pt-icon">🎁</span><span class="pt-name">Mua 2 Tặng 1</span>
+          </button>
+          <button class="promo-type-btn-v" id="ptype-combo" onclick="selPromoType('combo')">
+            <span class="pt-icon">🧺</span><span class="pt-name">Combo</span>
+          </button>
+          <button class="promo-type-btn-v" id="ptype-discount" onclick="selPromoType('discount')">
+            <span class="pt-icon">🏷️</span><span class="pt-name">Giảm giá</span>
+          </button>
+          <button class="promo-type-btn-v" id="ptype-flash" onclick="selPromoType('flash')">
+            <span class="pt-icon">⚡</span><span class="pt-name">Flash Sale</span>
+          </button>
+          <button class="promo-type-btn-v" id="ptype-gift" onclick="selPromoType('gift')">
+            <span class="pt-icon">🎀</span><span class="pt-name">Quà tặng</span>
+          </button>
+        </div>
+      </div>
+      <!-- Cột phải: form -->
+      <div class="pm-right">
+        <div id="promo-form-area"></div>
+        <div id="promo-preview-area" style="margin-top:6px"></div>
+        <div id="promo-save-area" style="display:none;margin-top:6px">
+          <button onclick="savePromo()" style="width:100%;padding:9px;background:var(--g800);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;font-family:var(--font);cursor:pointer">💾 Lưu KM</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PRODUCT MODAL (admin) -->
 <div class="adm-modal-bg" id="adm-prod-modal">
   <div class="adm-modal-box">
@@ -3097,44 +3160,7 @@ async function loadHeaderKpi(){ await loadHeaderStats(); }
 
 
 <!-- ═══ PROMO MODAL ════════════════════════════════════ -->
-<div class="adm-promo-modal-bg" id="adm-promo-modal-bg">
-  <div class="adm-promo-modal" id="adm-promo-modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:14px;font-weight:800;color:var(--ink)" id="promo-modal-title">Tạo chương trình KM</div>
-      <button onclick="closePromoModal()" style="width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink2)">×</button>
-    </div>
 
-    <!-- Chọn loại KM -->
-    <div id="promo-type-step">
-      <div style="font-size:10px;font-weight:700;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Chọn loại khuyến mãi</div>
-      <div class="promo-type-grid">
-        <button class="promo-type-btn" id="ptype-bxgy1" onclick="selPromoType('bxgy1')">
-          <span class="pt-icon">🥛</span><div class="pt-name">Mua 1<br>Tặng 1</div>
-        </button>
-        <button class="promo-type-btn" id="ptype-bxgy2" onclick="selPromoType('bxgy2')">
-          <span class="pt-icon">🎁</span><div class="pt-name">Mua 2<br>Tặng 1</div>
-        </button>
-        <button class="promo-type-btn" id="ptype-combo" onclick="selPromoType('combo')">
-          <span class="pt-icon">🧺</span><div class="pt-name">Combo<br>Tiết kiệm</div>
-        </button>
-        <button class="promo-type-btn" id="ptype-discount" onclick="selPromoType('discount')">
-          <span class="pt-icon">🏷️</span><div class="pt-name">Giảm giá<br>trực tiếp</div>
-        </button>
-        <button class="promo-type-btn" id="ptype-flash" onclick="selPromoType('flash')">
-          <span class="pt-icon">⚡</span><div class="pt-name">Flash Sale<br>có thời hạn</div>
-        </button>
-        <button class="promo-type-btn" id="ptype-gift" onclick="selPromoType('gift')">
-          <span class="pt-icon">🎀</span><div class="pt-name">Quà tặng<br>theo đơn</div>
-        </button>
-      </div>
-      <div id="promo-form-area"></div>
-      <div id="promo-preview-area" style="margin-top:12px"></div>
-      <div id="promo-save-area" style="display:none;margin-top:8px">
-        <button onclick="savePromo()" style="width:100%;padding:9px;background:var(--g800);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:800;font-family:var(--font);cursor:pointer">💾 Lưu chương trình khuyến mãi</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 
 
