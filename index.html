@@ -401,6 +401,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pptag-combo{background:#047857;color:#fff}
 .pptag-discount{background:#c2410c;color:#fff}
 .pptag-gift{background:#6d28d9;color:#fff}
+.pptag-sap-het{background:linear-gradient(135deg,#FF0040,#EE4D2D);color:#fff;animation:blink-sap 2s ease-in-out infinite}
 .pptag-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.7);flex-shrink:0}
 
 
@@ -461,24 +462,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 
 /* ── BADGE SẮP HẾT HÀNG ──────────────────────── */
-.badge-sap-het{
-  position:absolute;top:8px;right:8px;
-  background:linear-gradient(135deg,#FF0040,#EE4D2D);
-  color:#fff;font-size:11px;font-weight:800;
-  padding:5px 10px;border-radius:5px;
-  display:flex;align-items:center;gap:4px;
-  animation:blink-sap 2s ease-in-out infinite;
-  box-shadow:0 2px 8px rgba(238,77,45,.5);
-  z-index:2;letter-spacing:.03em;height:24px;box-sizing:border-box;
-}
 @keyframes blink-sap{
-  0%,100%{opacity:1;box-shadow:0 2px 6px rgba(238,77,45,.5)}
-  50%{opacity:.75;box-shadow:0 2px 10px rgba(238,77,45,.8)}
-}
-.badge-sap-het::before{
-  content:'';width:5px;height:5px;border-radius:50%;
-  background:#fff;opacity:.9;flex-shrink:0;
-  animation:blink-sap 2s ease-in-out infinite;
+  0%,100%{opacity:1}
+  50%{opacity:.75}
 }
 
 </style>
@@ -1952,9 +1938,11 @@ function getPromoTagsForProduct(prod){
 
 function renderPromoTagBar(prod){
   const tags=getPromoTagsForProduct(prod);
+  const sapHetTag=tags.length>0
+    ? `<span class="pptag pptag-sap-het">🔴 Sắp hết</span>`
+    : '';
   if(!tags.length) return '';
-  const tagHtml=tags.slice(0,3).map(p=>{
-    const meta=PROMO_TYPE_META[p.type]||{icon:'🎯',badge:'KM'};
+  const tagHtml=tags.slice(0,2).map(p=>{
     let cls='pptag-discount', txt='';
     if(p.type==='flash'){cls='pptag-flash';txt=`⚡ -${p.discount_pct||0}%`;}
     else if(p.type==='bxgy1'){cls='pptag-bxgy';txt='🥛 Mua 1 Tặng 1';}
@@ -1964,7 +1952,7 @@ function renderPromoTagBar(prod){
     else if(p.type==='gift'){cls='pptag-gift';txt='🎀 Quà kèm';}
     return `<span class="pptag ${cls}">${txt}</span>`;
   }).join('');
-  return `<div class="prod-promo-bar">${tagHtml}</div>`;
+  return `<div class="prod-promo-bar">${tagHtml}${sapHetTag}</div>`;
 }
 
 function hotCard(p, prefix='hot'){
@@ -1973,13 +1961,11 @@ function hotCard(p, prefix='hot'){
   const oldP=DEMO_OLD_PRICES[p.id]||p.old_price||0;
   const pct=oldP>p.price?Math.round((1-p.price/oldP)*100):0;
   const promoBar=renderPromoTagBar(p);
-  const hasPromo=getPromoTagsForProduct(p).length>0;
   return `<div class="hot-card${qty>0?' has':''}" id="${prefix==='expand'?'ec':'hc'}-${p.id}">
     ${promoBar}
     <div class="hot-img-box">
       ${p.image_url?`<img src="${p.image_url}" alt="${p.name}">`:`<div class="hot-img-emoji">${emoji}</div>`}
-      ${hasPromo?'<div class="badge-sap-het">SẮP HẾT</div>':''}
-      ${pct?`<div class="hot-badge-tag" style="${hasPromo?'top:28px':''}">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag" style="${hasPromo?'top:28px':''}">HOT</div>`:''}
+      ${pct?`<div class="hot-badge-tag">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag">HOT</div>`:''}
     </div>
     <div class="hot-body">
       <div class="hot-name">${p.name}</div>
