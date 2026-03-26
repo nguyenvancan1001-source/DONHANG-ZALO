@@ -338,7 +338,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 
 /* ── EXPAND ALL PRODUCTS ──────────────────────── */
-.expand-section{padding:0 14px 14px}
+.expand-section{padding:0 12px 14px}
 .expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 
 .expand-sep{display:flex;align-items:center;gap:8px;margin:4px 0 10px;padding:0 14px}
@@ -2671,8 +2671,7 @@ function hotCard(p, prefix='hot'){
   const pct=oldP>p.price?Math.round((1-p.price/oldP)*100):0;
   const promoBar=renderPromoTagBar(p);
   return `<div class="hot-card${qty>0?' has':''}" id="${prefix==='expand'?'ec':'hc'}-${p.id}">
-    ${promoBar}
-    <div class="hot-img-box">
+    <div class="hot-img-box" style="position:relative">
       ${p.image_url?`<img src="${p.image_url}" alt="${p.name}">`:`<div class="hot-img-emoji">${emoji}</div>`}
       ${pct?`<div class="hot-badge-tag">-${pct}%</div>`:p.is_hot?`<div class="hot-badge-tag">HOT</div>`:''}
       ${(()=>{
@@ -2686,14 +2685,13 @@ function hotCard(p, prefix='hot'){
       })()}
     </div>
     <div class="hot-body">
+      ${promoBar}
       <div class="hot-name">${p.name}</div>
       <div class="hot-add-row">
         <div>
           <div class="hot-price">${fmt(p.price)}</div>
-          ${oldP?`<div class="hot-old">${fmt(oldP)}</div>`:''}
+          ${oldP&&oldP>p.price?`<div class="hot-old">${fmt(oldP)}</div>`:''}
         </div>
-      <div class="hot-bottom">
-        <div></div>
         <div>
           ${qty>0
             ?`<div class="qty-ctrl-sm"><button class="qb-sm" onclick="chgCard('${p.id}',-1,event,'${prefix}')">−</button><span class="qn-sm">${qty}</span><button class="qb-sm" onclick="chgCard('${p.id}',1,event,'${prefix}')">+</button></div>`
