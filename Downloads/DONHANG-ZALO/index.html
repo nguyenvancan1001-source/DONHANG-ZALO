@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.5">
+<meta name="version" content="2.6">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.5</title>
-<!-- v2.5 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.6</title>
+<!-- v2.6 — fix promo badge chỉ hiện khi có KM thật -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1018,10 +1018,7 @@ const PROD_EMOJI_MAP = {
   'Sữa':'🥛','Đồ uống':'🍺','Hóa phẩm':'🧴','Bánh':'🍞','Khác':'🛒'
 };
 
-const DEMO_OLD_PRICES = {
-  'd01':120000,'d02':60000,'d03':32000,'d05':0,'d06':38000,
-  'd07':35000,'d08':160000,'d09':32000,'d10':450000
-};
+const DEMO_OLD_PRICES = {}; // Không dùng giá demo cứng — badge chỉ hiện từ data thật
 
 // ── COUNTDOWN ──────────────────────────────────────
 function tickCd(){
@@ -1137,7 +1134,7 @@ function buildHotGrid(){
   const el=document.getElementById('hot-grid');
   if(!el) return;
   const hotProds=allProds.filter(p=>
-    DEMO_OLD_PRICES[p.id]||p.old_price||p.is_hot||p.is_new
+    p.old_price||p.is_hot||p.is_new||p.sale_price
   ).slice(0,6);
   if(!hotProds.length){
     el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--ink3);font-size:13px">Đang tải sản phẩm...</div>';
@@ -2377,7 +2374,6 @@ async function togPromoActive(id,cur){
   }
   const p=_promoStore.find(x=>x.id===id);
   if(p){ p.is_active=!cur; _syncPromosToBuildState(); admLoadPromos();
-    try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(_promoStore)));}catch(e){}
     toast(cur?'Đã tắt KM':'Đã bật KM'); }
 }
 async function delPromo(id){
@@ -2392,7 +2388,6 @@ async function delPromo(id){
     }catch(e){ console.warn('delPromo cloud error:',e.message); }
   }
   _promoStore=_promoStore.filter(x=>x.id!==id);
-  try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(_promoStore)));}catch(e){}
   _syncPromosToBuildState(); admLoadPromos(); toast('Đã xoá');
 }
 
@@ -2642,7 +2637,6 @@ async function _syncPromosFromCloud(){
     if(error) throw error;
     if(data&&data.length){
       _promoStore=_safeSerializePromos(data);
-      try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(_promoStore)));}catch(e){}
     }
   }catch(e){
     console.warn('_syncPromosFromCloud:',e.message,'→ dùng local');
@@ -2689,8 +2683,6 @@ async function savePromo(){
       }
       if(error) throw error;
       await _syncPromosFromCloud();
-      // Lưu localStorage đồng bộ với cloud
-      try{ localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(_promoStore))); }catch(e){}
       savedToCloud=true;
     }catch(e){
       console.warn('Supabase savePromo error:',e.message,'→ lưu local');
@@ -2707,9 +2699,6 @@ async function savePromo(){
       _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
     }
   }
-
-  // Lưu vào localStorage để không mất khi thoát
-  try{ localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(_promoStore))); }catch(e){}
 
   // Cập nhật màn hình chính + danh sách admin
   _syncPromosToBuildState();
@@ -2770,20 +2759,9 @@ function promoToCardV2(p){
   return {icon:meta.icon,title,subTitle,badge,boxIcon,boxText,boxSub,boxTag,_pid:p.id};
 }
 
-// ── INIT _promoStore: localStorage → DEMO_PROMOS ──────────
-(function(){
-  try{
-    const saved = localStorage.getItem('vc_promos');
-    if(saved){
-      const parsed = JSON.parse(saved);
-      if(parsed && parsed.length){
-        _promoStore = parsed;
-        return;
-      }
-    }
-  }catch(e){ console.warn('load vc_promos error:', e); }
-  // Fallback: giữ _promoStore demo mặc định
-})();
+// ── INIT _promoStore: luôn bắt đầu rỗng, loadPromos() sẽ fill từ Supabase ──
+// (đã xóa đọc localStorage — tránh badge demo cũ hiện sai)
+try{ localStorage.removeItem('vc_promos'); }catch(_){}
 try{allPromos=_promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));}catch(e){allPromos=[];console.warn("allPromos init:",e.message);}
 
 
@@ -3018,10 +2996,10 @@ function renderPromoTagBar(prod){
 function hotCard(p, prefix='hot'){
   const item=cart.find(x=>x.id===p.id), qty=item?item.qty:0;
   const emoji=PROD_EMOJI_MAP[p.category]||'🛒';
-  // Giá hiển thị: ưu tiên sale_price
+  // Giá hiển thị: ưu tiên sale_price thật từ data
   const displayPrice = (p.sale_price && p.sale_price < p.price) ? p.sale_price : p.price;
-  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (DEMO_OLD_PRICES[p.id]||p.old_price||0);
-  const pct = oldP>displayPrice ? Math.round((1-displayPrice/oldP)*100) : 0;
+  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (p.old_price||0);
+  const pct = (oldP>0 && oldP>displayPrice) ? Math.round((1-displayPrice/oldP)*100) : 0;
   // Tên chương trình KM
   const linkedPromo = p.promo_id ? _promoStore.find(x=>x.id===p.promo_id) : null;
   const promoBar=renderPromoTagBar(p);
