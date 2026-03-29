@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.9">
+<meta name="version" content="3.1">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.9</title>
-<!-- v2.9 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.1</title>
+<!-- v3.1 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -451,6 +451,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 /* Modal trong admin */
 .adm-modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.5);align-items:flex-end;pointer-events:none}
+.adm-modal-bg[style*='flex']{pointer-events:all!important}
 .adm-modal-bg.open{display:flex}
 .adm-modal-box{background:#fff;border-radius:18px 18px 0 0;padding:20px 16px 32px;width:100%}
 .adm-modal-title{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:14px}
@@ -496,6 +497,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .promo-form-title{font-size:12px;font-weight:800;color:var(--g800);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .pf-row{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .adm-promo-modal-bg{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);align-items:flex-end;pointer-events:none}
+.adm-promo-modal-bg[style*='flex']{pointer-events:all!important}
 /* .adm-promo-modal-bg.open handled by JS */
 .adm-promo-modal{background:#fff;border-radius:12px 12px 0 0;width:100%;max-height:85vh;overflow-y:auto;padding:10px 10px 16px}
 .adm-promo-modal::-webkit-scrollbar{display:none}
@@ -680,25 +682,21 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 <!-- CONFIG ✅ URL đã điền — chỉ cần thay SUPA_KEY bằng anon key từ Supabase Dashboard -->
 <script>
-// ═══ AUTO CACHE CLEAR KHI VERSION THAY ĐỔI ═══
+// AUTO CACHE CLEAR
 (function(){
-  var APP_VER = '2.9';
+  var V='3.1';
   try{
-    var savedVer = localStorage.getItem('vc_app_version');
-    if(savedVer !== APP_VER){
-      // Version mới → xóa toàn bộ cache cũ, giữ lại cart
-      var cart = localStorage.getItem('vc_cart_v2');
-      var session = localStorage.getItem('vc_adm_session');
+    var sv=localStorage.getItem('vc_app_version');
+    if(sv!==V){
+      var cart=localStorage.getItem('vc_cart_v2');
+      var sess=localStorage.getItem('vc_adm_session');
       localStorage.clear();
-      if(cart) localStorage.setItem('vc_cart_v2', cart);
-      if(session) localStorage.setItem('vc_adm_session', session);
-      localStorage.setItem('vc_app_version', APP_VER);
-      console.log('[Vicomart] Cache cleared — version ' + APP_VER);
+      if(cart) localStorage.setItem('vc_cart_v2',cart);
+      if(sess) localStorage.setItem('vc_adm_session',sess);
+      localStorage.setItem('vc_app_version',V);
     }
   }catch(e){}
 })();
-// ═══════════════════════════════════════════════
-
 const SUPA_URL = 'https://mypsgfrzmqdvlsitalwn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cHNnZnJ6bXFkdmxzaXRhbHduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mjg4MDcsImV4cCI6MjA5MDAwNDgwN30.-CaQ0rYZCBLew-N5mZNVbew1Nsdu2SI-wufd71zps3w';
 // Edge Function endpoints
@@ -1000,35 +998,7 @@ let screenStack = ['s-shop'];
 
 
 // ── DEMO PROMOS & HOT ─────────────────────────────
-// DEMO_PROMOS — dùng khi Supabase chưa có data
-// Cấu trúc: icon, title, subTitle, badge, boxIcon, boxText, boxSub, boxTag
-const DEMO_PROMOS = [
-  {
-    icon:'🌾', title:'Gạo ST25 giảm 13%', subTitle:'Áp dụng ngay · Còn hàng',
-    badge:'-13%',
-    boxIcon:'🌾', boxText:'Gạo ST25 túi 5kg', boxSub:'Áp dụng ngay · Không giới hạn', boxTag:'Giảm 13%'
-  },
-  {
-    icon:'🎁', title:'Mua Mì Tặng Nước', subTitle:'Mua 5 gói Mì Hảo Hảo · Nhận ngay quà tặng',
-    badge:'TẶNG KÈM',
-    boxIcon:'🍜', boxText:'Mua 5 gói Mì Hảo Hảo', boxSub:'Áp dụng ngay · Không giới hạn số lần', boxTag:'💧 +1 Nước'
-  },
-  {
-    icon:'🧴', title:'Dầu Gội Giảm 10%', subTitle:'Mua dầu gội bất kỳ · kết hợp cùng thương hiệu',
-    badge:'-10%',
-    boxIcon:'🧴', boxText:'Mua dầu gội bất kỳ', boxSub:'Kết hợp cùng thương hiệu · Hôm nay', boxTag:'-10%'
-  },
-  {
-    icon:'🛍️', title:'Combo Tiết Kiệm', subTitle:'Gạo + Dầu ăn + Nước mắm · Giảm thêm 5%',
-    badge:'COMBO',
-    boxIcon:'🌾', boxText:'Gạo ST25 + Dầu Neptune + Nước mắm', boxSub:'Mua đủ 3 SP · Giảm thêm ngay 5%', boxTag:'-5%'
-  },
-  {
-    icon:'🥚', title:'Trứng Gà Ta Giảm 9%', subTitle:'Giá gốc 35.000đ · Hôm nay chỉ 32.000đ',
-    badge:'-9%',
-    boxIcon:'🥚', boxText:'Trứng gà ta vỉ 10', boxSub:'Áp dụng hôm nay · Số lượng có hạn', boxTag:'32.000đ'
-  },
-];
+const DEMO_PROMOS = []; // removed
 
 function fmtNoSuffix(n){return Number(n).toLocaleString('vi-VN');}
 
@@ -1037,7 +1007,10 @@ const PROD_EMOJI_MAP = {
   'Sữa':'🥛','Đồ uống':'🍺','Hóa phẩm':'🧴','Bánh':'🍞','Khác':'🛒'
 };
 
-const DEMO_OLD_PRICES = {}; // Không dùng giá demo cứng — badge chỉ hiện từ data thật
+const DEMO_OLD_PRICES = {
+  'd01':120000,'d02':60000,'d03':32000,'d05':0,'d06':38000,
+  'd07':35000,'d08':160000,'d09':32000,'d10':450000
+};
 
 // ── COUNTDOWN ──────────────────────────────────────
 function tickCd(){
@@ -1119,21 +1092,13 @@ function buildHeroPromos(){
   const el=document.getElementById('hero-promo-list');
   if(!el) return;
 
-  // Chỉ dùng data thật từ Supabase — không fallback DEMO
+  // Dùng allPromos nếu có data, fallback về DEMO_PROMOS
   let cards=[];
   if(typeof allPromos!=='undefined' && allPromos && allPromos.length){
+    // allPromos có thể là array đã converted (promoToCardV2) hoặc Supabase raw
     cards = allPromos.map(p=>p.title?p:promoToCardV2(p)).filter(p=>p&&p.title);
   }
-  if(!cards.length){
-    // Không có KM thật → ẩn section hero promo
-    const heroSection=el.closest('.hero-promo-section')||el.parentElement;
-    if(heroSection) heroSection.style.display='none';
-    el.innerHTML='';
-    return;
-  }
-  // Có KM thật → đảm bảo section hiện
-  const heroSection=el.closest('.hero-promo-section')||el.parentElement;
-  if(heroSection) heroSection.style.display='';
+  if(!cards.length) cards=DEMO_PROMOS;
 
   const COLORS=['pc-0','pc-1','pc-2','pc-3','pc-4','pc-5'];
   el.innerHTML=cards.map((p,i)=>`
@@ -1161,7 +1126,7 @@ function buildHotGrid(){
   const el=document.getElementById('hot-grid');
   if(!el) return;
   const hotProds=allProds.filter(p=>
-    p.old_price||p.is_hot||p.is_new||p.sale_price
+    DEMO_OLD_PRICES[p.id]||p.old_price||p.is_hot||p.is_new
   ).slice(0,6);
   if(!hotProds.length){
     el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--ink3);font-size:13px">Đang tải sản phẩm...</div>';
@@ -1239,1421 +1204,15 @@ function _safeSerializePromos(arr){
   }
 }
 async function loadPromos(){
-  // DEMO mode: dùng data mẫu
-  if(IS_DEMO){
-    _promoStore=_safeSerializePromos(DEMO_PROMO_FALLBACK);
-    _syncPromosToBuildState(); return;
-  }
-  // PRODUCTION: chỉ lấy từ Supabase, không fallback localStorage
-  // Nếu Supabase lỗi hoặc rỗng → _promoStore=[] → không hiện badge nào
+  if(IS_DEMO){_promoStore=[];_syncPromosToBuildState();return;}
   _promoStore=[];
   try{
     const {data,error}=await db.from('promotions').select('*').eq('is_active',true).order('created_at',{ascending:false});
-    if(!error && data && data.length){
-      _promoStore=_safeSerializePromos(data);
-    }
-  }catch(e){
-    console.warn('[Vicomart] loadPromos:',e.message);
-  }
-  // Xóa cache localStorage cũ để không dùng lại
-  try{localStorage.removeItem('vc_promos');}catch(_){}
+    if(!error&&data&&data.length) _promoStore=_safeSerializePromos(data);
+  }catch(e){console.warn('[Vicomart] loadPromos:',e.message);}
   _syncPromosToBuildState();
 }
 
-// ✅ Xóa promo_id demo khỏi Supabase (chạy ngầm, không block UI)
-async function _cleanDemoPromoIdsFromDB(){
-  try{
-    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-    // Kiểm tra xem còn SP nào có promo_id demo không
-    const {data,error}=await db.from('products')
-      .select('id,promo_id')
-      .in('promo_id', DEMO_IDS);
-    if(error||!data||!data.length) return;
-    // Xóa promo_id demo khỏi các SP đó
-    const {error:upErr}=await db.from('products')
-      .update({promo_id:null})
-      .in('promo_id', DEMO_IDS);
-    if(!upErr){
-      console.log('[Vicomart] Đã xóa promo_id demo khỏi',data.length,'SP trên Supabase');
-      // Reload lại SP để UI cập nhật
-      await loadProds();
-    }
-  }catch(e){ console.warn('_cleanDemoPromoIdsFromDB:',e.message); }
-}
-
-window.addEventListener('DOMContentLoaded', async () => {
-  // ✅ Xóa toàn bộ cache promo cũ — chỉ dùng Supabase
-  try{ localStorage.removeItem('vc_promos'); }catch(_){}
-  // ✅ Xóa promo_id demo khỏi cache sản phẩm
-  try{
-    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-    const savedProds=localStorage.getItem('vc_products');
-    if(savedProds){
-      const prods=JSON.parse(savedProds);
-      if(prods&&prods.some(p=>p.promo_id&&DEMO_IDS.includes(p.promo_id))){
-        const cleaned=prods.map(p=>({...p,promo_id:DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
-        localStorage.setItem('vc_products',JSON.stringify(cleaned));
-        if(window._savedProds) window._savedProds=cleaned;
-      }
-    }
-  }catch(_){}
-  try{ buildHeroPromos(); }catch(e){ console.warn('buildHeroPromos:',e.message); }
-  try{ loadHeaderStats(); }catch(e){ console.warn('loadHeaderStats:',e.message); }
-  try{ await loadPromos(); }catch(e){ console.warn('loadPromos:',e.message); }
-  // ✅ Dọn promo_id demo khỏi Supabase (chạy 1 lần, tự biết khi nào cần)
-  if(!IS_DEMO && db) _cleanDemoPromoIdsFromDB();
-  try{ renderHighlights(); }catch(e){ console.warn('renderHighlights:',e.message); }
-  try{
-    BRANCHES.forEach(b => {
-      const o = document.createElement('option');
-      o.value = b; o.textContent = b;
-      const el = document.getElementById('f-branch');
-      if(el) el.appendChild(o);
-    });
-  }catch(e){}
-  try{ await loadProds(); }catch(e){ console.warn('loadProds:',e.message); }
-  try{ renderExpandGrid(); }catch(e){ console.warn('renderExpandGrid:',e.message); }
-  try{ renderCartBar(); }catch(e){}
-  try{ updateFlashPriceBar(); }catch(e){}
-  setInterval(()=>{ try{loadHeaderStats();}catch(e){} }, 30000);
-  if(db && !IS_DEMO){
-    try{
-      db.channel('products-changes')
-        .on('postgres_changes',{event:'*',schema:'public',table:'products'},async()=>{
-          try{ await loadProds(); renderExpandGrid(); }catch(e){}
-        }).subscribe();
-      db.channel('orders-changes')
-        .on('postgres_changes',{event:'*',schema:'public',table:'orders'},()=>{
-          try{ loadHeaderStats(); }catch(e){}
-        }).subscribe();
-    }catch(e){ console.warn('Realtime:',e.message); }
-  }
-});
-
-// ── SCREEN NAV ─────────────────────────────────────
-function goScreen(id) {
-  const cur = screenStack[screenStack.length - 1];
-  if (cur === id) return;
-  document.getElementById(cur).classList.add('behind');
-  document.getElementById(id).classList.add('active');
-  screenStack.push(id);
-  if (id === 's-cart') { renderCart(); }
-  // Ẩn hero-mode khi chuyển sang cart/checkout/success
-
-  if (id === 's-checkout') renderCoSummary();
-}
-
-function goBack() {
-  if (screenStack.length <= 1) return;
-  const cur = screenStack.pop();
-  const prev = screenStack[screenStack.length - 1];
-  // Slide current screen out
-  document.getElementById(cur).classList.remove('active');
-  // Restore previous screen from behind
-  document.getElementById(prev).classList.remove('behind');
-  // Cleanup cur after transition finishes
-  setTimeout(() => {
-    const el = document.getElementById(cur);
-    if (el) el.classList.remove('active', 'behind');
-  }, 350);
-}
-
-// ── PRODUCTS ────────────────────────────────────────
-async function loadProds() {
-  if (IS_DEMO) {
-    allProds = [...DEMO_PRODUCTS];
-    buildCats(); renderProds(allProds); buildHotGrid(); return;
-  }
-  try {
-    const { data, error } = await db.from('products')
-      .select('*').order('category').order('name');
-    if (error) throw error;
-    if(data && data.length){
-      // Cloud là nguồn chính — ghép ảnh local nếu có
-      const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-      allProds = data.map(p=>({
-        ...p,
-        image_url: imgs[p.id] || p.image_url || ''
-      }));
-      // Cập nhật DEMO_PRODUCTS từ cloud để đồng bộ local
-      DEMO_PRODUCTS.length = 0;
-      allProds.forEach(p => DEMO_PRODUCTS.push(p));
-      _saveProdLocal();
-    } else {
-      allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
-    }
-    // ✅ Strip promo_id demo: nếu promo_id không tồn tại trong _promoStore thật → xóa
-    _stripInvalidPromoIds();
-    buildCats(); renderProds(allProds); buildHotGrid();
-  } catch(e) {
-    allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
-    _stripInvalidPromoIds();
-    buildCats(); renderProds(allProds); buildHotGrid();
-  }
-}
-
-// Xóa promo_id khỏi sản phẩm nếu promo đó không có trong _promoStore thật
-function _stripInvalidPromoIds(){
-  if(!allProds||!allProds.length) return;
-  const validIds = new Set((_promoStore||[]).map(p=>p.id));
-  let changed = false;
-  allProds = allProds.map(p=>{
-    if(p.promo_id && !validIds.has(p.promo_id)){
-      changed = true;
-      return {...p, promo_id: null};
-    }
-    return p;
-  });
-  if(changed){
-    // Cập nhật DEMO_PRODUCTS local
-    DEMO_PRODUCTS.length = 0;
-    allProds.forEach(p => DEMO_PRODUCTS.push(p));
-    // Lưu lại local (không push lên Supabase — chỉ UI)
-    try{
-      const prods = allProds.map(p=>({...p, image_url: p.image_url&&p.image_url.startsWith('data:')?'__local__':p.image_url}));
-      localStorage.setItem('vc_products', JSON.stringify(prods));
-    }catch(_){}
-    console.log('[Vicomart] Đã strip promo_id demo khỏi', allProds.filter(p=>!p.promo_id).length, 'sản phẩm');
-  }
-}
-
-function buildCats() {
-  const cats = ['Tất cả', ...new Set(allProds.map(p => p.category))];
-  const scroll = document.getElementById('cat-scroll');
-  scroll.innerHTML = cats.map(c =>
-    `<button class="cat-pill${c === activeCat ? ' on' : ''}" onclick="setCat('${c}')">${c}</button>`
-  ).join('');
-}
-
-function setCat(c) {
-  activeCat = c;
-  buildCats();
-  filterProds();
-}
-
-function filterProds() {
-  const q = document.getElementById('search-inp').value.toLowerCase().trim();
-  let list = activeCat === 'Tất cả' ? allProds : allProds.filter(p => p.category === activeCat);
-  if (q) list = list.filter(p => p.name.toLowerCase().includes(q));
-  renderProds(list);
-}
-
-function renderProds(list) {
-  const el = document.getElementById('prod-list');
-  if (!list.length) {
-    el.innerHTML = `<div class="loading">Không tìm thấy sản phẩm</div>`; return;
-  }
-
-  // Group by category if showing all
-  if (activeCat === 'Tất cả' && !document.getElementById('search-inp').value) {
-    const groups = {};
-    list.forEach(p => { (groups[p.category] = groups[p.category] || []).push(p); });
-    el.innerHTML = Object.entries(groups).map(([cat, prods]) =>
-      `<div class="section-title">${cat}</div>` + prods.map(p => prodCard(p)).join('')
-    ).join('');
-  } else {
-    el.innerHTML = list.map(p => prodCard(p)).join('');
-  }
-}
-
-function prodCard(p) {
-  const item = cart.find(x => x.id === p.id);
-  const qty = item ? item.qty : 0;
-  const inCart = qty > 0;
-  return `<div class="prod-card${inCart ? ' has' : ''}" id="pc-${p.id}">
-    <div class="prod-img">
-      ${p.image_url
-        ? `<img src="${p.image_url}" alt="${p.name}" loading="lazy">`
-        : `<div class="prod-img-ph"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="18" rx="3" stroke="#ccc" stroke-width="1.5"/><path d="M4 13h24" stroke="#ccc" stroke-width="1.5"/><circle cx="10" cy="10.5" r="1.5" fill="#ccc"/></svg></div>`
-      }
-    </div>
-    <div class="prod-body">
-      <div class="prod-name">${p.name}</div>
-      <div class="prod-cat">${p.category}</div>
-      <div class="prod-bottom">
-        <div>
-          <div class="prod-price">${fmt(p.price)}</div>
-          <div class="prod-unit">/${p.unit}</div>
-        </div>
-        <div class="qty-wrap">
-          ${inCart
-            ? `<div class="qty-ctrl">
-                <button class="qb" onclick="chg('${p.id}',-1,event)">−</button>
-                <span class="qn">${qty}</span>
-                <button class="qb" onclick="chg('${p.id}',1,event)">+</button>
-               </div>`
-            : `<button class="add-btn" onclick="add('${p.id}',event)"${p.stock_qty===0?' disabled':''}>
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M9 4v10M4 9h10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-               </button>`
-          }
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── CART OPS ────────────────────────────────────────
-function add(id, e) {
-  e && e.stopPropagation();
-  const p = allProds.find(x => x.id === id);
-  if (!p) return;
-  // Kiểm tra tồn kho
-  const avail = getAvailableStock(p);
-  if(avail!==null && avail<=0){ toast('⛔ Sản phẩm đã hết hàng'); return; }
-  const existing = cart.find(x=>x.id===id);
-  if(existing){ existing.qty+=1; }
-  else { cart.push({ id:p.id, name:p.name, price:p.price, unit:p.unit, qty:1, img:p.image_url||'' }); }
-  save(); renderCartBar();
-  refreshBothGrids(id);
-  // Thông báo tồn kho còn lại
-  const availAfter = getAvailableStock(p);
-  if(availAfter!==null && availAfter<=5 && availAfter>0){
-    toast(`Đã thêm "${p.name}" · 🔥 Còn ${availAfter} suất`);
-  } else {
-    toast(`Đã thêm "${p.name}"`);
-  }
-}
-
-function chg(id, d, e) {
-  e && e.stopPropagation();
-  const i = cart.findIndex(x => x.id === id);
-  if (i < 0) return;
-  // Kiểm tra tồn kho khi tăng
-  if(d > 0){
-    const p = allProds.find(x=>x.id===id);
-    const avail = p ? getAvailableStock(p) : null;
-    if(avail!==null && avail<=0){ toast('⛔ Đã đạt số lượng tối đa'); return; }
-  }
-  cart[i].qty += d;
-  if(cart[i].qty <= 0) cart.splice(i, 1);
-  save(); renderCartBar();
-  refreshBothGrids(id);
-  const cs = document.getElementById('s-cart');
-  if(cs && cs.classList.contains('active')) renderCart();
-}
-
-function refreshCard(id) {
-  const el = document.getElementById('pc-' + id);
-  if (!el) return;
-  const p = allProds.find(x => x.id === id);
-  if (!p) return;
-  el.outerHTML = prodCard(p);
-}
-
-function save() { try{localStorage.setItem('vc_cart_v2', JSON.stringify(cart));}catch(e){} }
-
-function renderCartBar() {
-  const bar = document.getElementById('cart-bar');
-  const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
-  const qty = cart.reduce((s, x) => s + x.qty, 0);
-  document.getElementById('cart-badge').textContent = qty;
-  document.getElementById('cart-count-text').textContent = qty + ' sản phẩm';
-  document.getElementById('cart-total-text').textContent = fmt(total);
-  if (qty > 0) bar.classList.add('show'); else bar.classList.remove('show');
-}
-
-// ── CART SCREEN ─────────────────────────────────────
-function renderCart() {
-  const el = document.getElementById('cart-content');
-  const btn = document.getElementById('checkout-btn');
-  if (!cart.length) {
-    el.innerHTML = `<div class="empty-cart">
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <circle cx="32" cy="32" r="30" stroke="#ddd" stroke-width="1.5"/>
-        <path d="M20 24l4 16h16l4-10H24" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="28" cy="44" r="2" fill="#ccc"/><circle cx="38" cy="44" r="2" fill="#ccc"/>
-      </svg>
-      <div style="font-size:16px;font-weight:700;margin-bottom:6px">Giỏ hàng trống</div>
-      <div style="font-size:14px">Quay lại để thêm sản phẩm</div>
-    </div>`;
-    btn.disabled = true; return;
-  }
-  btn.disabled = false;
-  const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
-  el.innerHTML = cart.map(x => `
-    <div class="cart-item">
-      <div class="ci-img">
-        ${x.img ? `<img src="${x.img}" alt="${x.name}">` : `<div class="ci-img-ph"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="5" width="18" height="13" rx="2" stroke="#ccc" stroke-width="1.3"/><path d="M2 9h18" stroke="#ccc" stroke-width="1.3"/></svg></div>`}
-      </div>
-      <div class="ci-body">
-        <div class="ci-name">${x.name}</div>
-        <div class="ci-price">${fmt(x.price)} / ${x.unit}</div>
-        <div class="qty-ctrl" style="margin-top:8px;border-color:var(--line);background:#f5f5f3;display:inline-flex">
-          <button class="qb" style="color:var(--ink)" onclick="chg('${x.id}',-1,event)">−</button>
-          <span class="qn" style="color:var(--ink)">${x.qty}</span>
-          <button class="qb" style="color:var(--ink)" onclick="chg('${x.id}',1,event)">+</button>
-        </div>
-      </div>
-      <div class="ci-right">
-        <button class="ci-del" onclick="chg('${x.id}',-99,event)">×</button>
-        <div class="ci-sub">${fmt(x.price * x.qty)}</div>
-      </div>
-    </div>`).join('') +
-    `<div class="cart-summary">
-      <div class="sum-r"><span>Tạm tính (${cart.reduce((s,x)=>s+x.qty,0)} sp)</span><span>${fmt(total)}</span></div>
-      <div class="sum-r"><span>Phí giao hàng</span><span class="sum-free">Miễn phí</span></div>
-      <div class="sum-r tot"><span>Tổng cộng</span><span>${fmt(total)}</span></div>
-    </div>`;
-}
-
-function renderCoSummary() {
-  const total = cart.reduce((s, x) => s + x.price * x.qty, 0);
-  document.getElementById('co-summary').innerHTML =
-    `<div class="form-label">Tóm tắt đơn (${cart.length} loại)</div>` +
-    cart.map(x => `<div class="sum-r"><span>${x.name} ×${x.qty}</span><span style="font-weight:700">${fmt(x.price*x.qty)}</span></div>`).join('') +
-    `<div class="sum-r tot"><span>Tổng cộng</span><span style="color:var(--g800)">${fmt(total)}</span></div>`;
-}
-
-// ── SUBMIT ───────────────────────────────────────────
-async function submitOrder() {
-  const name = document.getElementById('f-name').value.trim();
-  const phone = document.getElementById('f-phone').value.replace(/\s/g,'');
-  if (!name) { toast('Vui lòng nhập họ tên'); return; }
-  if (!/^[0-9]{9,11}$/.test(phone)) { toast('Số điện thoại không hợp lệ'); return; }
-  if (!cart.length) { toast('Giỏ hàng trống'); return; }
-
-  const btn = document.getElementById('order-btn');
-  btn.disabled = true; btn.textContent = 'Đang gửi...';
-
-  const branch = document.getElementById('f-branch').value;
-  const addr   = document.getElementById('f-addr').value.trim();
-  const note   = document.getElementById('f-note').value.trim();
-  const total  = cart.reduce((s,x)=>s+x.price*x.qty,0);
-  const code   = 'VC' + Date.now().toString().slice(-6);
-
-  // ── Dùng Edge Function (validate + chống spam + tồn kho + Zalo notify) ──
-  if(!IS_DEMO){
-    try{
-      const res = await fetch(EF_SUBMIT_ORDER,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
-        body:JSON.stringify({
-          name, phone, branch, address:addr, note,
-          items:cart.map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty})),
-          total
-        })
-      });
-      const data = await res.json();
-      btn.disabled=false; btn.textContent='Đặt hàng ngay';
-      if(!data.success){ toast('❌ '+(data.error||'Lỗi đặt hàng')); return; }
-      document.getElementById('suc-code').textContent = data.code||code;
-      cart=[]; save(); renderCartBar();
-      goScreen('s-success');
-      return;
-    }catch(ef_err){
-      console.warn('Edge Function fallback:', ef_err.message);
-      btn.disabled=false; btn.textContent='Đặt hàng ngay';
-    }
-  }
-
-  // ── Demo mode hoặc fallback ──
-  if(IS_DEMO){
-    await new Promise(r => setTimeout(r, 900));
-    document.getElementById('suc-code').textContent = code;
-    cart=[]; save(); renderCartBar();
-    goScreen('s-success');
-    btn.disabled = false; btn.textContent = 'Đặt hàng ngay';
-    return;
-  }
-
-  try {
-    const { data: order, error: oE } = await db.from('orders').insert({
-      order_code: code, customer_name: name, phone,
-      branch: document.getElementById('f-branch').value || null,
-      address: document.getElementById('f-addr').value.trim() || null,
-      note: document.getElementById('f-note').value.trim() || null,
-      status: 'pending', total
-    }).select().single();
-    if (oE) throw oE;
-
-    await db.from('order_items').insert(
-      cart.map(x => ({ order_id: order.id, product_id: x.id.startsWith('d') ? null : x.id, product_name: x.name, unit_price: x.price, qty: x.qty }))
-    );
-
-    if (ZALO_NOTIFY_URL) {
-      fetch(ZALO_NOTIFY_URL, { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ order_code: code, customer_name: name, phone, total, item_count: cart.length })
-      }).catch(()=>{});
-    }
-
-    document.getElementById('suc-code').textContent = code;
-    cart = []; save(); renderCartBar();
-    // Reset form
-    ['f-name','f-phone','f-addr','f-note'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-    document.getElementById('f-branch').selectedIndex = 0;
-    goScreen('s-success');
-
-  } catch(e) {
-    toast('Lỗi: ' + (e.message || 'Thử lại sau'));
-    btn.disabled = false; btn.textContent = 'Đặt hàng ngay';
-  }
-}
-
-function resetAll() {
-  // Clear stack, go back to shop
-  screenStack = ['s-shop'];
-  ['s-cart','s-checkout','s-success'].forEach(id => {
-    document.getElementById(id).classList.remove('active','behind');
-  });
-  document.getElementById('s-shop').classList.add('active');
-  document.getElementById('search-inp').value = '';
-  activeCat = 'Tất cả';
-  buildCats();
-  renderProds(allProds);
-}
-
-// ── HELPERS ──────────────────────────────────────────
-function fmt(n) { return Number(n).toLocaleString('vi-VN') + 'đ'; }
-let tTimer;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(tTimer);
-  tTimer = setTimeout(() => el.classList.remove('show'), 2200);
-}
-
-/* ═══════════════════════════════════════════════
-   ADMIN SYSTEM — phân quyền + quản lý
-   ═══════════════════════════════════════════════ */
-
-// ── ACCOUNTS (demo — thay bằng Supabase Auth thực tế) ──
-// Tài khoản demo fallback (dùng khi Supabase Auth chưa setup)
-const ADM_ACCOUNTS_DEFAULT = [
-  {user:'admin',      pass:'vcm@2026',      role:'admin',   name:'Quản trị viên',        branch:''},
-  {user:'qlpb',       pass:'qlpb@123',      role:'manager', name:'Quản lý Phú Bài',      branch:'Vicomart Phú Bài'},
-  {user:'qlvt',       pass:'qlvt@123',      role:'manager', name:'Quản lý Vinh Thanh',   branch:'Vicomart Vinh Thanh'},
-  {user:'qlta',       pass:'qlta@123',      role:'manager', name:'Quản lý Thuận An',     branch:'Vicomart Thuận An'},
-  {user:'phubai',     pass:'phubai@123',    role:'staff',   name:'Cửa hàng Phú Bài',    branch:'Vicomart Phú Bài'},
-  {user:'vinhthanh',  pass:'vinhthanh@123', role:'staff',   name:'Cửa hàng Vinh Thanh', branch:'Vicomart Vinh Thanh'},
-  {user:'thuanan',    pass:'thuanan@123',   role:'staff',   name:'Cửa hàng Thuận An',   branch:'Vicomart Thuận An'},
-];
-// Load từ localStorage, fallback default
-let ADM_ACCOUNTS_DEMO = (()=>{
-  try{
-    const s=localStorage.getItem('vc_accounts');
-    if(s){ const d=JSON.parse(s); if(d&&d.length) return d; }
-  }catch(e){}
-  return [...ADM_ACCOUNTS_DEFAULT];
-})();
-function saveAccounts(){ try{localStorage.setItem('vc_accounts',JSON.stringify(ADM_ACCOUNTS_DEMO));}catch(e){} }
-
-const ADM_ST_LABEL = {pending:'Chờ xác nhận',processing:'Đang xử lý',ready:'Sẵn sàng',done:'Hoàn thành',cancelled:'Đã huỷ'};
-const ADM_ST_OPT = Object.entries(ADM_ST_LABEL).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
-
-let admUser = null; // current logged-in admin user
-let admTab = 'orders';
-let admEditProdId = null;
-
-// ── LOGIN / LOGOUT ──
-function openAdminPanel(){
-  const el = document.getElementById('adm-overlay');
-  if(!el) return;
-  // Reset hoàn toàn CSS
-  el.removeAttribute('style');
-  el.style.display = 'flex';
-  el.style.pointerEvents = 'all';
-  el.style.visibility = 'visible';
-  el.style.position = 'fixed';
-  el.style.inset = '0';
-  el.style.zIndex = '200';
-  // Thêm class open để adm-panel hiện ra
-  el.classList.add('open');
-  if(admUser) showAdmApp();
-  else{
-    // Hiện login form
-    const loginView = document.getElementById('adm-login-view');
-    const appView = document.getElementById('adm-app-view');
-    if(loginView) loginView.style.display = 'block';
-    if(appView) appView.style.display = 'none';
-  }
-}
-function closeAdminPanel(){
-  const el = document.getElementById('adm-overlay');
-  if(!el) return;
-  el.classList.remove('open');
-  el.style.cssText = 'display:none;pointer-events:none;visibility:hidden;position:fixed;inset:0;z-index:200;';
-  el.style.visibility = 'hidden';
-}
-async function doAdmLogin(){
-  const u = document.getElementById('adm-user').value.trim().toLowerCase();
-  const p = document.getElementById('adm-pass').value;
-  const b = document.getElementById('adm-branch').value;
-  const errEl = document.getElementById('adm-login-err');
-  const btn = document.querySelector('.adm-login-btn');
-  errEl.textContent = '';
-  if(btn){ btn.disabled=true; btn.textContent='Đang đăng nhập...'; }
-
-  // Thử Supabase Auth trước
-  if(db && !IS_DEMO){
-    try{
-      // Email format: username@vicomart.vn
-      const email = u + '@vicomart.vn';
-      const { data, error } = await db.auth.signInWithPassword({ email, password: p });
-      if(!error && data.user){
-        const meta = data.user.user_metadata || {};
-        admUser = {
-          user: u,
-          name: meta.name || u,
-          role: meta.role || 'staff',
-          branch: meta.branch || '',
-          selectedBranch: b || meta.branch || '',
-          email: data.user.email,
-          _supabase: true,
-        };
-        try{localStorage.setItem('vc_adm_session', JSON.stringify(admUser));}catch(e){}
-        if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
-        showAdmApp();
-        return;
-      }
-    }catch(e){ console.warn('Supabase auth error:', e.message); }
-  }
-
-  // Fallback: demo accounts
-  const acc = ADM_ACCOUNTS_DEMO.find(a => a.user===u && a.pass===p);
-  if(!acc){
-    errEl.textContent='Sai tài khoản hoặc mật khẩu';
-    if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
-    return;
-  }
-  admUser = {...acc, selectedBranch: b || acc.branch};
-  try{localStorage.setItem('vc_adm_session', JSON.stringify(admUser));}catch(e){}
-  if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
-  showAdmApp();
-}
-function adminResetCache(){
-  if(!confirm('Xóa toàn bộ cache trình duyệt và reload?')) return;
-  localStorage.clear();
-  sessionStorage.clear();
-  location.reload();
-}
-
-async function doAdmLogout(){
-  // Đăng xuất Supabase Auth nếu dùng
-  if(admUser && admUser._supabase && db){
-    try{ await db.auth.signOut(); }catch(e){}
-  }
-  admUser = null;
-  localStorage.removeItem('vc_adm_session');
-  document.getElementById('adm-app-view').style.display='none';
-  document.getElementById('adm-login-view').style.display='block';
-  document.getElementById('adm-pass').value='';
-  document.getElementById('adm-login-err').textContent='';
-  document.getElementById('adm-user').value='';
-}
-function showAdmApp(){
-  document.getElementById('adm-login-view').style.display='none';
-  const av = document.getElementById('adm-app-view');
-  av.style.removeProperty('display');
-  av.style.display='flex';
-  av.style.flexDirection='column';
-  av.style.height='100%';
-  // Set role info
-  document.getElementById('adm-user-info').textContent = admUser.name + (admUser.selectedBranch?' · '+admUser.selectedBranch:'');
-  const badge = document.getElementById('adm-role-badge');
-  badge.textContent = admUser.role==='admin'?'ADMIN':'NHÂN VIÊN';
-  badge.className = 'adm-role-badge ' + (admUser.role==='admin'?'adm-role-admin':'adm-role-staff');
-  // Show/hide admin-only elements
-  document.querySelectorAll('.admin-only').forEach(el=>{
-    el.style.display = (admUser.role==='admin'||admUser.role==='manager')?'':'none';
-  });
-  // Manager không thấy tab Phân quyền
-  document.querySelectorAll('.superadmin-only').forEach(el=>{
-    el.style.display = admUser.role==='admin'?'':'none';
-  });
-  swAdmTab('orders');
-}
-
-// ── TABS ──
-function swAdmTab(t){
-  admTab=t;
-  ['orders','products','promos','users'].forEach(x=>{
-    const btn=document.getElementById('atab-'+x);
-    const panel=document.getElementById('adm-tab-'+x);
-    if(btn) btn.classList.toggle('on',x===t);
-    if(panel) panel.style.display=x===t?'block':'none';
-  });
-  if(t==='orders') admLoadOrders();
-  if(t==='products') admLoadProducts();
-  if(t==='promos') admLoadPromos();
-  if(t==='users') admRenderUsers();
-  if(t==='media') initMediaTab();
-}
-
-// ── ORDERS ──
-async function admLoadOrders(){
-  const el=document.getElementById('adm-orders-list');
-  el.innerHTML='<div style="text-align:center;padding:24px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
-  let orders=[];
-  const status=document.getElementById('adm-filter-status').value;
-  try{
-    let q=db.from('orders').select('*').order('created_at',{ascending:false}).limit(100);
-    if(status) q=q.eq('status',status);
-    if(admUser.role==='manager'||admUser.role==='staff'){
-      if(admUser.selectedBranch) q=q.eq('branch',admUser.selectedBranch);
-    }
-    const {data,error}=await q;
-    if(error) throw error;
-    orders=data||[];
-  }catch(e){
-    // Demo fallback
-    orders=_demoOrders().filter(o=>!status||o.status===status);
-  }
-  // Update KPIs
-  const today=new Date().toDateString();
-  const tod=orders.filter(o=>new Date(o.created_at).toDateString()===today);
-  document.getElementById('adm-kpi').innerHTML=`
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Hôm nay</div><div class="adm-kpi-val" style="color:#2563eb">${tod.length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Chờ xác nhận</div><div class="adm-kpi-val" style="color:var(--amber)">${orders.filter(o=>o.status==='pending').length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Hoàn thành</div><div class="adm-kpi-val" style="color:var(--g800)">${tod.filter(o=>o.status==='done').length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Doanh thu</div><div class="adm-kpi-val" style="color:var(--red);font-size:15px">${fmt(tod.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total),0))}</div></div>`;
-  if(!orders.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có đơn hàng nào</div>';return;}
-  el.innerHTML=orders.map(o=>`
-    <div class="adm-order-card">
-      <div class="adm-order-top">
-        <div class="adm-order-code">${o.order_code}</div>
-        <div class="adm-order-time">${fmtAdmTime(o.created_at)}</div>
-      </div>
-      <div class="adm-order-name">${o.customer_name}</div>
-      <div class="adm-order-ph">${o.phone}${o.branch?' · '+o.branch:''}</div>
-      ${o.note?`<div class="adm-order-note">📝 ${o.note}</div>`:''}
-      <div class="adm-order-bot">
-        <div class="adm-order-total">${fmt(o.total)}</div>
-        <select class="adm-st-sel ${o.status}" onchange="admUpdStatus('${o.id}',this.value,this)">
-          ${ADM_ST_OPT.replace(`value="${o.status}"`,`value="${o.status}" selected`)}
-        </select>
-      </div>
-    </div>`).join('');
-}
-async function admUpdStatus(id,st,el){
-  const oldCls=[...el.classList].find(c=>ADM_ST_LABEL[c])||'';
-  el.className=`adm-st-sel ${st}`;
-  // Demo order update
-  const demoOrder=_demoOrdersStore.find(o=>o.id===id);
-  if(demoOrder){demoOrder.status=st;toast('✓ '+ADM_ST_LABEL[st]);return;}
-  try{
-    const {error}=await db.from('orders').update({status:st}).eq('id',id);
-    if(error) throw error;
-    toast('✓ '+ADM_ST_LABEL[st]);
-  }catch(e){el.className=`adm-st-sel ${oldCls}`;toast('Lỗi cập nhật');}
-}
-
-// ── PRODUCTS ──
-const ADM_EMOJI_MAP={'Lương thực':'🌾','Gia vị':'🧂','Mì gói':'🍜','Thực phẩm':'🥚','Sữa':'🥛','Đồ uống':'🍺','Hóa phẩm':'🧴','Bánh':'🍞','Khác':'🛒'};
-async function admLoadProducts(){
-  const el=document.getElementById('adm-prods-list');
-  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div></div>';
-  // Load từ cloud trước, fallback local
-  let prods = [];
-  try{
-    if(!IS_DEMO && db){
-      const {data,error}=await db.from('products').select('*').order('category').order('name');
-      if(!error && data && data.length){
-        const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-        prods=data.map(p=>({...p, image_url:imgs[p.id]||p.image_url||''}));
-      }
-    }
-  }catch(e){ console.warn('admLoadProducts cloud:',e.message); }
-  if(!prods.length) prods = _getProdsWithImgs();
-  el.innerHTML=prods.map(p=>{
-    const emoji=ADM_EMOJI_MAP[p.category]||'🛒';
-    const old=p.old_price&&p.old_price>p.price;
-    const pct=old?Math.round((1-p.price/p.old_price)*100):0;
-    const isDemo=String(p.id).startsWith('d');
-    return `<div class="adm-prod-card" style="${!p.is_active?'opacity:.5':''}">
-      <div class="adm-prod-emoji">${p.image_url&&p.image_url.length>4?`<img src="${p.image_url}" alt="">`:`<span>${emoji}</span>`}</div>
-      <div class="adm-prod-info">
-        <div class="adm-prod-name">${p.name}</div>
-        <div class="adm-prod-meta">${p.category} · /${p.unit}${p.is_hot?' · 🔥':''}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:3px">
-          <div class="adm-prod-price">${fmt(p.price)}</div>
-          ${old?`<span style="font-size:12px;color:var(--ink3);text-decoration:line-through">${fmt(p.old_price)}</span><span style="background:#fff0ee;color:var(--red);font-size:12px;font-weight:800;padding:1px 5px;border-radius:4px">-${pct}%</span>`:''}
-        </div>
-        ${admUser.role==='admin'?`<div class="adm-prod-acts">
-          <button class="adm-prod-btn" onclick="openAdmProdModal('${p.id}')">✏️ Sửa</button>
-          <button class="adm-prod-btn ${p.is_active?'hide-btn':''}" onclick="admTogProd('${p.id}',${p.is_active},this)">${p.is_active?'👁 Ẩn':'👁 Hiện'}</button>
-        </div>`:''}
-      </div>
-    </div>`;
-  }).join('');
-}
-function openAdmProdModal(id){
-  admEditProdId=id||null;
-  document.getElementById('adm-prod-modal-title').textContent=id?'Sửa sản phẩm':'Thêm sản phẩm mới';
-  ['apm-name','apm-img'].forEach(f=>document.getElementById(f).value='');
-  document.getElementById('apm-img-preview').style.display='none';
-  document.getElementById('apm-img-thumb').src='';
-  ['apm-price','apm-old-price'].forEach(f=>document.getElementById(f).value='');
-  document.getElementById('apm-unit').value='';
-  document.getElementById('apm-stock').value='';
-  document.getElementById('apm-cat').value='Lương thực';
-  document.getElementById('apm-badge').value='';
-  document.getElementById('apm-active').value='true';
-  document.getElementById('apm-sale-price').value='';
-  document.getElementById('apm-promo-link').value='';
-  document.getElementById('apm-pct-lbl').textContent='';
-  apmBuildPromoSelect();
-  if(id){
-    // Lấy SP từ local trước (có ảnh), fallback cloud
-    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-    let p=_getProdsWithImgs().find(x=>x.id===id)||allProds.find(x=>x.id===id)||DEMO_PRODUCTS.find(x=>x.id===id);
-    if(!p&&imgs[id]){ p={id,image_url:imgs[id]}; }
-    if(p){
-      document.getElementById('apm-name').value=p.name||'';
-      document.getElementById('apm-price').value=p.price||'';
-      document.getElementById('apm-old-price').value=p.old_price||'';
-      document.getElementById('apm-unit').value=p.unit||'';
-      if(p.stock_qty!==undefined&&p.stock_qty<999) document.getElementById('apm-stock').value=p.stock_qty;
-      document.getElementById('apm-cat').value=p.category||'Khác';
-      document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
-      document.getElementById('apm-active').value=String(p.is_active!==false);
-      // Sale price
-      if(p.sale_price) document.getElementById('apm-sale-price').value=p.sale_price;
-      if(p.promo_id)   document.getElementById('apm-promo-link').value=p.promo_id;
-      apmCalcDiscount();
-      // Restore ảnh
-      const imgUrl = p.image_url||imgs[id]||'';
-      if(imgUrl){
-        document.getElementById('apm-img').value=imgUrl;
-        document.getElementById('apm-img-thumb').src=imgUrl;
-        document.getElementById('apm-img-preview').style.display='block';
-      }
-    } else if(db){
-      db.from('products').select('*').eq('id',id).single().then(({data:p})=>{
-        if(!p) return;
-        document.getElementById('apm-name').value=p.name;
-        document.getElementById('apm-price').value=p.price;
-        document.getElementById('apm-old-price').value=p.old_price||'';
-        document.getElementById('apm-unit').value=p.unit||'';
-        document.getElementById('apm-cat').value=p.category||'Khác';
-        document.getElementById('apm-badge').value=p.is_hot?'hot':p.is_new?'new':'';
-        document.getElementById('apm-active').value=String(p.is_active!==false);
-      });
-    }
-  }
-  document.getElementById('adm-prod-modal').style.cssText='display:flex;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.55);align-items:flex-end;pointer-events:all';
-}
-function closeAdmProdModal(){ document.getElementById('adm-prod-modal').style.cssText='display:none;pointer-events:none'; }
-
-async function handleProdImgUpload(e){
-  const file = e.target.files[0];
-  if(!file) return;
-
-  const label = document.querySelector('.adm-img-upload-label');
-  if(label) label.textContent = '⏳ Đang upload...';
-
-  // Nén ảnh trước
-  const compressed = await new Promise(resolve=>{
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const canvas = document.createElement('canvas');
-        const MAX = 800;
-        let w=img.width, h=img.height;
-        if(w>h){if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}}
-        else{if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}}
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        canvas.toBlob(blob=>resolve(blob),'image/jpeg',0.82);
-      };
-      img.src=ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  });
-
-  // Upload lên Supabase Storage
-  let finalUrl = null;
-  if(db && !IS_DEMO){
-    try{
-      const fname = `prod_${Date.now()}.jpg`;
-      const {error} = await db.storage.from('product-images')
-        .upload(fname, compressed, {contentType:'image/jpeg', upsert:true});
-      if(!error){
-        const {data} = db.storage.from('product-images').getPublicUrl(fname);
-        finalUrl = data.publicUrl;
-        toast('✓ Ảnh đã upload cloud');
-      }
-    }catch(err){ console.warn('Storage upload:', err.message); }
-  }
-
-  // Fallback: base64 local nếu cloud lỗi
-  if(!finalUrl){
-    const reader2 = new FileReader();
-    reader2.onload = ev=>{
-      finalUrl = ev.target.result;
-      document.getElementById('apm-img').value = finalUrl;
-      document.getElementById('apm-img-thumb').src = finalUrl;
-      document.getElementById('apm-img-preview').style.display = 'block';
-      if(label) label.textContent = '📷 Chọn ảnh từ máy';
-      toast('⚠️ Lưu ảnh local (chưa đồng bộ)');
-    };
-    const blobUrl = URL.createObjectURL(compressed);
-    reader2.readAsDataURL(compressed);
-    return;
-  }
-
-  document.getElementById('apm-img').value = finalUrl;
-  document.getElementById('apm-img-thumb').src = finalUrl;
-  document.getElementById('apm-img-preview').style.display = 'block';
-  if(label) label.textContent = '📷 Chọn ảnh từ máy';
-}
-
-function handleProdImgUrl(val){
-  const thumb = document.getElementById('apm-img-thumb');
-  const preview = document.getElementById('apm-img-preview');
-  if(val && val.startsWith('http')){
-    thumb.src = val;
-    preview.style.display = 'block';
-  } else {
-    preview.style.display = 'none';
-  }
-}
-
-// ── PRODUCT MODAL PROMO HELPERS ──────────────────────
-function apmCalcDiscount(){
-  const price = Number(document.getElementById('apm-price').value)||0;
-  const sale  = Number(document.getElementById('apm-sale-price').value)||0;
-  const lbl   = document.getElementById('apm-pct-lbl');
-  const op    = document.getElementById('apm-old-price');
-  if(sale>0 && price>0 && sale<price){
-    const pct = Math.round((1-sale/price)*100);
-    lbl.textContent = '-'+pct+'%';
-    // Tự set old_price = price gốc
-    if(!op.value || Number(op.value)===0) op.value = price;
-  } else if(sale===0){
-    lbl.textContent = '';
-  }
-}
-function apmOnPromoChange(){
-  const sel = document.getElementById('apm-promo-link');
-  const id  = sel.value;
-  const saleEl = document.getElementById('apm-sale-price');
-  const pctLbl = document.getElementById('apm-pct-lbl');
-  if(!id){
-    saleEl.value=''; pctLbl.textContent=''; return;
-  }
-  const p = _promoStore.find(x=>x.id===id);
-  if(!p) return;
-  const price = Number(document.getElementById('apm-price').value)||0;
-  if(price>0){
-    if(p.discount_pct){
-      // Giảm theo %
-      const sale = Math.round(price*(1-p.discount_pct/100));
-      saleEl.value = sale;
-      pctLbl.textContent = '-'+p.discount_pct+'%';
-    } else if(p.type==='bxgy1'||p.type==='bxgy2'){
-      pctLbl.textContent = 'Mua Tặng';
-      saleEl.value='';
-    } else if(p.type==='gift'){
-      pctLbl.textContent = 'Quà tặng';
-      saleEl.value='';
-    }
-  }
-  apmCalcDiscount();
-}
-function apmBuildPromoSelect(){
-  const sel = document.getElementById('apm-promo-link');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">-- Không gắn KM --</option>';
-  (_promoStore||[]).filter(p=>p.is_active).forEach(p=>{
-    const meta = PROMO_TYPE_META[p.type]||{};
-    const opt  = document.createElement('option');
-    opt.value  = p.id;
-    // Hiện: [loại KM] - [tên chương trình]
-    // Không hiện tên SP trong chương trình
-    const typeLabel = meta.label || p.type;
-    const pctInfo = p.discount_pct ? ` -${p.discount_pct}%` : '';
-    opt.textContent = `${meta.icon||'🎯'} ${typeLabel}${pctInfo} · ${p.name}`;
-    sel.appendChild(opt);
-  });
-}
-
-async function saveAdmProd(){
-  const name = document.getElementById('apm-name').value.trim();
-  const price = Number(document.getElementById('apm-price').value);
-  if(!name||!price){ toast('Nhập tên và đơn giá'); return; }
-
-  const badge = document.getElementById('apm-badge').value;
-  const prod = {
-    id: admEditProdId || ('d'+Date.now()),
-    name, price,
-    old_price: Number(document.getElementById('apm-old-price').value)||0,
-    unit: document.getElementById('apm-unit').value.trim()||'cái',
-    stock_qty: Number(document.getElementById('apm-stock').value)||99,
-    category: document.getElementById('apm-cat').value,
-    image_url: document.getElementById('apm-img').value.trim()||'',
-    is_active: document.getElementById('apm-active').value==='true',
-    is_hot: badge==='hot',
-    is_new: badge==='new',
-    stock_qty: 99,
-    sale_price: Number(document.getElementById('apm-sale-price').value)||0,
-    promo_id: document.getElementById('apm-promo-link').value||null,
-  };
-
-  // 1. Lưu local ngay để UI phản hồi nhanh
-  const idx = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-  if(idx>=0) DEMO_PRODUCTS[idx] = prod;
-  else DEMO_PRODUCTS.push(prod);
-  _saveProdLocal();
-  allProds = DEMO_PRODUCTS.filter(p=>p.is_active!==false);
-  renderExpandGrid();
-  admLoadProducts();
-
-  // 2. Đồng bộ lên Supabase (ảnh + data)
-  if(!IS_DEMO && db){
-    toast('⏳ Đang đồng bộ cloud...');
-    try{
-      // 2a. Upload ảnh nếu là base64
-      let imageUrl = (prod.image_url&&prod.image_url.startsWith('http')) ? prod.image_url : null;
-      if(prod.image_url && prod.image_url.startsWith('data:')){
-        try{
-          const base64 = prod.image_url.split(',')[1];
-          const bytes = Uint8Array.from(atob(base64), c=>c.charCodeAt(0));
-          const fname = 'prod_' + (admEditProdId||prod.id||Date.now()) + '.jpg';
-          const {error:upErr} = await db.storage.from('product-images')
-            .upload(fname, bytes, {contentType:'image/jpeg', upsert:true});
-          if(!upErr){
-            const {data:urlData} = db.storage.from('product-images').getPublicUrl(fname);
-            imageUrl = urlData.publicUrl;
-            // Cập nhật URL vào local
-            const li = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-            if(li>=0) DEMO_PRODUCTS[li].image_url = imageUrl;
-            _saveProdLocal();
-          }
-        }catch(imgErr){ console.warn('Upload ảnh:', imgErr.message); }
-      }
-
-      // 2b. Lưu SP lên Supabase
-      const sp = {
-        name: prod.name,
-        price: prod.price,
-        old_price: prod.old_price||0,
-        unit: prod.unit,
-        category: prod.category,
-        is_active: prod.is_active!==false,
-        is_hot: prod.is_hot||false,
-        is_new: prod.is_new||false,
-        stock_qty: prod.stock_qty||99,
-        sale_price: prod.sale_price||0,
-        // ✅ Không lưu promo_id demo lên Supabase
-        promo_id: (()=>{
-          const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-          return (prod.promo_id && !DEMO_IDS.includes(prod.promo_id)) ? prod.promo_id : null;
-        })(),
-        image_url: imageUrl,
-      };
-
-      let dbError;
-      if(admEditProdId && !String(admEditProdId).startsWith('d')){
-        // Update SP cũ
-        const {error} = await db.from('products').update(sp).eq('id', admEditProdId);
-        dbError = error;
-      } else {
-        // Insert SP mới
-        const {data:newProd, error} = await db.from('products').insert(sp).select().single();
-        dbError = error;
-        if(!error && newProd){
-          // Cập nhật id thật từ cloud vào local
-          const li = DEMO_PRODUCTS.findIndex(x=>x.id===prod.id);
-          if(li>=0){ DEMO_PRODUCTS[li].id = newProd.id; DEMO_PRODUCTS[li].image_url = newProd.image_url||imageUrl; }
-          _saveProdLocal();
-        }
-      }
-
-      if(dbError){
-        toast('⚠️ Cloud lỗi: ' + dbError.message);
-      } else {
-        toast('✅ Đã lưu & đồng bộ tất cả máy!');
-        // Reload từ cloud để đảm bảo đồng bộ
-        await loadProds();
-        admLoadProducts();
-      }
-    }catch(e){
-      toast('⚠️ Lỗi kết nối: ' + e.message);
-      console.warn('saveAdmProd:', e.message);
-    }
-  } else {
-    toast('✓ Đã lưu (chế độ local)');
-  }
-
-  closeAdmProdModal();
-  admEditProdId=null;
-}
-
-
-function _getProdsWithImgs(){
-  try{
-    const imgs=JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
-    return DEMO_PRODUCTS.map(p=>{
-      if((p.image_url==='__local__'||!p.image_url) && imgs[p.id])
-        return {...p, image_url:imgs[p.id]};
-      return p;
-    });
-  }catch(e){ return DEMO_PRODUCTS; }
-}
-
-function _saveProdLocal(){
-  try{
-    const imgs={};
-    const prods=DEMO_PRODUCTS.map(p=>{
-      if(p.image_url&&p.image_url.startsWith('data:')){
-        imgs[p.id]=p.image_url;
-        return {...p,image_url:'__local__'};
-      }
-      return p;
-    });
-    try{localStorage.setItem('vc_products',JSON.stringify(prods));}catch(e){}
-    try{localStorage.setItem('vc_prod_images',JSON.stringify(imgs));}catch(e){}
-  }catch(e){ console.warn('_saveProdLocal:',e); }
-}
-async function admTogProd(id,cur){
-  const p=DEMO_PRODUCTS.find(x=>x.id===id);
-  if(p) p.is_active=!cur;
-  _saveProdLocal();
-  if(!IS_DEMO&&db){
-    try{ await db.from('products').update({is_active:!cur}).eq('id',id); }
-    catch(e){ console.warn('admTogProd:',e.message); }
-  }
-  admLoadProducts(); loadProds(); renderExpandGrid();
-  toast(cur?'Đã ẩn':'Đã hiện');
-}
-
-// ── PROMOS (admin only) ──
-
-/* ═══════════════════════════════════════════
-   PROMO MANAGEMENT SYSTEM
-   ═══════════════════════════════════════════ */
-
-// In-memory store (replace với Supabase khi deploy)
-// _promoStore = [] ban đầu, load từ Supabase khi khởi động
-// Chỉ dùng DEMO_PROMO_FALLBACK khi Supabase chưa có data
-const DEMO_PROMO_FALLBACK = []; // Đã xóa data demo — chỉ dùng Supabase
-let _promoStore = [];
-
-const PROMO_TYPE_META = {
-  bxgy1: {label:'Mua 1 Tặng 1',  icon:'🥛', color:'pc-bxgy',    badge:'1+1'},
-  bxgy2: {label:'Mua 2 Tặng 1',  icon:'🎁', color:'pc-bxgy',    badge:'Mua 2 Tặng 1'},
-  combo: {label:'Combo',          icon:'🧺', color:'pc-combo',   badge:'COMBO'},
-  discount:{label:'Giảm giá',     icon:'🏷️', color:'pc-discount',badge:'GIẢM GIÁ'},
-  flash: {label:'Flash Sale',     icon:'⚡', color:'pc-flash',   badge:'⚡ FLASH'},
-  gift:  {label:'Quà theo đơn',   icon:'🎀', color:'pc-gift',    badge:'🎀 QUÀ'},
-};
-
-// ── RENDER LIST ──
-async function admLoadPromos(){
-  const el=document.getElementById('adm-promos-list');
-
-  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
-  // Luôn load từ Supabase trước, fallback local
-  await _syncPromosFromCloud();
-  const promos=_promoStore.length?_promoStore:[];
-  if(!promos.length){
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có chương trình nào.<br>Bấm nút + để tạo mới.</div>';
-    return;
-  }
-  el.innerHTML=promos.map(p=>renderPromoAdminCard(p)).join('');
-}
-
-function renderPromoAdminCard(p){
-  const meta=PROMO_TYPE_META[p.type]||{label:p.type,icon:'🎯',color:'pc-0',badge:'KM'};
-  if(p.icon) meta.icon=p.icon; // override với icon admin đã chọn
-  let desc='';
-  if(p.type==='bxgy1'||p.type==='bxgy2') desc=`Mua ${p.buy||1} ${p.product||'SP'} → Tặng ${p.get||1} ${p.gift_product||p.product||'SP'}`;
-  else if(p.type==='combo') desc=`Combo: ${(p.products||[]).join(' + ')} · Giảm ${p.discount_pct||0}%`;
-  else if(p.type==='discount') desc=`${p.product||'Tất cả SP'} giảm ${p.discount_pct||0}%`;
-  else if(p.type==='flash') desc=`⚡ ${p.product||'SP'} -${p.discount_pct||0}% · Kết thúc ${p.flash_label||''}`;
-  else if(p.type==='gift') desc=`Đơn từ ${fmt(p.min_order||0)} → Tặng: ${p.gift_item||'Quà'}`;
-
-  return `<div class="pc ${meta.color}" style="margin-bottom:2px">
-    <div class="pc-top">
-      <div class="pc-icon">${meta.icon}</div>
-      <div style="flex:1;min-width:0">
-        <div class="${p.is_active?'pc-status-on':'pc-status-off'}">${p.is_active?'Đang bật':'Đã tắt'}</div>
-        <div class="pc-title" style="font-size:14px">${p.name||meta.label}</div>
-      </div>
-      <div class="pc-badge">${meta.badge}</div>
-    </div>
-    <div class="pc-sub-hdr" style="margin-top:0">${desc}</div>
-    <div class="pc-mini-row">
-      <span class="pc-mini">${meta.label}</span>
-      ${p.type==='flash'?`<span class="pc-mini">⏰ ${p.flash_label||''}</span>`:''}
-      ${p.discount_pct?`<span class="pc-mini">-${p.discount_pct}%</span>`:''}
-    </div>
-    <div class="pc-acts" onclick="event.stopPropagation()">
-      <button class="pc-act-btn" data-action="edit" data-id="${p.id}">✏️ Sửa</button>
-      <button class="pc-act-btn" data-action="tog" data-id="${p.id}" data-active="${p.is_active}">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
-      <button class="pc-act-btn danger" data-action="del" data-id="${p.id}">🗑</button>
-    </div>
-  </div>`;
-}
-
-async function togPromoActive(id,cur){
-  if(db&&!IS_DEMO){
-    try{
-      const {error}=await db.from('promotions').update({is_active:!cur}).eq('id',id);
-      if(error) throw error;
-      await _syncPromosFromCloud();
-      toast(cur?'Đã tắt KM (cloud)':'Đã bật KM (cloud)');
-      return;
-    }catch(e){ console.warn('togPromo cloud error:',e.message); }
-  }
-  const p=_promoStore.find(x=>x.id===id);
-  if(p){ p.is_active=!cur; _syncPromosToBuildState(); admLoadPromos();
-    toast(cur?'Đã tắt KM':'Đã bật KM'); }
-}
-async function delPromo(id){
-  if(!confirm('Xoá chương trình này?')) return;
-  if(db&&!IS_DEMO){
-    try{
-      const {error}=await db.from('promotions').delete().eq('id',id);
-      if(error) throw error;
-      await _syncPromosFromCloud();
-      toast('Đã xoá (cloud)');
-      return;
-    }catch(e){ console.warn('delPromo cloud error:',e.message); }
-  }
-  _promoStore=_promoStore.filter(x=>x.id!==id);
-  _syncPromosToBuildState(); admLoadPromos(); toast('Đã xoá');
-}
-
-// ── PROMO MODAL ──
-let _editPromoId=null;
-let _selPromoType=null;
-
-function openPromoModal(id){
-  _editPromoId = id || null;
-  _selPromoType = null;
-
-  // Reset UI
-  document.getElementById('promo-modal-title').textContent = id ? 'Sửa chương trình KM' : 'Tạo chương trình KM';
-  document.getElementById('promo-form-area').innerHTML = '';
-  document.getElementById('promo-preview-area').innerHTML = '';
-  document.getElementById('promo-save-area').style.display = 'none';
-  document.querySelectorAll('.promo-type-btn').forEach(b => b.classList.remove('sel'));
-
-  // Hiện modal (dùng style trực tiếp — chắc chắn hơn classList)
-  const bg = document.getElementById('adm-promo-modal-bg');
-  bg.style.display = 'flex';
-
-  // Nếu có id (sửa) → load form ngay
-  if(id){
-    const p = _promoStore.find(x => x.id === id);
-    if(p) selPromoType(p.type, p);
-  } else {
-    // Tạo mới: tự chọn loại đầu tiên để hiện form ngay
-    selPromoType('flash');
-  }
-  const modal = document.getElementById('adm-promo-modal');
-  if(modal) modal.scrollTop = 0;
-}
-
-function closePromoModal(){
-  const bg = document.getElementById('adm-promo-modal-bg');
-  bg.style.display = 'none';
-  _editPromoId = null;
-  _selPromoType = null;
-}
-
-function editPromo(id){
-  openPromoModal(id);
-}
-
-function selPromoType(type, existingData){
-  _selPromoType=type;
-  document.querySelectorAll('.promo-type-btn,.promo-type-btn-v').forEach(b=>b.classList.remove('sel'));
-  const btn=document.getElementById('ptype-'+type);
-  if(btn) btn.classList.add('sel');
-  const formEl=document.getElementById('promo-form-area');
-  const p=existingData||{};
-
-  let formHtml='';
-  // Icon sets theo loại KM
-  const ICON_SET = {
-    bxgy1:  ['🥛','🍼','🎁','🛍️','🎀','🧃','🍶','☕','🫙','🍵','🥤','🧴','🧹','🪣','🛒','✨'],
-    bxgy2:  ['🎁','🎀','🛍️','🥚','🍜','🍚','🥛','🧺','🫙','🍱','🥘','🍲','🛒','🏷️','💝','🎊'],
-    combo:  ['🧺','🛍️','🎯','🥗','🍱','🥘','🫙','🏪','🛒','💰','🤑','🏷️','⭐','🌟','💎','🎉'],
-    discount:['🏷️','💸','🤑','💰','⚡','🔥','🎯','📉','🛒','✂️','🎊','🥳','🌈','💥','🆘','🆓'],
-    flash:  ['⚡','🔥','💥','🚨','⏰','🕐','🏃','🎯','🔔','📣','💫','✨','🌟','⭐','🏅','🥇'],
-    gift:   ['🎀','🎁','💝','🎊','🥳','🎉','🎈','🎗️','🌹','💐','🍀','🌺','💌','🫶','❤️','🤍'],
-  };
-  const icons = ICON_SET[type] || ICON_SET['gift'];
-  const selIcon = p.icon || icons[0];
-  const iconBtns = icons.map(ic =>
-    `<button type="button" class="ip-btn${ic===selIcon?' sel':''}" onclick="selIcon(this,'${ic}')" title="${ic}">${ic}</button>`
-  ).join('');
-
-  formHtml+=`<div class="promo-form-section">
-    <div class="promo-form-title">Thông tin chương trình</div>
-
-    <div class="icon-picker-wrap">
-      <span class="icon-picker-label">Icon hiển thị trên card KM</span>
-      <div class="icon-picker-grid" id="icon-picker-grid">${iconBtns}</div>
-      <div class="ip-preview">
-        <div class="ip-preview-box" id="ip-preview-box">${selIcon}</div>
-        <div class="ip-preview-hint">Icon đang chọn · Bấm để đổi</div>
-      </div>
-      <input type="hidden" id="pf-icon" value="${selIcon}">
-    </div>
-
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Tên chương trình *</label>
-      <input id="pf-name" type="text" placeholder="VD: Sữa Vinamilk mua 1 tặng 1" value="${p.name||''}">
-    </div>`;
-
-  if(type==='bxgy1'||type==='bxgy2'){
-    const buyN=type==='bxgy1'?1:2;
-    formHtml+=`
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Sản phẩm áp dụng *</label>
-      <input id="pf-product" type="text" placeholder="VD: Sữa tươi Vinamilk / Trứng gà ta" value="${p.product||''}">
-    </div>
-    <div class="pf-row">
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Mua (số lượng)</label>
-        <input id="pf-buy" type="number" min="1" value="${p.buy||buyN}" placeholder="${buyN}">
-      </div>
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Tặng (số lượng)</label>
-        <input id="pf-get" type="number" min="1" value="${p.get||1}" placeholder="1">
-      </div>
-    </div>
-    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
-      <label>SP được tặng (trống = tặng chính SP đó)</label>
-      <input id="pf-gift-product" type="text" placeholder="VD: để trống → mua Sữa tặng Sữa" value="${p.gift_product||''}">
-    </div>`;
-  } else if(type==='combo'){
-    formHtml+=`
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Danh sách SP combo (mỗi SP 1 dòng) *</label>
-      <textarea id="pf-combo-products" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;font-family:var(--font);resize:none;outline:none" placeholder="Gạo ST25 túi 5kg&#10;Dầu ăn Neptune 1L&#10;Nước mắm Chinsu">${(p.products||[]).join('\n')}</textarea>
-    </div>
-    <div class="adm-field" style="margin-bottom:0">
-      <label>Giảm thêm % khi mua đủ combo *</label>
-      <input id="pf-discount-pct" type="number" min="1" max="99" value="${p.discount_pct||5}" placeholder="5">
-    </div>`;
-  } else if(type==='discount'){
-    formHtml+=`
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Sản phẩm áp dụng (trống = tất cả SP)</label>
-      <input id="pf-product" type="text" placeholder="VD: Bột giặt OMO / để trống = tất cả" value="${p.product||''}">
-    </div>
-    <div class="adm-field" style="margin-bottom:0">
-      <label>Giảm % *</label>
-      <input id="pf-discount-pct" type="number" min="1" max="99" value="${p.discount_pct||10}" placeholder="10">
-    </div>`;
-  } else if(type==='flash'){
-    formHtml+=`
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Sản phẩm flash sale *</label>
-      <input id="pf-product" type="text" placeholder="VD: Gạo ST25 túi 5kg" value="${p.product||''}">
-    </div>
-    <div class="pf-row">
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Giảm % *</label>
-        <input id="pf-discount-pct" type="number" min="1" max="99" value="${p.discount_pct||15}" placeholder="15">
-      </div>
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Kết thúc lúc (HH:MM)</label>
-        <input id="pf-flash-end" type="time" value="${p.flash_end||'22:00'}">
-      </div>
-    </div>
-    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
-      <label>Nhãn hiển thị</label>
-      <input id="pf-flash-label" type="text" placeholder="VD: HÔM NAY 22:00" value="${p.flash_label||'HÔM NAY 22:00'}">
-    </div>`;
-  } else if(type==='gift'){
-    formHtml+=`
-    <div class="adm-field" style="margin-bottom:2px">
-      <label>Mua từ (đồng) *</label>
-      <input id="pf-min-order" type="number" min="0" value="${p.min_order||200000}" placeholder="200000">
-    </div>
-    <div class="adm-field" style="margin-bottom:0">
-      <label>Quà tặng là *</label>
-      <input id="pf-gift-item" type="text" placeholder="VD: Túi đựng hàng miễn phí" value="${p.gift_item||''}">
-    </div>`;
-  }
-
-  formHtml+='</div>'; // close promo-form-section
-
-  // Thời gian + toggle
-  formHtml+=`<div class="promo-form-section">
-    <div class="promo-form-title">Cài đặt</div>
-    <div class="pf-row">
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Ngày bắt đầu</label>
-        <input id="pf-date-from" type="date" value="${p.date_from||new Date().toISOString().split('T')[0]}">
-      </div>
-      <div class="adm-field" style="margin-bottom:0">
-        <label>Ngày kết thúc</label>
-        <input id="pf-date-to" type="date" value="${p.date_to||''}">
-      </div>
-    </div>
-    <div class="adm-field" style="margin-top:2px;margin-bottom:0">
-      <label>Trạng thái</label>
-      <select id="pf-active" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;font-family:var(--font);outline:none;background:#fff">
-        <option value="true" ${p.is_active!==false?'selected':''}>🟢 Đang bật</option>
-        <option value="false" ${p.is_active===false?'selected':''}>⏹ Tắt</option>
-      </select>
-    </div>
-  </div>`;
-
-  formEl.innerHTML=formHtml;
-  document.getElementById('promo-save-area').style.display='block';
-  // Auto preview
-  document.querySelectorAll('#promo-form-area input,#promo-form-area select,#promo-form-area textarea').forEach(el=>{
-    el.addEventListener('input',updatePromoPreview);
-  });
-  updatePromoPreview();
-}
-
-
-// ── ICON PICKER ───────────────────────────────
-function selIcon(btn, emoji){
-  // Bỏ sel cũ
-  document.querySelectorAll('#icon-picker-grid .ip-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-  // Update preview + hidden input
-  const preview = document.getElementById('ip-preview-box');
-  const input   = document.getElementById('pf-icon');
-  if(preview) preview.textContent = emoji;
-  if(input)   input.value = emoji;
-}
-
-function getPromoFormData(){
-  const g=id=>{ const el=document.getElementById(id); return el?el.value.trim():''; };
-  const gn=id=>{ const el=document.getElementById(id); return el?Number(el.value)||0:0; };
-  const type=_selPromoType;
-  const iconVal=g('pf-icon');
-  const base={type,name:g('pf-name'),icon:iconVal||undefined,is_active:g('pf-active')==='true',date_from:g('pf-date-from'),date_to:g('pf-date-to')};
-  if(type==='bxgy1'||type==='bxgy2') return {...base,product:g('pf-product'),buy:gn('pf-buy'),get:gn('pf-get'),gift_product:g('pf-gift-product')};
-  if(type==='combo'){
-    const txt=document.getElementById('pf-combo-products');
-    return {...base,products:(txt?txt.value.split('\n').map(s=>s.trim()).filter(Boolean):[]),discount_pct:gn('pf-discount-pct')};
-  }
-  if(type==='discount') return {...base,product:g('pf-product'),discount_pct:gn('pf-discount-pct')};
-  if(type==='flash') return {...base,product:g('pf-product'),discount_pct:gn('pf-discount-pct'),flash_end:g('pf-flash-end'),flash_label:g('pf-flash-label')};
-  if(type==='gift') return {...base,min_order:gn('pf-min-order'),gift_item:g('pf-gift-item')};
-  return base;
-}
-
-function updatePromoPreview(){
-  const data=getPromoFormData();
-  if(!data.name&&!data.product&&!(data.products&&data.products.length)&&!data.gift_item) {
-    document.getElementById('promo-preview-area').innerHTML='';
-    return;
-  }
-  // Build temp card
-  const p={...data,id:'preview'};
-  const card=renderPromoAdminCard(p);
-  document.getElementById('promo-preview-area').innerHTML=`
-    <div style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Xem trước</div>
-    ${card}`;
-}
-
-
-// ── PROMO SYNC HELPERS ────────────────────────────
 
 async function _syncPromosFromCloud(){
   if(!db||IS_DEMO){
@@ -2664,6 +1223,7 @@ async function _syncPromosFromCloud(){
     if(error) throw error;
     if(data&&data.length){
       _promoStore=_safeSerializePromos(data);
+  // vc_promos cache removed
     }
   }catch(e){
     console.warn('_syncPromosFromCloud:',e.message,'→ dùng local');
@@ -2710,6 +1270,8 @@ async function savePromo(){
       }
       if(error) throw error;
       await _syncPromosFromCloud();
+      // Lưu localStorage đồng bộ với cloud
+  // vc_promos cache removed
       savedToCloud=true;
     }catch(e){
       console.warn('Supabase savePromo error:',e.message,'→ lưu local');
@@ -2717,19 +1279,27 @@ async function savePromo(){
     }
   }
 
-  if(!savedToCloud){
-    // Lưu cloud thất bại → báo lỗi, không lưu local giả
-    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
-    toast('❌ Lưu thất bại — kiểm tra kết nối hoặc bảng promotions trong Supabase');
-    return;
+  // Lưu local (luôn làm — dù cloud thành công hay không)
+  if(_editPromoId){
+    const idx=_promoStore.findIndex(x=>x.id===_editPromoId);
+    if(idx>=0) _promoStore[idx]={..._promoStore[idx],...data};
+  } else {
+    if(!savedToCloud){
+      _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
+    }
   }
 
-  // Cloud OK → reload từ cloud
-  await _syncPromosFromCloud();
+  // Lưu vào localStorage để không mất khi thoát
+  // vc_promos cache removed
+
+  // Cập nhật màn hình chính + danh sách admin
   _syncPromosToBuildState();
   admLoadPromos();
+
   closePromoModal();
-  toast(_editPromoId?'✅ Đã cập nhật KM':'✅ Đã thêm KM');
+  toast(savedToCloud
+    ?(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)')
+    :(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM'));
   _editPromoId=null;
   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
 }
@@ -2781,9 +1351,7 @@ function promoToCardV2(p){
   return {icon:meta.icon,title,subTitle,badge,boxIcon,boxText,boxSub,boxTag,_pid:p.id};
 }
 
-// ── INIT _promoStore: luôn bắt đầu rỗng, loadPromos() sẽ fill từ Supabase ──
-// (đã xóa đọc localStorage — tránh badge demo cũ hiện sai)
-try{ localStorage.removeItem('vc_promos'); }catch(_){}
+// _promoStore luôn rỗng khi khởi động — loadPromos() fill từ Supabase
 try{allPromos=_promoStore.filter(x=>x.is_active).map(p=>promoToCardV2(p));}catch(e){allPromos=[];console.warn("allPromos init:",e.message);}
 
 
@@ -3018,10 +1586,10 @@ function renderPromoTagBar(prod){
 function hotCard(p, prefix='hot'){
   const item=cart.find(x=>x.id===p.id), qty=item?item.qty:0;
   const emoji=PROD_EMOJI_MAP[p.category]||'🛒';
-  // Giá hiển thị: ưu tiên sale_price thật từ data
+  // Giá hiển thị: ưu tiên sale_price
   const displayPrice = (p.sale_price && p.sale_price < p.price) ? p.sale_price : p.price;
-  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (p.old_price||0);
-  const pct = (oldP>0 && oldP>displayPrice) ? Math.round((1-displayPrice/oldP)*100) : 0;
+  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (DEMO_OLD_PRICES[p.id]||p.old_price||0);
+  const pct = oldP>displayPrice ? Math.round((1-displayPrice/oldP)*100) : 0;
   // Tên chương trình KM
   const linkedPromo = p.promo_id ? _promoStore.find(x=>x.id===p.promo_id) : null;
   const promoBar=renderPromoTagBar(p);
@@ -3504,7 +2072,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.9';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.1';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3606,7 +2174,6 @@ setTimeout(()=>{
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <span id="adm-role-badge" class="adm-role-badge adm-role-admin">ADMIN</span>
-            <button onclick="adminResetCache()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" title="Xóa cache & reload">🔄 Reset</button>
             <button class="adm-close-btn" onclick="closeAdminPanel()">×</button>
           </div>
         </div>
