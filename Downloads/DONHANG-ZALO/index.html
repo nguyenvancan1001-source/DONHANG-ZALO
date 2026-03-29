@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.3">
+<meta name="version" content="2.4">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.3</title>
-<!-- v2.3 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.4</title>
+<!-- v2.4 — fix promo badge chỉ hiện khi có KM thật -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1226,9 +1226,11 @@ async function loadPromos(){
     const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
     if(error) throw error;
     if(data&&data.length){
-      // ✅ Có data thật từ Supabase
-      _promoStore=_safeSerializePromos(data);
-      try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(data)));}catch(_){}
+      // ✅ Có data thật từ Supabase — lọc bỏ demo IDs nếu lọt vào
+      const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
+      const cleanData = data.filter(p=>!DEMO_IDS.includes(p.id));
+      _promoStore=_safeSerializePromos(cleanData);
+      try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(cleanData)));}catch(_){}
     } else {
       // Supabase chưa có promo → thử localStorage, bỏ qua nếu là cache demo cũ
       try{
@@ -1246,7 +1248,33 @@ async function loadPromos(){
       _promoStore=(parsed&&parsed.length&&!isOnlyDemo(parsed))?parsed:[];
     }catch(_){ _promoStore=[]; }
   }
+  // ✅ Production: không bao giờ để demo IDs lọt vào _promoStore
+  if(!IS_DEMO){
+    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
+    _promoStore=(_promoStore||[]).filter(p=>!DEMO_IDS.includes(p.id));
+  }
   _syncPromosToBuildState();
+}
+
+// ✅ Xóa promo_id demo khỏi Supabase (chạy ngầm, không block UI)
+async function _cleanDemoPromoIdsFromDB(){
+  try{
+    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
+    // Kiểm tra xem còn SP nào có promo_id demo không
+    const {data,error}=await db.from('products')
+      .select('id,promo_id')
+      .in('promo_id', DEMO_IDS);
+    if(error||!data||!data.length) return;
+    // Xóa promo_id demo khỏi các SP đó
+    const {error:upErr}=await db.from('products')
+      .update({promo_id:null})
+      .in('promo_id', DEMO_IDS);
+    if(!upErr){
+      console.log('[Vicomart] Đã xóa promo_id demo khỏi',data.length,'SP trên Supabase');
+      // Reload lại SP để UI cập nhật
+      await loadProds();
+    }
+  }catch(e){ console.warn('_cleanDemoPromoIdsFromDB:',e.message); }
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -1278,6 +1306,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   try{ buildHeroPromos(); }catch(e){ console.warn('buildHeroPromos:',e.message); }
   try{ loadHeaderStats(); }catch(e){ console.warn('loadHeaderStats:',e.message); }
   try{ await loadPromos(); }catch(e){ console.warn('loadPromos:',e.message); }
+  // ✅ Dọn promo_id demo khỏi Supabase (chạy 1 lần, tự biết khi nào cần)
+  if(!IS_DEMO && db) _cleanDemoPromoIdsFromDB();
   try{ renderHighlights(); }catch(e){ console.warn('renderHighlights:',e.message); }
   try{
     BRANCHES.forEach(b => {
@@ -2206,7 +2236,11 @@ async function saveAdmProd(){
         is_new: prod.is_new||false,
         stock_qty: prod.stock_qty||99,
         sale_price: prod.sale_price||0,
-        promo_id: prod.promo_id||null,
+        // ✅ Không lưu promo_id demo lên Supabase
+        promo_id: (()=>{
+          const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
+          return (prod.promo_id && !DEMO_IDS.includes(prod.promo_id)) ? prod.promo_id : null;
+        })(),
         image_url: imageUrl,
       };
 
