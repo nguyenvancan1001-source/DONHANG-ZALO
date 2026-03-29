@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.4">
+<meta name="version" content="2.5">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.4</title>
-<!-- v2.4 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.5</title>
+<!-- v2.5 — fix promo badge chỉ hiện khi có KM thật -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1215,44 +1215,24 @@ function _safeSerializePromos(arr){
   }
 }
 async function loadPromos(){
+  // DEMO mode: dùng data mẫu
   if(IS_DEMO){
     _promoStore=_safeSerializePromos(DEMO_PROMO_FALLBACK);
     _syncPromosToBuildState(); return;
   }
-  // IDs của DEMO data — dùng để nhận biết cache cũ
-  const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-  const isOnlyDemo = arr => arr&&arr.length&&arr.every(p=>DEMO_IDS.includes(p.id));
+  // PRODUCTION: chỉ lấy từ Supabase, không fallback localStorage
+  // Nếu Supabase lỗi hoặc rỗng → _promoStore=[] → không hiện badge nào
+  _promoStore=[];
   try{
-    const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
-    if(error) throw error;
-    if(data&&data.length){
-      // ✅ Có data thật từ Supabase — lọc bỏ demo IDs nếu lọt vào
-      const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-      const cleanData = data.filter(p=>!DEMO_IDS.includes(p.id));
-      _promoStore=_safeSerializePromos(cleanData);
-      try{localStorage.setItem('vc_promos',JSON.stringify(_safeSerializePromos(cleanData)));}catch(_){}
-    } else {
-      // Supabase chưa có promo → thử localStorage, bỏ qua nếu là cache demo cũ
-      try{
-        const saved=localStorage.getItem('vc_promos');
-        const parsed=saved?JSON.parse(saved):null;
-        _promoStore=(parsed&&parsed.length&&!isOnlyDemo(parsed))?parsed:[];
-      }catch(_){ _promoStore=[]; }
+    const {data,error}=await db.from('promotions').select('*').eq('is_active',true).order('created_at',{ascending:false});
+    if(!error && data && data.length){
+      _promoStore=_safeSerializePromos(data);
     }
   }catch(e){
-    console.warn('[Vicomart] loadPromos failed:',e.message);
-    // Lỗi kết nối → dùng localStorage nếu có data thật
-    try{
-      const saved=localStorage.getItem('vc_promos');
-      const parsed=saved?JSON.parse(saved):null;
-      _promoStore=(parsed&&parsed.length&&!isOnlyDemo(parsed))?parsed:[];
-    }catch(_){ _promoStore=[]; }
+    console.warn('[Vicomart] loadPromos:',e.message);
   }
-  // ✅ Production: không bao giờ để demo IDs lọt vào _promoStore
-  if(!IS_DEMO){
-    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-    _promoStore=(_promoStore||[]).filter(p=>!DEMO_IDS.includes(p.id));
-  }
+  // Xóa cache localStorage cũ để không dùng lại
+  try{localStorage.removeItem('vc_promos');}catch(_){}
   _syncPromosToBuildState();
 }
 
@@ -1278,28 +1258,18 @@ async function _cleanDemoPromoIdsFromDB(){
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // ✅ Xóa cache demo cũ khi mở app
+  // ✅ Xóa toàn bộ cache promo cũ — chỉ dùng Supabase
+  try{ localStorage.removeItem('vc_promos'); }catch(_){}
+  // ✅ Xóa promo_id demo khỏi cache sản phẩm
   try{
     const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-    // Xóa cache promo demo
-    const savedPromos=localStorage.getItem('vc_promos');
-    if(savedPromos){
-      const parsed=JSON.parse(savedPromos);
-      if(parsed&&parsed.length&&parsed.every(p=>DEMO_IDS.includes(p.id))){
-        localStorage.removeItem('vc_promos');
-        console.log('[Vicomart] Đã xóa cache promo demo');
-      }
-    }
-    // ✅ Xóa promo_id demo khỏi cache sản phẩm
     const savedProds=localStorage.getItem('vc_products');
     if(savedProds){
       const prods=JSON.parse(savedProds);
       if(prods&&prods.some(p=>p.promo_id&&DEMO_IDS.includes(p.promo_id))){
-        const cleaned=prods.map(p=>({...p, promo_id: DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
-        localStorage.setItem('vc_products', JSON.stringify(cleaned));
-        // Cập nhật _savedProds nếu đã load
-        if(window._savedProds) window._savedProds=window._savedProds.map(p=>({...p, promo_id: DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
-        console.log('[Vicomart] Đã xóa promo_id demo khỏi cache sản phẩm');
+        const cleaned=prods.map(p=>({...p,promo_id:DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
+        localStorage.setItem('vc_products',JSON.stringify(cleaned));
+        if(window._savedProds) window._savedProds=cleaned;
       }
     }
   }catch(_){}
