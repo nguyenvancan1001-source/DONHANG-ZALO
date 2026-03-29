@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.2">
+<meta name="version" content="2.3">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.2</title>
-<!-- v2.2 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.3</title>
+<!-- v2.3 — fix promo badge chỉ hiện khi có KM thật -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1250,15 +1250,28 @@ async function loadPromos(){
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // ✅ Xóa cache promo demo cũ (ps1–ps6) khi mở app lần đầu
+  // ✅ Xóa cache demo cũ khi mở app
   try{
-    const saved=localStorage.getItem('vc_promos');
-    if(saved){
-      const parsed=JSON.parse(saved);
-      const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
-      if(parsed&&parsed.every(p=>DEMO_IDS.includes(p.id))){
+    const DEMO_IDS=['ps1','ps2','ps3','ps4','ps5','ps6'];
+    // Xóa cache promo demo
+    const savedPromos=localStorage.getItem('vc_promos');
+    if(savedPromos){
+      const parsed=JSON.parse(savedPromos);
+      if(parsed&&parsed.length&&parsed.every(p=>DEMO_IDS.includes(p.id))){
         localStorage.removeItem('vc_promos');
-        console.log('[Vicomart] Đã xóa cache promo demo cũ');
+        console.log('[Vicomart] Đã xóa cache promo demo');
+      }
+    }
+    // ✅ Xóa promo_id demo khỏi cache sản phẩm
+    const savedProds=localStorage.getItem('vc_products');
+    if(savedProds){
+      const prods=JSON.parse(savedProds);
+      if(prods&&prods.some(p=>p.promo_id&&DEMO_IDS.includes(p.promo_id))){
+        const cleaned=prods.map(p=>({...p, promo_id: DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
+        localStorage.setItem('vc_products', JSON.stringify(cleaned));
+        // Cập nhật _savedProds nếu đã load
+        if(window._savedProds) window._savedProds=window._savedProds.map(p=>({...p, promo_id: DEMO_IDS.includes(p.promo_id)?null:p.promo_id}));
+        console.log('[Vicomart] Đã xóa promo_id demo khỏi cache sản phẩm');
       }
     }
   }catch(_){}
@@ -1345,10 +1358,38 @@ async function loadProds() {
     } else {
       allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
     }
+    // ✅ Strip promo_id demo: nếu promo_id không tồn tại trong _promoStore thật → xóa
+    _stripInvalidPromoIds();
     buildCats(); renderProds(allProds); buildHotGrid();
   } catch(e) {
     allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
+    _stripInvalidPromoIds();
     buildCats(); renderProds(allProds); buildHotGrid();
+  }
+}
+
+// Xóa promo_id khỏi sản phẩm nếu promo đó không có trong _promoStore thật
+function _stripInvalidPromoIds(){
+  if(!allProds||!allProds.length) return;
+  const validIds = new Set((_promoStore||[]).map(p=>p.id));
+  let changed = false;
+  allProds = allProds.map(p=>{
+    if(p.promo_id && !validIds.has(p.promo_id)){
+      changed = true;
+      return {...p, promo_id: null};
+    }
+    return p;
+  });
+  if(changed){
+    // Cập nhật DEMO_PRODUCTS local
+    DEMO_PRODUCTS.length = 0;
+    allProds.forEach(p => DEMO_PRODUCTS.push(p));
+    // Lưu lại local (không push lên Supabase — chỉ UI)
+    try{
+      const prods = allProds.map(p=>({...p, image_url: p.image_url&&p.image_url.startsWith('data:')?'__local__':p.image_url}));
+      localStorage.setItem('vc_products', JSON.stringify(prods));
+    }catch(_){}
+    console.log('[Vicomart] Đã strip promo_id demo khỏi', allProds.filter(p=>!p.promo_id).length, 'sản phẩm');
   }
 }
 
