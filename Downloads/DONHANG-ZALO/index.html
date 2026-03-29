@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="2.6">
+<meta name="version" content="2.7">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.6</title>
-<!-- v2.6 — fix promo badge chỉ hiện khi có KM thật -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v2.7</title>
+<!-- v2.7 — fix promo badge chỉ hiện khi có KM thật -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1100,13 +1100,21 @@ function buildHeroPromos(){
   const el=document.getElementById('hero-promo-list');
   if(!el) return;
 
-  // Dùng allPromos nếu có data, fallback về DEMO_PROMOS
+  // Chỉ dùng data thật từ Supabase — không fallback DEMO
   let cards=[];
   if(typeof allPromos!=='undefined' && allPromos && allPromos.length){
-    // allPromos có thể là array đã converted (promoToCardV2) hoặc Supabase raw
     cards = allPromos.map(p=>p.title?p:promoToCardV2(p)).filter(p=>p&&p.title);
   }
-  if(!cards.length) cards=DEMO_PROMOS;
+  if(!cards.length){
+    // Không có KM thật → ẩn section hero promo
+    const heroSection=el.closest('.hero-promo-section')||el.parentElement;
+    if(heroSection) heroSection.style.display='none';
+    el.innerHTML='';
+    return;
+  }
+  // Có KM thật → đảm bảo section hiện
+  const heroSection=el.closest('.hero-promo-section')||el.parentElement;
+  if(heroSection) heroSection.style.display='';
 
   const COLORS=['pc-0','pc-1','pc-2','pc-3','pc-4','pc-5'];
   el.innerHTML=cards.map((p,i)=>`
@@ -1795,6 +1803,13 @@ async function doAdmLogin(){
   if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
   showAdmApp();
 }
+function adminResetCache(){
+  if(!confirm('Xóa toàn bộ cache trình duyệt và reload?')) return;
+  localStorage.clear();
+  sessionStorage.clear();
+  location.reload();
+}
+
 async function doAdmLogout(){
   // Đăng xuất Supabase Auth nếu dùng
   if(admUser && admUser._supabase && db){
@@ -2690,24 +2705,19 @@ async function savePromo(){
     }
   }
 
-  // Lưu local (luôn làm — dù cloud thành công hay không)
-  if(_editPromoId){
-    const idx=_promoStore.findIndex(x=>x.id===_editPromoId);
-    if(idx>=0) _promoStore[idx]={..._promoStore[idx],...data};
-  } else {
-    if(!savedToCloud){
-      _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
-    }
+  if(!savedToCloud){
+    // Lưu cloud thất bại → báo lỗi, không lưu local giả
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
+    toast('❌ Lưu thất bại — kiểm tra kết nối hoặc bảng promotions trong Supabase');
+    return;
   }
 
-  // Cập nhật màn hình chính + danh sách admin
+  // Cloud OK → reload từ cloud
+  await _syncPromosFromCloud();
   _syncPromosToBuildState();
   admLoadPromos();
-
   closePromoModal();
-  toast(savedToCloud
-    ?(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)')
-    :(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM'));
+  toast(_editPromoId?'✅ Đã cập nhật KM':'✅ Đã thêm KM');
   _editPromoId=null;
   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
 }
@@ -3584,6 +3594,7 @@ setTimeout(()=>{
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <span id="adm-role-badge" class="adm-role-badge adm-role-admin">ADMIN</span>
+            <button onclick="adminResetCache()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer" title="Xóa cache & reload">🔄 Reset</button>
             <button class="adm-close-btn" onclick="closeAdminPanel()">×</button>
           </div>
         </div>
