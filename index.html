@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.5">
+<meta name="version" content="3.8.6">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.5</title>
-<!-- v3.8.5 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.6</title>
+<!-- v3.8.6 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -829,9 +829,9 @@ if(window._savedProds && window._savedProds.length){
 
       <!-- Counter đơn hôm nay -->
       <div style="padding:0 12px 4px">
-        <div class="order-counter-bar" id="order-counter-bar">
+        <div class="order-counter-bar" id="order-counter-bar" style="display:none">
           <div class="order-counter-dot"></div>
-          <span id="order-counter-txt">🔥 Đang tải...</span>
+          <span id="order-counter-txt"></span>
         </div>
       </div>
 
@@ -3553,7 +3553,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.5';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.6';
   }catch(e){}
 }
 function showOrderAlert(count){
