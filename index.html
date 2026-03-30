@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.3">
+<meta name="version" content="3.4">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.3</title>
-<!-- v3.3 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.4</title>
+<!-- v3.4 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -682,7 +682,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 <!-- CONFIG ✅ URL đã điền — chỉ cần thay SUPA_KEY bằng anon key từ Supabase Dashboard -->
 <script>
-(function(){var V='3.3';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
+(function(){var V='3.4';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
 const SUPA_URL = 'https://mypsgfrzmqdvlsitalwn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cHNnZnJ6bXFkdmxzaXRhbHduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mjg4MDcsImV4cCI6MjA5MDAwNDgwN30.-CaQ0rYZCBLew-N5mZNVbew1Nsdu2SI-wufd71zps3w';
 // Edge Function endpoints
@@ -1206,6 +1206,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   try{ loadHeaderStats(); }catch(e){ console.warn('loadHeaderStats:',e.message); }
   try{ await loadPromos(); }catch(e){ console.warn('loadPromos:',e.message); }
   try{ renderHighlights(); }catch(e){ console.warn('renderHighlights:',e.message); }
+  try{ loadHighlightsFromCloud(); }catch(e){}
   try{
     BRANCHES.forEach(b => {
       const o = document.createElement('option');
@@ -1612,7 +1613,20 @@ let ADM_ACCOUNTS_DEMO = (()=>{
   }catch(e){}
   return [...ADM_ACCOUNTS_DEFAULT];
 })();
-function saveAccounts(){ try{localStorage.setItem('vc_accounts',JSON.stringify(ADM_ACCOUNTS_DEMO));}catch(e){} }
+async function saveAccounts(){
+  // Lưu local
+  try{localStorage.setItem('vc_accounts',JSON.stringify(ADM_ACCOUNTS_DEMO));}catch(e){}
+  // Đồng bộ lên Supabase
+  if(!db||IS_DEMO) return;
+  try{
+    for(const a of ADM_ACCOUNTS_DEMO){
+      await db.from('admin_accounts').upsert({
+        username:a.user, password:a.pass, role:a.role,
+        name:a.name, branch:a.branch||'', is_active:true
+      },{onConflict:'username'});
+    }
+  }catch(e){console.warn('saveAccounts cloud:',e.message);}
+}
 
 const ADM_ST_LABEL = {pending:'Chờ xác nhận',processing:'Đang xử lý',ready:'Sẵn sàng',done:'Hoàn thành',cancelled:'Đã huỷ'};
 const ADM_ST_OPT = Object.entries(ADM_ST_LABEL).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
@@ -1686,7 +1700,17 @@ async function doAdmLogin(){
   }
 
   // Fallback: demo accounts
-  const acc = ADM_ACCOUNTS_DEMO.find(a => a.user===u && a.pass===p);
+  // Thử đọc tài khoản từ Supabase trước
+  let acc = null;
+  if(db && !IS_DEMO){
+    try{
+      const {data,error} = await db.from('admin_accounts')
+        .select('*').eq('username',u).eq('password',p).eq('is_active',true).single();
+      if(!error && data) acc = {user:data.username,pass:data.password,role:data.role,name:data.name||data.username,branch:data.branch||''};
+    }catch(e){}
+  }
+  // Fallback local nếu Supabase lỗi
+  if(!acc) acc = ADM_ACCOUNTS_DEMO.find(a => a.user===u && a.pass===p);
   if(!acc){
     errEl.textContent='Sai tài khoản hoặc mật khẩu';
     if(btn){ btn.disabled=false; btn.textContent='Đăng nhập'; }
@@ -3182,6 +3206,16 @@ function loadHighlights(){
     return s ? JSON.parse(s) : HL_DEFAULT;
   }catch(e){ return HL_DEFAULT; }
 }
+async function loadHighlightsFromCloud(){
+  if(!db||IS_DEMO) return;
+  try{
+    const {data,error}=await db.from('settings').select('value').eq('key','highlights').single();
+    if(!error&&data&&data.value){
+      try{localStorage.setItem(HL_STORE_KEY,JSON.stringify(data.value));}catch(_){}
+      renderHighlights();
+    }
+  }catch(e){}
+}
 
 function renderHighlights(){
   const data=loadHighlights();
@@ -3293,7 +3327,7 @@ function previewHighlight(i){
   renderHighlights();
 }
 
-function saveHighlights(){
+async function saveHighlights(){
   const data=loadHighlights();
   // Đọc lại text từ input
   data.forEach((h,i)=>{
@@ -3301,6 +3335,12 @@ function saveHighlights(){
     if(txt) h.txt=txt.value;
   });
   try{localStorage.setItem(HL_STORE_KEY,JSON.stringify(data));}catch(e){}
+  // Đồng bộ lên Supabase
+  if(db&&!IS_DEMO){
+    try{
+      await db.from('settings').upsert({key:'highlights',value:data,updated_at:new Date().toISOString()},{onConflict:'key'});
+    }catch(e){console.warn('saveHighlights cloud:',e.message);}
+  }
   renderHighlights();
   toast('✓ Đã lưu 4 ô nội dung!');
 }
@@ -3375,7 +3415,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.3';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.4';
   }catch(e){}
 }
 function showOrderAlert(count){
