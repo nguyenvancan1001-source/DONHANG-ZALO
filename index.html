@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.1">
+<meta name="version" content="3.3">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.1</title>
-<!-- v3.1 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.3</title>
+<!-- v3.3 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -483,7 +483,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .pc-mini-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;position:relative;z-index:1}
 .pc-mini{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:3px 8px;font-size:12px;font-weight:700}
 /* Action buttons on card */
-.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:10}
+.pc-acts{display:flex;gap:6px;margin:8px 12px 12px;position:relative;z-index:20;pointer-events:all}
 .pc-act-btn{flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:700;font-family:var(--font);cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.15);color:#fff;pointer-events:all;position:relative;z-index:10}
 .pc-act-btn.danger{background:rgba(239,68,68,.25);border-color:rgba(239,68,68,.4)}
 
@@ -682,7 +682,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 <!-- CONFIG ✅ URL đã điền — chỉ cần thay SUPA_KEY bằng anon key từ Supabase Dashboard -->
 <script>
-(function(){var V='3.1';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
+(function(){var V='3.3';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
 const SUPA_URL = 'https://mypsgfrzmqdvlsitalwn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cHNnZnJ6bXFkdmxzaXRhbHduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mjg4MDcsImV4cCI6MjA5MDAwNDgwN30.-CaQ0rYZCBLew-N5mZNVbew1Nsdu2SI-wufd71zps3w';
 // Edge Function endpoints
@@ -993,10 +993,7 @@ const PROD_EMOJI_MAP = {
   'Sữa':'🥛','Đồ uống':'🍺','Hóa phẩm':'🧴','Bánh':'🍞','Khác':'🛒'
 };
 
-const DEMO_OLD_PRICES = {
-  'd01':120000,'d02':60000,'d03':32000,'d05':0,'d06':38000,
-  'd07':35000,'d08':160000,'d09':32000,'d10':450000
-};
+const DEMO_OLD_PRICES = {}; // Đã xóa giá demo — badge chỉ hiện từ sale_price/old_price thật
 
 // ── COUNTDOWN ──────────────────────────────────────
 function tickCd(){
@@ -1078,13 +1075,17 @@ function buildHeroPromos(){
   const el=document.getElementById('hero-promo-list');
   if(!el) return;
 
-  // Dùng allPromos nếu có data, fallback về DEMO_PROMOS
+  // Chỉ dùng data thật từ Supabase — không fallback demo
   let cards=[];
   if(typeof allPromos!=='undefined' && allPromos && allPromos.length){
-    // allPromos có thể là array đã converted (promoToCardV2) hoặc Supabase raw
     cards = allPromos.map(p=>p.title?p:promoToCardV2(p)).filter(p=>p&&p.title);
   }
-  if(!cards.length) cards=DEMO_PROMOS;
+  if(!cards.length){
+    // Không có KM thật → ẩn toàn bộ section hero promo
+    const section = el.closest('.hero-promo-section') || el.parentElement;
+    if(section) section.style.display='none';
+    return;
+  }
 
   const COLORS=['pc-0','pc-1','pc-2','pc-3','pc-4','pc-5'];
   el.innerHTML=cards.map((p,i)=>`
@@ -1112,7 +1113,7 @@ function buildHotGrid(){
   const el=document.getElementById('hot-grid');
   if(!el) return;
   const hotProds=allProds.filter(p=>
-    DEMO_OLD_PRICES[p.id]||p.old_price||p.is_hot||p.is_new
+    p.old_price||(p.sale_price&&p.sale_price<p.price)||p.is_hot||p.is_new
   ).slice(0,6);
   if(!hotProds.length){
     el.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--ink3);font-size:13px">Đang tải sản phẩm...</div>';
@@ -2191,7 +2192,6 @@ async function admTogProd(id,cur){
 
 // In-memory store (replace với Supabase khi deploy)
 // _promoStore = [] ban đầu, load từ Supabase khi khởi động
-// Chỉ dùng DEMO_PROMO_FALLBACK khi Supabase chưa có data
 const DEMO_PROMO_FALLBACK = [];
 let _promoStore = []; // sẽ được fill từ Supabase hoặc DEMO_PROMO_FALLBACK
 
@@ -2244,10 +2244,10 @@ function renderPromoAdminCard(p){
       ${p.type==='flash'?`<span class="pc-mini">⏰ ${p.flash_label||''}</span>`:''}
       ${p.discount_pct?`<span class="pc-mini">-${p.discount_pct}%</span>`:''}
     </div>
-    <div class="pc-acts" onclick="event.stopPropagation()">
-      <button class="pc-act-btn" data-action="edit" data-id="${p.id}">✏️ Sửa</button>
-      <button class="pc-act-btn" data-action="tog" data-id="${p.id}" data-active="${p.is_active}">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
-      <button class="pc-act-btn danger" data-action="del" data-id="${p.id}">🗑</button>
+    <div class="pc-acts">
+      <button class="pc-act-btn" onclick="event.stopPropagation();editPromo('${p.id}')">✏️ Sửa</button>
+      <button class="pc-act-btn" onclick="event.stopPropagation();togPromoActive('${p.id}',${p.is_active})">${p.is_active?'⏹ Tắt':'▶ Bật'}</button>
+      <button class="pc-act-btn danger" onclick="event.stopPropagation();delPromo('${p.id}')">🗑</button>
     </div>
   </div>`;
 }
@@ -2891,7 +2891,7 @@ function hotCard(p, prefix='hot'){
   const emoji=PROD_EMOJI_MAP[p.category]||'🛒';
   // Giá hiển thị: ưu tiên sale_price
   const displayPrice = (p.sale_price && p.sale_price < p.price) ? p.sale_price : p.price;
-  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (DEMO_OLD_PRICES[p.id]||p.old_price||0);
+  const oldP = (p.sale_price && p.sale_price < p.price) ? p.price : (p.old_price||0);
   const pct = oldP>displayPrice ? Math.round((1-displayPrice/oldP)*100) : 0;
   // Tên chương trình KM
   const linkedPromo = p.promo_id ? _promoStore.find(x=>x.id===p.promo_id) : null;
@@ -3375,7 +3375,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.1';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.3';
   }catch(e){}
 }
 function showOrderAlert(count){
