@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.0">
+<meta name="version" content="3.8.1">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.0</title>
-<!-- v3.8.0 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.1</title>
+<!-- v3.8.1 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -3492,7 +3492,8 @@ async function loadHeaderStats(){
     const revenue  = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
 
     const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-    set('hdr-total',   pending  + _fakePending);
+    // Đơn mới = tổng đơn ảo đã đặt hôm nay
+    set('hdr-total',   typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : pending + _fakePending);
     set('hdr-done',    done     + _fakeDone);
     set('hdr-pending', waiting  + _fakeWaiting);
 
@@ -3546,7 +3547,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.0';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.1';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3669,7 +3670,7 @@ let _fakeDone    = Math.floor(Math.random()*8)+12;
 let _fakeWaiting = Math.floor(Math.random()*4)+2;
 function _initFakeHeaderStats(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('hdr-total',  _fakePending);
+  set('hdr-total',  typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : _fakePending);
   set('hdr-done',   _fakeDone);
   set('hdr-pending',_fakeWaiting);
   const dot=document.querySelector('#hdr-stats-row .hdr-stat-dot');
