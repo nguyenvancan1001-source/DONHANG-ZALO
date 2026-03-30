@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.7.5">
+<meta name="version" content="3.7.8">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.5</title>
-<!-- v3.7.5 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.8</title>
+<!-- v3.7.8 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -237,6 +237,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 }
 .hb-top{display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:1}
 /* Badge trạng thái */
+.fake-order-toast{position:fixed;bottom:80px;left:12px;right:12px;z-index:999;pointer-events:none}
+.fake-toast-item{background:#fff;border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);border-left:4px solid #1565C0;animation:slideInLeft .4s ease,fadeOut .4s ease 3.6s forwards;font-size:13px}
+.fake-toast-img{width:36px;height:36px;border-radius:8px;object-fit:cover;background:#f3f4f6;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.fake-toast-body{flex:1;min-width:0}
+.fake-toast-name{font-weight:700;color:#1a1a1a;font-size:12px;margin-bottom:1px}
+.fake-toast-prod{color:#555;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fake-toast-time{font-size:10px;color:#999;flex-shrink:0}
+@keyframes slideInLeft{from{transform:translateX(-110%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes fadeOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(-30px)}}
+.order-counter-bar{background:rgba(0,0,0,.55);backdrop-filter:blur(4px);border-radius:99px;padding:5px 14px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;margin:6px 0 0 0}
+.order-counter-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:pulse 1.5s infinite;flex-shrink:0}
 .hb-badge{
   display:inline-flex;align-items:center;gap:5px;
   background:#FFC300;color:#7B2500;
@@ -431,10 +442,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-st-sel.cancelled{background:#fee2e2;color:#991b1b}
 
 /* KPI row */
-.adm-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.adm-kpi{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.adm-kpi-lbl{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.adm-kpi-val{font-size:24px;font-weight:800;color:var(--ink)}
+.adm-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.adm-kpi{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;position:relative;overflow:hidden}
+.adm-kpi-lbl{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.adm-kpi-val{font-size:26px;font-weight:800;color:var(--ink);line-height:1}
+.adm-kpi-sub{font-size:11px;color:var(--ink3);margin-top:4px}
+.adm-kpi-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15}
 
 /* Product cards admin */
 .adm-prod-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
@@ -765,27 +778,28 @@ if(window._savedProds && window._savedProds.length){
     </div>
     <!-- Hàng 2: Stats tổng quan -->
     <div class="hdr-stats-row" id="hdr-stats-row">
-      <div class="hdr-stat" onclick="openAdminPanel()">
+      <div class="hdr-stat" onclick="openAdminPanel();setTimeout(()=>swAdmTab('orders'),300)">
         <div class="hdr-stat-dot" style="background:#FFC300"></div>
         <div class="hdr-stat-body">
           <div class="hdr-stat-val" id="hdr-total" style="color:#FFC300">—</div>
           <div class="hdr-stat-lbl">Đơn mới</div>
         </div>
       </div>
-      <div class="hdr-stat" onclick="openAdminPanel()">
+      <div class="hdr-stat" onclick="openAdminPanel();setTimeout(()=>swAdmTab('orders'),300)">
         <div class="hdr-stat-dot" style="background:#4ade80"></div>
         <div class="hdr-stat-body">
           <div class="hdr-stat-val" id="hdr-done">—</div>
           <div class="hdr-stat-lbl">Đã giao</div>
         </div>
       </div>
-      <div class="hdr-stat" onclick="openAdminPanel()">
+      <div class="hdr-stat" onclick="openAdminPanel();setTimeout(()=>swAdmTab('orders'),300)">
         <div class="hdr-stat-dot" style="background:#fbbf24"></div>
         <div class="hdr-stat-body">
           <div class="hdr-stat-val" id="hdr-pending">—</div>
           <div class="hdr-stat-lbl">Chờ giao</div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -810,6 +824,14 @@ if(window._savedProds && window._savedProds.length){
             <span class="hb-cd-sep">:</span>
             <div class="hb-cd-box"><span class="hb-cd-n" id="cd-s">00</span><span class="hb-cd-u">GIÂY</span></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Counter đơn hôm nay -->
+      <div style="padding:0 12px 4px">
+        <div class="order-counter-bar" id="order-counter-bar">
+          <div class="order-counter-dot"></div>
+          <span id="order-counter-txt">🔥 Đang tải...</span>
         </div>
       </div>
 
@@ -1222,6 +1244,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   try{ renderCartBar(); }catch(e){}
   try{ updateFlashPriceBar(); }catch(e){}
   setInterval(()=>{ try{loadHeaderStats();}catch(e){} }, 30000);
+  // Bắt đầu hiển thị đơn ảo sau 3 giây
+  setTimeout(startFakeSocialProof, 3000);
   if(db && !IS_DEMO){
     try{
       db.channel('products-changes')
@@ -1839,11 +1863,38 @@ async function admLoadOrders(){
   // Update KPIs
   const today=new Date().toDateString();
   const tod=orders.filter(o=>new Date(o.created_at).toDateString()===today);
+  const todPending = tod.filter(o=>o.status==='pending').length;
+  const todDone    = tod.filter(o=>o.status==='done').length;
+  const todWait    = tod.filter(o=>o.status==='processing'||o.status==='ready').length;
+  const todRev     = tod.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
+  const allPending = orders.filter(o=>o.status==='pending').length;
   document.getElementById('adm-kpi').innerHTML=`
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Hôm nay</div><div class="adm-kpi-val" style="color:#2563eb">${tod.length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Chờ xác nhận</div><div class="adm-kpi-val" style="color:var(--amber)">${orders.filter(o=>o.status==='pending').length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Hoàn thành</div><div class="adm-kpi-val" style="color:var(--g800)">${tod.filter(o=>o.status==='done').length}</div></div>
-    <div class="adm-kpi"><div class="adm-kpi-lbl">Doanh thu</div><div class="adm-kpi-val" style="color:var(--red);font-size:15px">${fmt(tod.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total),0))}</div></div>`;
+    <div class="adm-kpi" style="border-color:#fbbf24">
+      <div class="adm-kpi-lbl">Đơn mới hôm nay</div>
+      <div class="adm-kpi-val" style="color:#d97706">${todPending}</div>
+      <div class="adm-kpi-sub">Tổng chờ xác nhận: <b>${allPending}</b></div>
+      <div class="adm-kpi-icon">🛒</div>
+    </div>
+    <div class="adm-kpi" style="border-color:#4ade80">
+      <div class="adm-kpi-lbl">Đã giao hôm nay</div>
+      <div class="adm-kpi-val" style="color:#16a34a">${todDone}</div>
+      <div class="adm-kpi-sub">Đang xử lý: <b>${todWait}</b></div>
+      <div class="adm-kpi-icon">✅</div>
+    </div>
+    <div class="adm-kpi" style="border-color:#93c5fd">
+      <div class="adm-kpi-lbl">Tổng đơn hôm nay</div>
+      <div class="adm-kpi-val" style="color:#2563eb">${tod.length}</div>
+      <div class="adm-kpi-sub">Tất cả trạng thái</div>
+      <div class="adm-kpi-icon">📋</div>
+    </div>
+    <div class="adm-kpi" style="border-color:#fca5a5">
+      <div class="adm-kpi-lbl">Doanh thu hôm nay</div>
+      <div class="adm-kpi-val" style="color:#dc2626;font-size:18px">${fmt(todRev)}</div>
+      <div class="adm-kpi-sub">Đơn hoàn thành</div>
+      <div class="adm-kpi-icon">💰</div>
+    </div>`;
+  // Cập nhật header stats
+  try{loadHeaderStats();}catch(_){}
   if(!orders.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có đơn hàng nào</div>';return;}
   el.innerHTML=orders.map(o=>`
     <div class="adm-order-card">
@@ -3425,31 +3476,36 @@ async function saveHighlights(){
 
 // ── HEADER STATS ──────────────────────────────
 async function loadHeaderStats(){
+  if(!db||IS_DEMO) return;
   try{
     const today = new Date().toISOString().split('T')[0];
-    let orders = [];
-    if(db && !IS_DEMO){
-      const {data,error} = await db.from('orders')
-        .select('status,total,created_at')
-        .gte('created_at', today + 'T00:00:00Z');
-      if(!error) orders = data || [];
+    const {data,error} = await db.from('orders')
+      .select('status,total,created_at')
+      .gte('created_at', today + 'T00:00:00Z');
+    if(error) throw error;
+    const orders = data || [];
+
+    const pending  = orders.filter(o=>o.status==='pending').length;
+    const done     = orders.filter(o=>o.status==='done').length;
+    const waiting  = orders.filter(o=>o.status==='processing'||o.status==='ready').length;
+    const revenue  = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
+
+    const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('hdr-total',   pending);
+    set('hdr-done',    done);
+    set('hdr-pending', waiting);
+
+    // Cập nhật counter thật từ Supabase
+    const realCount = orders.length;
+    if(realCount > 0){
+      _fakeOrderCount = Math.max(_fakeOrderCount, realCount + Math.floor(Math.random()*20)+10);
+      const el = document.getElementById('order-counter-txt');
+      if(el) el.textContent = `🔥 ${_fakeOrderCount} người đã đặt hôm nay`;
     }
-    // Demo fallback
-    if(!orders.length && typeof _demoOrdersStore !== 'undefined' && _demoOrdersStore){
-      orders = _demoOrdersStore.filter(o=>{
-        const d = new Date(o.created_at);
-        return d.toDateString() === new Date().toDateString();
-      });
-      if(!orders.length) orders = _demoOrders(); // show demo data
-    }
-    const newOrders = orders.filter(o=>o.status==='pending').length;
-    const done      = orders.filter(o=>o.status==='done' || o.status==='ready').length;
-    const pending   = orders.filter(o=>o.status==='processing' || o.status==='pending').length;
-    const revenue   = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
-    const el = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-    el('hdr-total',   newOrders || '0');
-    el('hdr-done',    done      || '0');
-    el('hdr-pending', pending   || '0');
+
+    // Nhấp nháy nếu có đơn pending
+    const dot = document.querySelector('#hdr-stats-row .hdr-stat-dot');
+    if(dot) dot.style.animation = pending>0 ? 'pulse 1.5s infinite' : 'none';
   }catch(e){ console.warn('loadHeaderStats:',e.message); }
 }
 async function loadHeaderKpi(){ await loadHeaderStats(); }
@@ -3489,7 +3545,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.5';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.8';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3919,5 +3975,6 @@ setTimeout(()=>{
 
 
 
+<div class="fake-order-toast" id="fake-order-toast"></div>
 </body>
 </html>
