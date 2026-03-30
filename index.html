@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.2">
+<meta name="version" content="3.8.3">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.2</title>
-<!-- v3.8.2 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.3</title>
+<!-- v3.8.3 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -3492,10 +3492,16 @@ async function loadHeaderStats(){
     const revenue  = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
 
     const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-    // Đơn mới = tổng đơn ảo đã đặt hôm nay
-    set('hdr-total',   typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : pending + _fakePending);
-    set('hdr-done',    done     + _fakeDone);
-    set('hdr-pending', waiting  + _fakeWaiting);
+    // Tổng = đơn ảo + đơn thật
+    const totalFake = typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : 80;
+    const totalReal = orders.length;
+    const grandTotal = Math.max(totalFake, totalFake + totalReal);
+    // Done/waiting = tỷ lệ từ tổng, cộng thêm số thật
+    const fakeDone    = Math.round(grandTotal * 0.65) + done;
+    const fakeWaiting = Math.round(grandTotal * 0.12) + waiting;
+    set('hdr-total',   grandTotal);
+    set('hdr-done',    fakeDone);
+    set('hdr-pending', fakeWaiting);
 
     // Cập nhật counter thật từ Supabase
     const realCount = orders.length;
@@ -3547,7 +3553,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.2';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.3';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3649,7 +3655,12 @@ function _showFakeToast(){
 function _updateFakeCounter(){
   _fakeOrderCount += Math.floor(Math.random()*2)+1;
   const el = document.getElementById('order-counter-txt');
-  if(el) el.textContent = `🔥 ${_fakeOrderCount} người đã đặt hôm nay`;
+  if(el) el.textContent = `?? ${_fakeOrderCount} người đã đặt hôm nay`;
+  // Cập nhật lại header khi counter tăng
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('hdr-total',   _fakeOrderCount);
+  set('hdr-done',    Math.round(_fakeOrderCount * 0.65));
+  set('hdr-pending', Math.round(_fakeOrderCount * 0.12));
 }
 
 function startFakeSocialProof(){
@@ -3666,21 +3677,21 @@ function startFakeSocialProof(){
 let _fakePending = Math.floor(Math.random()*5)+3;
 let _fakeDone    = Math.floor(Math.random()*8)+12;
 let _fakeWaiting = Math.floor(Math.random()*4)+2;
+function _calcFakeStats(){
+  // Tính done/waiting từ tổng _fakeOrderCount
+  const total = typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : 80;
+  const done    = Math.round(total * (0.60 + Math.random()*0.10)); // 60-70%
+  const waiting = Math.round(total * (0.10 + Math.random()*0.08)); // 10-18%
+  return {total, done, waiting};
+}
 function _initFakeHeaderStats(){
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('hdr-total',  typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : _fakePending);
-  set('hdr-done',   _fakeDone);
-  set('hdr-pending',_fakeWaiting);
+  const s = _calcFakeStats();
+  set('hdr-total',  s.total);
+  set('hdr-done',   s.done);
+  set('hdr-pending',s.waiting);
   const dot=document.querySelector('#hdr-stats-row .hdr-stat-dot');
   if(dot) dot.style.animation='pulse 1.5s infinite';
-  setInterval(()=>{
-    _fakePending =Math.max(0,_fakePending +(Math.random()>.3?1:0));
-    _fakeDone   +=Math.random()>.4?1:0;
-    _fakeWaiting=Math.max(0,_fakeWaiting+(Math.random()>.5?1:-1));
-    set('hdr-total',  _fakePending);
-    set('hdr-done',   _fakeDone);
-    set('hdr-pending',_fakeWaiting);
-  }, 180000);
 }
 
 </script>
