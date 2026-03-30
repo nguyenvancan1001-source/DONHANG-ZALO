@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.3">
+<meta name="version" content="3.8.4">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.3</title>
-<!-- v3.8.3 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.4</title>
+<!-- v3.8.4 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -3498,10 +3498,10 @@ async function loadHeaderStats(){
     const grandTotal = Math.max(totalFake, totalFake + totalReal);
     // Done/waiting = tỷ lệ từ tổng, cộng thêm số thật
     const fakeDone    = Math.round(grandTotal * 0.65) + done;
-    const fakeWaiting = Math.round(grandTotal * 0.12) + waiting;
+    const fakeWaiting = grandTotal - fakeDone;
     set('hdr-total',   grandTotal);
     set('hdr-done',    fakeDone);
-    set('hdr-pending', fakeWaiting);
+    set('hdr-pending', Math.max(0, fakeWaiting));
 
     // Cập nhật counter thật từ Supabase
     const realCount = orders.length;
@@ -3553,7 +3553,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.3';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.4';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3659,8 +3659,9 @@ function _updateFakeCounter(){
   // Cập nhật lại header khi counter tăng
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('hdr-total',   _fakeOrderCount);
-  set('hdr-done',    Math.round(_fakeOrderCount * 0.65));
-  set('hdr-pending', Math.round(_fakeOrderCount * 0.12));
+  const _done = Math.round(_fakeOrderCount * 0.65);
+  set('hdr-done',    _done);
+  set('hdr-pending', Math.max(0, _fakeOrderCount - _done));
 }
 
 function startFakeSocialProof(){
@@ -3681,7 +3682,7 @@ function _calcFakeStats(){
   // Tính done/waiting từ tổng _fakeOrderCount
   const total = typeof _fakeOrderCount!=='undefined' ? _fakeOrderCount : 80;
   const done    = Math.round(total * (0.60 + Math.random()*0.10)); // 60-70%
-  const waiting = Math.round(total * (0.10 + Math.random()*0.08)); // 10-18%
+  const waiting = total - done; // chờ giao = đơn mới - đã giao
   return {total, done, waiting};
 }
 function _initFakeHeaderStats(){
