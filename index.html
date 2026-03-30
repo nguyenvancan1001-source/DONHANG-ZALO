@@ -424,15 +424,8 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 .adm-login-err{color:var(--red);font-size:13px;font-weight:600;margin-top:8px;text-align:center}
 
 /* Order cards */
-.adm-order-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;transition:box-shadow .2s}
-.adm-order-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.08)}
+.adm-order-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px}
 .adm-order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.adm-order-items{background:#f8fafc;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px}
-.adm-order-item-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #e2e8f0}
-.adm-order-item-row:last-child{border-bottom:none}
-.adm-order-addr{font-size:12px;color:#2563eb;font-weight:600;margin-top:4px}
-.adm-order-actions{display:flex;gap:6px;margin-top:8px}
-.adm-order-act-btn{flex:1;padding:7px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
 .adm-order-code{font-size:13px;font-weight:800;color:var(--g800);font-family:monospace;letter-spacing:.5px}
 .adm-order-time{font-size:12px;color:var(--ink3);font-weight:600}
 .adm-order-name{font-size:14px;font-weight:700;margin-bottom:2px}
@@ -1909,80 +1902,53 @@ async function admLoadOrders(){
   // Cập nhật header stats
   try{loadHeaderStats();}catch(_){}
   if(!orders.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có đơn hàng nào</div>';return;}
+
   // Load order_items cho tất cả đơn
   let itemsMap = {};
-  if(db && !IS_DEMO){
-    try{
-      const ids = orders.map(o=>o.id);
-      const {data:items} = await db.from('order_items').select('*').in('order_id', ids);
-      if(items) items.forEach(i=>{ if(!itemsMap[i.order_id]) itemsMap[i.order_id]=[]; itemsMap[i.order_id].push(i); });
-    }catch(e){}
-  }
+  try{
+    const orderIds = orders.map(o=>o.id);
+    const {data:items} = await db.from('order_items').select('*').in('order_id', orderIds);
+    if(items) items.forEach(i=>{ if(!itemsMap[i.order_id]) itemsMap[i.order_id]=[]; itemsMap[i.order_id].push(i); });
+  }catch(e){}
+
   el.innerHTML=orders.map(o=>{
     const items = itemsMap[o.id]||[];
     const itemsHtml = items.length ? `
-      <div class="adm-order-items">
-        <div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">📦 Sản phẩm đặt</div>
+      <div style="margin:8px 0;padding:8px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">📦 Danh sách hàng</div>
         ${items.map(i=>`
-          <div class="adm-order-item-row">
-            <span style="color:#1a1a1a;font-weight:600">${i.product_name}</span>
-            <span style="color:#64748b">x${i.qty} · ${fmt(i.unit_price)}</span>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #f1f5f9;font-size:13px">
+            <span style="flex:1;color:#1e293b">${i.product_name}</span>
+            <span style="font-weight:700;color:#1565C0;margin-left:8px">x${i.qty}</span>
+            <span style="color:#64748b;font-size:12px;margin-left:8px">${fmt(i.unit_price*i.qty)}</span>
           </div>`).join('')}
+        <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:13px;font-weight:800;color:#dc2626">
+          <span>Tổng cộng</span><span>${fmt(o.total)}</span>
+        </div>
       </div>` : '';
+
     return `
-    <div class="adm-order-card">
+    <div class="adm-order-card" style="margin-bottom:10px">
       <div class="adm-order-top">
-        <div class="adm-order-code" style="font-size:15px;font-weight:800">${o.order_code}</div>
+        <div class="adm-order-code">${o.order_code}</div>
         <div class="adm-order-time">${fmtAdmTime(o.created_at)}</div>
       </div>
-      <div class="adm-order-name" style="font-size:15px">👤 ${o.customer_name}</div>
-      <div class="adm-order-ph">
-        📱 <a href="tel:${o.phone}" style="color:#1565C0;font-weight:700;text-decoration:none">${o.phone}</a>
-        ${o.branch?`· 🏪 ${o.branch}`:''}
+      <div style="display:flex;align-items:center;gap:8px;margin:4px 0">
+        <span style="font-size:15px;font-weight:700;color:#1a1a1a">👤 ${o.customer_name}</span>
       </div>
-      ${o.address?`<div class="adm-order-addr">📍 ${o.address}</div>`:''}
-      ${o.note?`<div class="adm-order-note">📝 ${o.note}</div>`:''}
+      <div style="font-size:13px;color:#555;margin-bottom:2px">📱 ${o.phone}</div>
+      ${o.branch?`<div style="font-size:13px;color:#1565C0;font-weight:600;margin-bottom:2px">🏪 ${o.branch}</div>`:''}
+      ${o.address?`<div style="font-size:13px;color:#555;margin-bottom:2px">📍 ${o.address}</div>`:''}
+      ${o.note?`<div style="font-size:12px;color:#92600a;background:#fef9c3;padding:5px 8px;border-radius:6px;margin:4px 0">📝 ${o.note}</div>`:''}
       ${itemsHtml}
-      <div class="adm-order-bot">
-        <div class="adm-order-total">💰 ${fmt(o.total)}</div>
+      <div class="adm-order-bot" style="margin-top:8px">
+        <div class="adm-order-total">${fmt(o.total)}</div>
         <select class="adm-st-sel ${o.status}" onchange="admUpdStatus('${o.id}',this.value,this)">
           ${ADM_ST_OPT.replace(`value="${o.status}"`,`value="${o.status}" selected`)}
         </select>
       </div>
-      <div class="adm-order-actions">
-        <button class="adm-order-act-btn" style="background:#e0f2fe;color:#0369a1" onclick="window.open('tel:${o.phone}')">📞 Gọi khách</button>
-        <button class="adm-order-act-btn" style="background:#f0fdf4;color:#15803d" onclick="admCopyOrder('${o.id}')">📋 Copy đơn</button>
-      </div>
     </div>`;
   }).join('');
-}
-
-function admCopyOrder(id){
-  const card = document.getElementById('adm-orders-list');
-  // Tìm order từ DOM
-  const allCards = card.querySelectorAll('.adm-order-card');
-  // Tìm order data từ Supabase cache không có — dùng text
-  const target = [...allCards].find(c=>c.innerHTML.includes(id.slice(0,8)));
-  if(!target){ toast('Không tìm thấy đơn'); return; }
-  const code = target.querySelector('.adm-order-code')?.textContent||'';
-  const name = target.querySelector('.adm-order-name')?.textContent||'';
-  const ph   = target.querySelector('.adm-order-ph')?.textContent||'';
-  const addr = target.querySelector('.adm-order-addr')?.textContent||'';
-  const note = target.querySelector('.adm-order-note')?.textContent||'';
-  const total= target.querySelector('.adm-order-total')?.textContent||'';
-  const items= [...target.querySelectorAll('.adm-order-item-row')].map(r=>{
-    const spans=r.querySelectorAll('span');
-    return spans[0]?.textContent+' '+spans[1]?.textContent;
-  }).join('
-');
-  const text = `ĐƠN HÀNG ${code}
-${name}
-${ph}
-${addr?addr+'
-':''}${items}
-Tổng: ${total}${note?'
-Ghi chú: '+note:''}`;
-  navigator.clipboard.writeText(text).then(()=>toast('✅ Đã copy đơn hàng')).catch(()=>toast('Không copy được'));
 }
 async function admUpdStatus(id,st,el){
   const oldCls=[...el.classList].find(c=>ADM_ST_LABEL[c])||'';
