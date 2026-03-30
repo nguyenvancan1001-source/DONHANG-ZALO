@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.6">
+<meta name="version" content="3.8.7">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.6</title>
-<!-- v3.8.6 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.7</title>
+<!-- v3.8.7 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -946,7 +946,7 @@ if(window._savedProds && window._savedProds.length){
       <div class="field">
         <label>Chi nhánh</label>
         <select id="f-branch">
-          <option value="">-- Tôi sẽ ghé cửa hàng --</option>
+          <option value="">-- Chọn chi nhánh --</option>
         </select>
       </div>
       <div class="field"><label>Hoặc nhập địa chỉ giao hàng</label><input id="f-addr" type="text" placeholder="Số nhà, đường, phường/xã..."></div>
@@ -1530,6 +1530,8 @@ async function submitOrder() {
   if (!name) { toast('Vui lòng nhập họ tên'); return; }
   if (!/^[0-9]{9,11}$/.test(phone)) { toast('Số điện thoại không hợp lệ'); return; }
   if (!cart.length) { toast('Giỏ hàng trống'); return; }
+  const branchVal = document.getElementById('f-branch').value;
+  if (!branchVal) { toast('Vui lòng chọn chi nhánh'); return; }
 
   const btn = document.getElementById('order-btn');
   btn.disabled = true; btn.textContent = 'Đang gửi...';
@@ -1852,7 +1854,10 @@ async function admLoadOrders(){
     let q=db.from('orders').select('*').order('created_at',{ascending:false}).limit(100);
     if(status) q=q.eq('status',status);
     if(admUser.role==='manager'||admUser.role==='staff'){
-      if(admUser.selectedBranch) q=q.eq('branch',admUser.selectedBranch);
+      if(admUser.selectedBranch){
+        // Lấy đơn có branch khớp HOẶC không có branch (đơn cũ/không chọn)
+        q=q.or(`branch.eq.${admUser.selectedBranch},branch.is.null`);
+      }
     }
     const {data,error}=await q;
     if(error) throw error;
@@ -3553,7 +3558,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.6';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.7';
   }catch(e){}
 }
 function showOrderAlert(count){
