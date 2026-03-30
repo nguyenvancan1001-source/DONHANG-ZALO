@@ -682,7 +682,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 <!-- CONFIG ✅ URL đã điền — chỉ cần thay SUPA_KEY bằng anon key từ Supabase Dashboard -->
 <script>
-(function(){var V='3.2';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
+(function(){var V='3.2';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var pr=localStorage.getItem('vc_products');var prm=localStorage.getItem('vc_promos_cache');var pi=localStorage.getItem('vc_prod_images');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(pr)localStorage.setItem('vc_products',pr);if(prm)localStorage.setItem('vc_promos_cache',prm);if(pi)localStorage.setItem('vc_prod_images',pi);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
 const SUPA_URL = 'https://mypsgfrzmqdvlsitalwn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cHNnZnJ6bXFkdmxzaXRhbHduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mjg4MDcsImV4cCI6MjA5MDAwNDgwN30.-CaQ0rYZCBLew-N5mZNVbew1Nsdu2SI-wufd71zps3w';
 // Edge Function endpoints
@@ -1191,10 +1191,22 @@ function _safeSerializePromos(arr){
 }
 async function loadPromos(){
   if(IS_DEMO){_promoStore=[];_syncPromosToBuildState();return;}
-  _promoStore=[];
+  // Restore từ localStorage trước (hiện nhanh)
   try{
-    const {data,error}=await db.from('promotions').select('*').eq('is_active',true).order('created_at',{ascending:false});
-    if(!error&&data&&data.length) _promoStore=_safeSerializePromos(data);
+    const cached=localStorage.getItem('vc_promos_cache');
+    if(cached){
+      const arr=JSON.parse(cached);
+      if(arr&&arr.length){ _promoStore=arr; _syncPromosToBuildState(); }
+    }
+  }catch(e){}
+  // Sau đó sync cloud (overwrite nếu có)
+  try{
+    const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
+    if(!error&&data){
+      _promoStore=_safeSerializePromos(data);
+      // Lưu cache để dùng offline
+      try{localStorage.setItem('vc_promos_cache',JSON.stringify(_promoStore));}catch(e){}
+    }
   }catch(e){console.warn('[Vicomart] loadPromos:',e.message);}
   _syncPromosToBuildState();
 }
@@ -1266,28 +1278,47 @@ async function loadProds() {
     allProds = [...DEMO_PRODUCTS];
     buildCats(); renderProds(allProds); buildHotGrid(); return;
   }
+  // Restore từ localStorage cache trước (hiển thị nhanh)
+  try{
+    const cached = localStorage.getItem('vc_products');
+    if(cached){
+      const arr = JSON.parse(cached);
+      if(arr && arr.length){
+        const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
+        const fromCache = arr.map(p=>({
+          ...p,
+          image_url: (p.image_url==='__local__'?imgs[p.id]:null) || p.image_url || ''
+        }));
+        allProds = fromCache.filter(p=>p.is_active!==false);
+        DEMO_PRODUCTS.length=0; allProds.forEach(p=>DEMO_PRODUCTS.push(p));
+        buildCats(); renderProds(allProds); buildHotGrid();
+      }
+    }
+  }catch(e){}
+  // Sau đó sync cloud (overwrite)
   try {
     const { data, error } = await db.from('products')
       .select('*').order('category').order('name');
     if (error) throw error;
     if(data && data.length){
-      // Cloud là nguồn chính — ghép ảnh local nếu có
       const imgs = JSON.parse(localStorage.getItem('vc_prod_images')||'{}');
       allProds = data.map(p=>({
         ...p,
         image_url: imgs[p.id] || p.image_url || ''
       }));
-      // Cập nhật DEMO_PRODUCTS từ cloud để đồng bộ local
+      // Sync local cache
       DEMO_PRODUCTS.length = 0;
       allProds.forEach(p => DEMO_PRODUCTS.push(p));
       _saveProdLocal();
-    } else {
+    } else if(!allProds.length) {
       allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
     }
     buildCats(); renderProds(allProds); buildHotGrid();
   } catch(e) {
-    allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
-    buildCats(); renderProds(allProds); buildHotGrid();
+    if(!allProds.length){
+      allProds = _getProdsWithImgs().filter(p=>p.is_active!==false);
+      buildCats(); renderProds(allProds); buildHotGrid();
+    }
   }
 }
 
@@ -1624,8 +1655,15 @@ function openAdminPanel(){
   el.style.zIndex = '200';
   // Thêm class open để adm-panel hiện ra
   el.classList.add('open');
-  if(admUser) showAdmApp();
-  else{
+  if(admUser){
+    showAdmApp();
+    // Refresh data khi mở lại panel
+    setTimeout(async()=>{
+      try{ await admLoadProducts(); }catch(e){}
+      try{ await _syncPromosFromCloud(); admLoadPromos(); }catch(e){}
+      try{ loadHeaderStats(); }catch(e){}
+    }, 100);
+  } else {
     // Hiện login form
     const loginView = document.getElementById('adm-login-view');
     const appView = document.getElementById('adm-app-view');
@@ -2161,15 +2199,23 @@ function _saveProdLocal(){
   }catch(e){ console.warn('_saveProdLocal:',e); }
 }
 async function admTogProd(id,cur){
+  // Update local cache ngay
   const p=DEMO_PRODUCTS.find(x=>x.id===id);
   if(p) p.is_active=!cur;
   _saveProdLocal();
   if(!IS_DEMO&&db){
-    try{ await db.from('products').update({is_active:!cur}).eq('id',id); }
-    catch(e){ console.warn('admTogProd:',e.message); }
+    try{
+      const {error}=await db.from('products').update({is_active:!cur}).eq('id',id);
+      if(error) throw error;
+      // Reload từ cloud để đồng bộ
+      await loadProds();
+    }catch(e){
+      console.warn('admTogProd:',e.message);
+      toast('⚠️ Lỗi cập nhật cloud: '+e.message);
+    }
   }
-  admLoadProducts(); loadProds(); renderExpandGrid();
-  toast(cur?'Đã ẩn':'Đã hiện');
+  admLoadProducts(); renderExpandGrid();
+  toast(cur?'Đã ẩn sản phẩm':'Đã hiện sản phẩm');
 }
 
 // ── PROMOS (admin only) ──
@@ -2196,16 +2242,28 @@ const PROMO_TYPE_META = {
 // ── RENDER LIST ──
 async function admLoadPromos(){
   const el=document.getElementById('adm-promos-list');
+  if(!el) return;
 
-  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
-  // Luôn load từ Supabase trước, fallback local
-  await _syncPromosFromCloud();
-  const promos=_promoStore.length?_promoStore:[];
-  if(!promos.length){
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có chương trình nào.<br>Bấm nút + để tạo mới.</div>';
-    return;
+  // Hiển thị từ cache trước (không delay)
+  const renderList = ()=>{
+    const promos=_promoStore.length?_promoStore:[];
+    if(!promos.length){
+      el.innerHTML='<div style="text-align:center;padding:32px;color:var(--ink3);font-size:13px">Chưa có chương trình nào.<br>Bấm nút + để tạo mới.</div>';
+      return;
+    }
+    el.innerHTML=promos.map(p=>renderPromoAdminCard(p)).join('');
+  };
+
+  // Nếu đã có data, render ngay; nếu chưa thì show spinner
+  if(_promoStore.length){
+    renderList();
+  } else {
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3)"><div class="spin" style="margin:0 auto 8px"></div>Đang tải...</div>';
   }
-  el.innerHTML=promos.map(p=>renderPromoAdminCard(p)).join('');
+
+  // Sau đó sync cloud (background) và re-render
+  await _syncPromosFromCloud();
+  renderList();
 }
 
 function renderPromoAdminCard(p){
@@ -2267,6 +2325,7 @@ async function delPromo(id){
     }catch(e){ console.warn('delPromo cloud error:',e.message); }
   }
   _promoStore=_promoStore.filter(x=>x.id!==id);
+  try{localStorage.setItem('vc_promos_cache',JSON.stringify(_promoStore));}catch(e){}
   _syncPromosToBuildState(); admLoadPromos(); toast('Đã xoá');
 }
 
@@ -2516,8 +2575,10 @@ async function _syncPromosFromCloud(){
   try{
     const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
     if(error) throw error;
-    if(data&&data.length){
+    if(data){
       _promoStore=_safeSerializePromos(data);
+      // Lưu cache localStorage để không mất khi thoát
+      try{localStorage.setItem('vc_promos_cache',JSON.stringify(_promoStore));}catch(e){}
     }
   }catch(e){
     console.warn('_syncPromosFromCloud:',e.message,'→ dùng local');
@@ -2583,6 +2644,7 @@ async function savePromo(){
   }
 
   // Lưu vào localStorage để không mất khi thoát
+  try{localStorage.setItem('vc_promos_cache',JSON.stringify(_promoStore));}catch(e){}
 
   // Cập nhật màn hình chính + danh sách admin
   _syncPromosToBuildState();
