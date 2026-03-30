@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.7.1">
+<meta name="version" content="3.7.3">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.1</title>
-<!-- v3.7.1 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.3</title>
+<!-- v3.7.3 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1080,12 +1080,13 @@ function buildHeroPromos(){
   if(typeof allPromos!=='undefined' && allPromos && allPromos.length){
     cards = allPromos.map(p=>p.title?p:promoToCardV2(p)).filter(p=>p&&p.title);
   }
+  const section = el.closest('.hero-promo-section') || el.parentElement;
   if(!cards.length){
-    // Không có KM thật → ẩn toàn bộ section hero promo
-    const section = el.closest('.hero-promo-section') || el.parentElement;
     if(section) section.style.display='none';
     return;
   }
+  // Có KM → hiện lại section (có thể bị ẩn trước đó)
+  if(section) section.style.display='';
 
   const COLORS=['pc-0','pc-1','pc-2','pc-3','pc-4','pc-5'];
   el.innerHTML=cards.map((p,i)=>`
@@ -1194,7 +1195,7 @@ async function loadPromos(){
   if(IS_DEMO){_promoStore=[];_syncPromosToBuildState();return;}
   _promoStore=[];
   try{
-    const {data,error}=await db.from('promotions').select('*').eq('is_active',true).order('created_at',{ascending:false});
+    const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
     if(!error&&data&&data.length) _promoStore=_safeSerializePromos(data);
   }catch(e){console.warn('[Vicomart] loadPromos:',e.message);}
   _syncPromosToBuildState();
@@ -1831,8 +1832,8 @@ async function admLoadOrders(){
     if(error) throw error;
     orders=data||[];
   }catch(e){
-    // Demo fallback
-    orders=_demoOrders().filter(o=>!status||o.status===status);
+    el.innerHTML=`<div style="text-align:center;padding:32px;color:#dc2626;font-size:13px">❌ Lỗi tải đơn hàng: ${e.message}<br><br><button onclick="admLoadOrders()" style="padding:8px 16px;border:1px solid #dc2626;border-radius:8px;background:#fff;color:#dc2626;cursor:pointer;font-weight:700">Thử lại</button></div>`;
+    return;
   }
   // Update KPIs
   const today=new Date().toDateString();
@@ -1863,14 +1864,15 @@ async function admLoadOrders(){
 async function admUpdStatus(id,st,el){
   const oldCls=[...el.classList].find(c=>ADM_ST_LABEL[c])||'';
   el.className=`adm-st-sel ${st}`;
-  // Demo order update
-  const demoOrder=_demoOrdersStore.find(o=>o.id===id);
-  if(demoOrder){demoOrder.status=st;toast('✓ '+ADM_ST_LABEL[st]);return;}
+  if(!db||IS_DEMO){ toast('✓ '+ADM_ST_LABEL[st]); return; }
   try{
     const {error}=await db.from('orders').update({status:st}).eq('id',id);
     if(error) throw error;
-    toast('✓ '+ADM_ST_LABEL[st]);
-  }catch(e){el.className=`adm-st-sel ${oldCls}`;toast('Lỗi cập nhật');}
+    toast('✓ '+ADM_ST_LABEL[st]+' · Đã lưu cloud');
+  }catch(e){
+    el.className=`adm-st-sel ${oldCls}`;
+    toast('❌ Lỗi cập nhật: '+e.message);
+  }
 }
 
 // ── PRODUCTS ──
@@ -2323,7 +2325,9 @@ async function togPromoActive(id,cur){
       const {error}=await db.from('promotions').update({is_active:!cur}).eq('id',id);
       if(error) throw error;
       await _syncPromosFromCloud();
-      toast(cur?'Đã tắt KM (cloud)':'Đã bật KM (cloud)');
+      _syncPromosToBuildState();
+      try{admLoadPromos();}catch(e){}
+      toast(cur?'⏹ Đã tắt KM':'▶ Đã bật KM · Hiển thị trang chính');
       return;
     }catch(e){ console.warn('togPromo cloud error:',e.message); }
   }
@@ -2592,9 +2596,7 @@ async function _syncPromosFromCloud(){
   try{
     const {data,error}=await db.from('promotions').select('*').order('created_at',{ascending:false});
     if(error) throw error;
-    if(data&&data.length){
-      _promoStore=_safeSerializePromos(data);
-    }
+    _promoStore = (data&&data.length) ? _safeSerializePromos(data) : [];
   }catch(e){
     console.warn('_syncPromosFromCloud:',e.message,'→ dùng local');
   }
@@ -2608,8 +2610,7 @@ function _syncPromosToBuildState(){
     }).filter(Boolean);
   }catch(e){allPromos=[];}
   try{buildHeroPromos();}catch(e){}
-  try{admLoadPromos();}catch(e){}
-  // Cập nhật lại badge trên card sản phẩm sau khi có data promo mới
+  // Cập nhật badge sản phẩm
   try{
     if(allProds&&allProds.length){
       renderProds(allProds.filter(p=>p.is_active!==false));
@@ -2656,26 +2657,16 @@ async function savePromo(){
     }
   }
 
-  // Lưu local (luôn làm — dù cloud thành công hay không)
-  if(_editPromoId){
-    const idx=_promoStore.findIndex(x=>x.id===_editPromoId);
-    if(idx>=0) _promoStore[idx]={..._promoStore[idx],...data};
-  } else {
-    if(!savedToCloud){
-      _promoStore.push({...data,id:'ps'+Date.now(),created_at:now});
-    }
+  if(!savedToCloud){
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
+    toast('❌ Lưu thất bại — kiểm tra kết nối Supabase hoặc bảng promotions chưa tạo');
+    return;
   }
-
-  // Lưu vào localStorage để không mất khi thoát
-
-  // Cập nhật màn hình chính + danh sách admin
+  await _syncPromosFromCloud();
   _syncPromosToBuildState();
-  admLoadPromos();
-
+  try{admLoadPromos();}catch(e){}
   closePromoModal();
-  toast(savedToCloud
-    ?(_editPromoId?'✓ Đã cập nhật KM (cloud)':'✓ Đã thêm KM (cloud)')
-    :(_editPromoId?'✓ Đã cập nhật KM':'✓ Đã thêm KM'));
+  toast(_editPromoId?'✅ Đã cập nhật KM':'✅ Đã thêm KM mới — hiển thị trên trang chính');
   _editPromoId=null;
   if(saveBtn){saveBtn.disabled=false;saveBtn.textContent='💾 Lưu chương trình khuyến mãi';}
 }
@@ -3466,7 +3457,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.1';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.3';
   }catch(e){}
 }
 function showOrderAlert(count){
