@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.7.9">
+<meta name="version" content="3.8.0">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.9</title>
-<!-- v3.7.9 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.0</title>
+<!-- v3.8.0 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1227,6 +1227,7 @@ async function loadPromos(){
 window.addEventListener('DOMContentLoaded', async () => {
   try{ _syncAccountsFromCloud(); }catch(e){}
   try{ buildHeroPromos(); }catch(e){ console.warn('buildHeroPromos:',e.message); }
+  try{ _initFakeHeaderStats(); }catch(e){}
   try{ loadHeaderStats(); }catch(e){ console.warn('loadHeaderStats:',e.message); }
   try{ await loadPromos(); }catch(e){ console.warn('loadPromos:',e.message); }
   try{ renderHighlights(); }catch(e){ console.warn('renderHighlights:',e.message); }
@@ -3491,9 +3492,9 @@ async function loadHeaderStats(){
     const revenue  = orders.filter(o=>o.status==='done').reduce((s,o)=>s+Number(o.total||0),0);
 
     const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
-    set('hdr-total',   pending);
-    set('hdr-done',    done);
-    set('hdr-pending', waiting);
+    set('hdr-total',   pending  + _fakePending);
+    set('hdr-done',    done     + _fakeDone);
+    set('hdr-pending', waiting  + _fakeWaiting);
 
     // Cập nhật counter thật từ Supabase
     const realCount = orders.length;
@@ -3545,7 +3546,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.9';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.0';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3659,6 +3660,28 @@ function startFakeSocialProof(){
     _showFakeToast();
     _fakeToastTimer = setInterval(_showFakeToast, Math.random()*20000+15000);
   }, 6000);
+}
+
+
+// Khởi tạo số ảo header ngay khi load
+let _fakePending = Math.floor(Math.random()*5)+3;
+let _fakeDone    = Math.floor(Math.random()*8)+12;
+let _fakeWaiting = Math.floor(Math.random()*4)+2;
+function _initFakeHeaderStats(){
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('hdr-total',  _fakePending);
+  set('hdr-done',   _fakeDone);
+  set('hdr-pending',_fakeWaiting);
+  const dot=document.querySelector('#hdr-stats-row .hdr-stat-dot');
+  if(dot) dot.style.animation='pulse 1.5s infinite';
+  setInterval(()=>{
+    _fakePending =Math.max(0,_fakePending +(Math.random()>.3?1:0));
+    _fakeDone   +=Math.random()>.4?1:0;
+    _fakeWaiting=Math.max(0,_fakeWaiting+(Math.random()>.5?1:-1));
+    set('hdr-total',  _fakePending);
+    set('hdr-done',   _fakeDone);
+    set('hdr-pending',_fakeWaiting);
+  }, 180000);
 }
 
 </script>
