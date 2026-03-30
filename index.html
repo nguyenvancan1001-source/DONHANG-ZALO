@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.7.4">
+<meta name="version" content="3.7.5">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.4</title>
-<!-- v3.7.4 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.5</title>
+<!-- v3.7.5 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -1814,6 +1814,7 @@ function swAdmTab(t){
   if(t==='promos') admLoadPromos();
   if(t==='users') admRenderUsers();
   if(t==='media') initMediaTab();
+  if(t==='debug') document.getElementById('adm-tab-debug').style.display='block';
 }
 
 // ── ORDERS ──
@@ -3009,6 +3010,39 @@ function refreshBothGrids(id){
   if(ec){const p=allProds.find(x=>x.id===id);if(p)ec.outerHTML=hotCard(p,'expand');}
 }
 
+// ── DB CHECK ──
+async function runDbCheck(){
+  const el = document.getElementById('db-check-result');
+  el.innerHTML = '⏳ Đang kiểm tra...';
+  const results = [];
+
+  const check = async (label, fn) => {
+    try {
+      const r = await fn();
+      if(r.error) results.push(`❌ ${label}: ${r.error.message}`);
+      else results.push(`✅ ${label}: OK (${JSON.stringify(r.data).slice(0,60)})`);
+    } catch(e) {
+      results.push(`❌ ${label}: ${e.message}`);
+    }
+  };
+
+  await check('Kết nối Supabase', () => db.from('products').select('count').limit(1));
+  await check('Bảng products', () => db.from('products').select('id,name,promo_id,stock_qty').limit(1));
+  await check('Bảng orders', () => db.from('orders').select('id,status').limit(1));
+  await check('Bảng promotions', () => db.from('promotions').select('id,name,is_active').limit(1));
+  await check('Bảng admin_accounts', () => db.from('admin_accounts').select('username,role').limit(1));
+  await check('Bảng settings', () => db.from('settings').select('key,value').limit(1));
+
+  // Kiểm tra promo_id demo còn trong products không
+  try {
+    const {data} = await db.from('products').select('name,promo_id').not('promo_id','is',null);
+    if(data&&data.length) results.push(`⚠️ SP có promo_id: ${data.map(p=>p.name+'→'+p.promo_id).join(', ')}`);
+    else results.push('✅ Không có SP nào còn promo_id demo');
+  } catch(e) {}
+
+  el.innerHTML = results.map(r => `<div style="padding:4px 0;border-bottom:1px solid var(--line)">${r}</div>`).join('');
+}
+
 // ── INIT: check saved session ──
 (async function initAdmSession(){
   try{
@@ -3455,7 +3489,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.4';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.5';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3566,10 +3600,18 @@ setTimeout(()=>{
         <button class="adm-tab admin-only" id="atab-promos" onclick="swAdmTab('promos')">KM</button>
         <button class="adm-tab admin-only" id="atab-users" onclick="swAdmTab('users')">PHÂN QUYỀN</button>
         <button class="adm-tab" id="atab-media" onclick="swAdmTab('media')">🖼 ẢNH</button>
+        <button class="adm-tab admin-only" id="atab-debug" onclick="swAdmTab('debug')">🔧 KT</button>
       </div>
 
       <div class="adm-body" id="adm-body">
         <!-- Orders tab -->
+        <!-- Debug tab -->
+        <div id="adm-tab-debug" class="adm-section" style="display:none;padding:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:10px">🔧 Kiểm tra kết nối Supabase</div>
+          <button onclick="runDbCheck()" style="width:100%;padding:12px;background:var(--g800);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px">▶ Chạy kiểm tra</button>
+          <div id="db-check-result" style="font-size:12px;line-height:1.8"></div>
+        </div>
+
         <div id="adm-tab-orders" class="adm-section">
           <div class="adm-kpi-row" id="adm-kpi"></div>
           <div style="display:flex;gap:6px;margin-bottom:10px">
