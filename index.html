@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8">
+<meta name="version" content="3.7">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8</title>
-<!-- v3.8 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7</title>
+<!-- v3.7 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -682,7 +682,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--ink);overscroll-be
 
 <!-- CONFIG ✅ URL đã điền — chỉ cần thay SUPA_KEY bằng anon key từ Supabase Dashboard -->
 <script>
-(function(){var V='3.8';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
+(function(){var V='3.7';try{var sv=localStorage.getItem('vc_app_version');if(sv!==V){var c=localStorage.getItem('vc_cart_v2');var s=localStorage.getItem('vc_adm_session');localStorage.clear();if(c)localStorage.setItem('vc_cart_v2',c);if(s)localStorage.setItem('vc_adm_session',s);localStorage.setItem('vc_app_version',V);}}catch(e){}})();
 const SUPA_URL = 'https://mypsgfrzmqdvlsitalwn.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cHNnZnJ6bXFkdmxzaXRhbHduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0Mjg4MDcsImV4cCI6MjA5MDAwNDgwN30.-CaQ0rYZCBLew-N5mZNVbew1Nsdu2SI-wufd71zps3w';
 // Edge Function endpoints
@@ -1392,7 +1392,7 @@ function add(id, e) {
   if (!p) return;
   // Kiểm tra tồn kho
   const avail = getAvailableStock(p);
-  if(avail!==null && avail<=0){ toast('⛔ Sản phẩm đã mua hết'); return; }
+  if(avail!==null && avail<=0){ toast('⛔ Sản phẩm đã hết hàng'); return; }
   const existing = cart.find(x=>x.id===id);
   if(existing){ existing.qty+=1; }
   else { cart.push({ id:p.id, name:p.name, price:p.price, unit:p.unit, qty:1, img:p.image_url||'' }); }
@@ -3466,7 +3466,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3504,7 +3504,7 @@ function getAvailableStock(p){
 function stockBadgeHtml(p){
   const avail = getAvailableStock(p);
   if(avail===null) return ''; // >= 999 = không giới hạn → không hiện
-  if(avail<=0)  return '<div class="stock-badge out">⛔ Đã mua hết</div>';
+  if(avail<=0)  return '<div class="stock-badge out">⛔ Đã hết hàng</div>';
   if(avail<=3)  return `<div class="stock-badge low">🔥 Còn ${avail} suất cuối!</div>`;
   if(avail<=10) return `<div class="stock-badge low">⚡ Còn ${avail} suất</div>`;
   if(avail<=20) return `<div class="stock-badge">Còn ${avail} suất</div>`;
