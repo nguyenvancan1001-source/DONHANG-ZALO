@@ -10,9 +10,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.9">
+<meta name="version" content="3.8.12">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.9</title>
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.12</title>
 <!-- v3.8.9 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
@@ -3648,9 +3648,48 @@ setTimeout(()=>{
 
 
 // ── ĐƠN ẢO — SOCIAL PROOF ──────────────────────────────
-const FAKE_NAMES = ['Nguyễn Thị H.','Trần Văn M.','Lê Thị B.','Phạm Văn T.','Hoàng Thị L.',
-  'Võ Văn D.','Đặng Thị P.','Bùi Văn K.','Ngô Thị Thu','Đinh Văn S.',
-  'Lý Thị N.','Trương Văn H.','Mai Thị Á.','Phan Văn Q.','Vũ Thị Hoa'];
+const FAKE_NAMES = [
+  'Nguyễn Thị Hoa','Trần Văn Minh','Lê Thị Bích','Phạm Văn Tuấn','Hoàng Thị Lan',
+  'Võ Văn Dũng','Đặng Thị Phương','Bùi Văn Khoa','Ngô Thị Thu','Đinh Văn Sơn',
+  'Lý Thị Ngọc','Trương Văn Hùng','Mai Thị Ánh','Phan Văn Quân','Vũ Thị Hoa',
+  'Nguyễn Văn An','Trần Thị Cúc','Lê Văn Bình','Phạm Thị Dung','Hoàng Văn Em',
+  'Võ Thị Fư','Đặng Văn Giang','Bùi Thị Hằng','Ngô Văn Inh','Đinh Thị Kim',
+  'Lý Văn Long','Trương Thị Mai','Mai Văn Nam','Phan Thị Oanh','Vũ Văn Phúc',
+  'Nguyễn Thị Quỳnh','Trần Văn Rồng','Lê Thị Sen','Phạm Văn Tâm','Hoàng Thị Uyên',
+  'Võ Văn Vinh','Đặng Thị Xuân','Bùi Văn Yên','Ngô Thị Zung','Đinh Văn Anh',
+  'Lý Thị Bảo','Trương Văn Cường','Mai Thị Diễm','Phan Văn Đức','Vũ Thị Ếch',
+  'Nguyễn Văn Phong','Trần Thị Giang','Lê Văn Hải','Phạm Thị Hương','Hoàng Văn Khánh',
+  'Võ Thị Liên','Đặng Văn Lộc','Bùi Thị Mây','Ngô Văn Nhân','Đinh Thị Oanh',
+  'Lý Văn Phát','Trương Thị Quế','Mai Văn Sáng','Phan Thị Tuyết','Vũ Văn Thắng',
+  'Nguyễn Thị Thu','Trần Văn Toàn','Lê Thị Trà','Phạm Văn Trung','Hoàng Thị Vân',
+  'Võ Văn Việt','Đặng Thị Yến','Bùi Văn Đạt','Ngô Thị Hiền','Đinh Văn Khang',
+  'Lý Thị Lụa','Trương Văn Mạnh','Mai Thị Nhi','Phan Văn Quốc','Vũ Thị Rạng',
+  'Nguyễn Văn Sang','Trần Thị Thảo','Lê Văn Thiện','Phạm Thị Thúy','Hoàng Văn Tiến',
+  'Võ Thị Trinh','Đặng Văn Trọng','Bùi Thị Vui','Ngô Văn Xuân','Đinh Thị Yên',
+  'Lý Văn Hậu','Trương Thị Hạnh','Mai Văn Hiếu','Phan Thị Hồng','Vũ Văn Hoàng',
+  'Nguyễn Thị Huệ','Trần Văn Hưng','Lê Thị Hướng','Phạm Văn Khải','Hoàng Thị Khanh',
+  'Võ Văn Kiên','Đặng Thị Kim','Bùi Văn Lâm','Ngô Thị Lê','Đinh Văn Linh',
+  'Lý Thị Loan','Trương Văn Lợi','Mai Thị Lý','Phan Văn Lực','Vũ Thị Lương',
+  'Nguyễn Văn Lưu','Trần Thị Ly','Lê Văn Mẫn','Phạm Thị Mến','Hoàng Văn Minh',
+  'Võ Thị Mỹ','Đặng Văn Năm','Bùi Thị Nga','Ngô Văn Nghĩa','Đinh Thị Nha',
+  'Lý Văn Nhật','Trương Thị Như','Mai Văn Ninh','Phan Thị Nội','Vũ Văn Nở',
+  'Nguyễn Thị Nữ','Trần Văn Oanh','Lê Thị Phấn','Phạm Văn Phú','Hoàng Thị Phúc',
+  'Võ Văn Phụng','Đặng Thị Qua','Bùi Văn Quang','Ngô Thị Quỳnh','Đinh Văn Rẻ',
+  'Lý Thị Rồng','Trương Văn Rui','Mai Thị Sáu','Phan Văn Sơn','Vũ Thị Sương',
+  'Nguyễn Văn Tài','Trần Thị Tâm','Lê Văn Tân','Phạm Thị Tập','Hoàng Văn Thành',
+  'Võ Thị Thơm','Đặng Văn Thọ','Bùi Thị Thoa','Ngô Văn Thuận','Đinh Thị Thủy',
+  'Lý Văn Thương','Trương Thị Tiên','Mai Văn Tín','Phan Thị Trang','Vũ Văn Trí',
+  'Nguyễn Thị Triều','Trần Văn Tú','Lê Thị Tuấn','Phạm Văn Tùng','Hoàng Thị Tươi',
+  'Võ Văn Tuy','Đặng Thị Uyên','Bùi Văn Việt','Ngô Thị Vui','Đinh Văn Vương',
+  'Lý Thị Xuân','Trương Văn Ý','Mai Thị Yêu','Phan Văn Yến','Vũ Văn Bắc',
+  'Nguyễn Văn Nam','Trần Thị Đông','Lê Văn Tây','Phạm Thị Trung','Hoàng Văn Thưa',
+  'Võ Thị Rộng','Đặng Văn Hẹp','Bùi Thị Cao','Ngô Văn Thấp','Đinh Thị Nặng',
+  'Lý Văn Nhẹ','Trương Thị Nhanh','Mai Văn Chậm','Phan Thị Khỏe','Vũ Văn Yếu',
+  'Nguyễn Thị Xinh','Trần Văn Đẹp','Lê Thị Ngoan','Phạm Văn Hiền','Hoàng Thị Chăm',
+  'Võ Văn Giỏi','Đặng Thị Tốt','Bùi Văn Dễ','Ngô Thị Khó','Đinh Văn Vui',
+  'Lý Thị Buồn','Trương Văn Cười','Mai Thị Khóc','Phan Văn Mạnh','Vũ Thị Khéo',
+  'Nguyễn Văn Hà','Trần Thị Huế','Lê Văn Đà Nẵng','Phạm Thị Quy Nhơn','Hoàng Văn Nha Trang'
+];
 const FAKE_TIMES = ['vừa xong','1 phút trước','2 phút trước','3 phút trước','5 phút trước'];
 
 let _fakeOrderCount = Math.floor(Math.random()*40)+80;
@@ -3711,7 +3750,7 @@ function _updateFakeCounter(){
   if(inc>0) _fakeOrderCount+=inc;
   const bar=document.getElementById('order-counter-bar');
   const el=document.getElementById('order-counter-txt');
-  if(el) el.textContent='?? '+_fakeOrderCount+' đặt hôm nay';
+  if(el) el.textContent='🔥 '+_fakeOrderCount+' người đặt hôm nay';
   if(bar) bar.style.display='inline-flex';
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   const done=Math.round(_fakeOrderCount*0.65);
