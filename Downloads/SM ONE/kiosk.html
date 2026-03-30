@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-version="2.1" data-build="20260325-0629">
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,8 +33,8 @@ async function _sbQuery(fn) {
 <script>
 // ══ SM ONE DEMO DATABASE ══════════════════════════════════════
 const _DEMO_USERS = {
-  '0901111111': {pass:'Kiosk@SM1',role:'kiosk',uid:'ku1'},
-  '0902222222': {pass:'Kiosk@SM1',role:'kiosk',uid:'ku2'},
+  '0901111111': {pass:'__INTERNAL__',role:'kiosk',uid:'ku1'},
+  '0902222222': {pass:'__INTERNAL__',role:'kiosk',uid:'ku2'},
 };
 const _KIOSK_PROFILES = {
   'ku1':{id:'ku1',auth_id:'ku1',tap_hoa_id:'st1',ten_cua_hang:'Tạp hóa Lan',ho_ten:'Chị Lan',so_dien_thoai:'0901111111',dia_chi:'12 Trần Phú, Phú Bài',diem_tich_luy:750,tier:'Bạc',tap_hoa:{ten:'Tạp hóa Lan',sales_users:{ho_ten:'Nguyễn Nam',so_dien_thoai:'0901234567'}}},
@@ -81,7 +82,7 @@ window.DB={
       }
       // Demo fallback
       const u=_DEMO_USERS[phone];
-      if(!u)throw new Error('SĐT không tồn tại. Demo: 0901111111 / 123456');
+      if(!u)throw new Error('SĐT không tồn tại hoặc chưa đăng ký');
       if(u.pass!==pw)throw new Error('Mật khẩu không đúng');
       _authUID=u.uid;
       return{user:{id:u.uid,phone}};
@@ -176,7 +177,7 @@ window.DB={
   STORAGE:{async uploadCheckinPhoto(f){return URL.createObjectURL(f);},},
   _sb:{},
 };
-console.log('✅ SM ONE Kiosk Demo — Tài khoản: 0901111111 / 123456');
+// credentials hidden;
 </script>
 <style>
 :root{
@@ -191,7 +192,7 @@ console.log('✅ SM ONE Kiosk Demo — Tài khoản: 0901111111 / 123456');
   --r:12px;--rs:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
+html,body{height:100%;overflow:hidden;font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px}
 .scr{display:none;flex-direction:column;height:100%;overflow:hidden}
 .scr.on{display:flex}
 .pg{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -199,7 +200,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .toast.on{opacity:1}
 
 /* ── LOGIN / REGISTER ─── */
-#s-auth{background:linear-gradient(160deg,#0B3D22,#1FAB73);justify-content:center;align-items:center;padding:20px;gap:0}
+#s-auth{background:var(--G);justify-content:center;align-items:center;padding:20px;gap:0}
 .auth-logo{font-size:40px;font-weight:900;color:#fff;letter-spacing:-2px;text-align:center;margin-bottom:4px}
 .auth-tag{font-size:12px;color:rgba(255,255,255,.75);text-align:center;margin-bottom:28px}
 .auth-card{background:#fff;border-radius:20px;padding:22px;width:100%;max-width:360px}
@@ -207,7 +208,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .at{flex:1;padding:9px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);text-align:center;border-bottom:2px solid transparent}
 .at.on{color:var(--G);border-bottom-color:var(--G)}
 .fl{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
-.fi{width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;outline:none;font-family:inherit;transition:border .15s;color:var(--txt)}
+.fi{width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;outline:none;font-family:'Nunito',Arial,sans-serif;transition:border .15s;color:var(--txt)}
 .fi:focus{border-color:var(--G)}
 .fg{margin-bottom:12px}
 .btn-auth{width:100%;padding:13px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:800;cursor:pointer;margin-top:4px}
@@ -269,15 +270,15 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 
 /* ── PRODUCTS GRID ─── */
 .prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 14px}
-.pc{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);overflow:hidden;cursor:pointer;position:relative}
+.pc{background:#fff;border-radius:var(--r);border:1px solid var(--bdr);overflow:hidden;cursor:pointer;position:relative;display:flex;flex-direction:column}
 .pc-badge{position:absolute;top:7px;left:7px;background:var(--R);color:#fff;font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;z-index:1}
 .pc-badge-g{background:var(--G)}
 .pc-img{width:100%;height:100px;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:44px}
-.pc-body{padding:9px 10px 11px}
+.pc-body{padding:9px 10px 11px;flex:1;display:flex;flex-direction:column}
 .pc-code{font-size:9px;font-family:monospace;background:#F1EFE8;color:var(--muted);padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:3px}
 .pc-name{font-size:13px;font-weight:700;line-height:1.2;margin-bottom:2px}
 .pc-spec{font-size:11px;color:var(--muted);margin-bottom:6px}
-.pc-price-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.pc-price-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:3px;margin-bottom:8px;margin-top:auto}
 .pc-price{font-size:15px;font-weight:900}
 .pc-mrp{font-size:11px;color:var(--hint);text-decoration:line-through}
 .pc-disc{font-size:10px;font-weight:700;color:var(--G);background:var(--Gl);padding:1px 5px;border-radius:3px}
@@ -289,7 +290,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 /* ── HORIZONTAL SCROLL PRODUCTS ─── */
 .hscroll{display:flex;gap:10px;padding:0 14px 14px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
 .hscroll::-webkit-scrollbar{display:none}
-.pc-h{width:140px;flex-shrink:0}
+.pc-h{width:140px;flex-shrink:0;display:flex;flex-direction:column}
 
 /* ── BUY AGAIN ─── */
 .ba-card{background:#fff;border:1px solid var(--bdr);border-radius:10px;padding:10px;width:120px;flex-shrink:0;cursor:pointer;position:relative}
@@ -451,7 +452,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .msg-sale{align-self:flex-start;background:#fff;color:var(--txt);border-radius:16px 16px 16px 4px;padding:9px 13px;max-width:75%;font-size:13px;line-height:1.4;border:1px solid var(--bdr)}
 .msg-time{font-size:10px;color:var(--hint);margin-top:2px;text-align:right}
 .chat-input-wrap{background:#fff;border-top:1px solid var(--bdr);padding:10px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
-.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--bdr);border-radius:20px;font-size:14px;outline:none;font-family:inherit}
+.chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--bdr);border-radius:20px;font-size:14px;outline:none;font-family:'Nunito',Arial,sans-serif}
 .chat-input:focus{border-color:var(--G)}
 .chat-send{width:38px;height:38px;background:var(--G);color:#fff;border:none;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
@@ -473,12 +474,26 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 .bb{background:var(--Bl);color:var(--B)}
 .by{background:#FFF9C4;color:#7A6000}
 </style>
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-name" content="Kiosk">
+  <meta name="theme-color" content="#F59E0B">
+  <link rel="manifest" href="/manifest-kiosk.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <script>
+    if("serviceWorker" in navigator){
+      window.addEventListener("load",()=>{
+        navigator.serviceWorker.register("/sw.js").catch(e=>console.warn(e));
+      });
+    }
+  </script>
 </head>
 <body>
 
 <!-- ══ AUTH ══════════════════════════════════ -->
 <div class="scr on" id="s-auth">
-  <div style="background:#E1F5EE;padding:8px 14px;text-align:center;font-size:12px;color:#0F6E56;font-weight:600;position:relative;z-index:5">Demo: SĐT <b>0901111111</b> · Mật khẩu <b>123456</b></div>
 <div class="auth-logo">SM ONE</div>
   <div class="auth-tag">Nền tảng đặt hàng FMCG dành cho<br>cửa hàng tạp hóa</div>
   <div class="auth-card">
@@ -487,16 +502,16 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <div class="at" id="at-reg" onclick="switchAuth('reg')">Đăng ký mới</div>
     </div>
     <div id="auth-login">
-      <div class="fg"><label class="fl">Số điện thoại</label><input class="fi" type="tel" id="lp" placeholder="0901234567" inputmode="numeric"></div>
-      <div class="fg"><label class="fl">Mật khẩu</label><input class="fi" type="password" id="lw" placeholder="••••••"></div>
+      <div class="fg"><label class="fl">Số điện thoại</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" type="tel" id="lp" placeholder="Số điện thoại" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">Mật khẩu</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" type="password" id="lw" placeholder="••••••"></div>
       <button class="btn-auth" onclick="doLogin()">Đăng nhập</button>
     </div>
     <div id="auth-reg" style="display:none">
-      <div class="fg"><label class="fl">Tên cửa hàng *</label><input class="fi" id="r-ten" placeholder="Tạp hóa Lan"></div>
-      <div class="fg"><label class="fl">Chủ cửa hàng *</label><input class="fi" id="r-chu" placeholder="Chị Lan"></div>
-      <div class="fg"><label class="fl">Số điện thoại *</label><input class="fi" type="tel" id="r-phone" placeholder="0901234567" inputmode="numeric"></div>
-      <div class="fg"><label class="fl">Địa chỉ</label><input class="fi" id="r-addr" placeholder="12 Trần Phú, Phú Bài"></div>
-      <div class="fg"><label class="fl">Mật khẩu *</label><input class="fi" type="password" id="r-pw" placeholder="Tối thiểu 6 ký tự"></div>
+      <div class="fg"><label class="fl">Tên cửa hàng *</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" id="r-ten" placeholder="Tạp hóa Lan"></div>
+      <div class="fg"><label class="fl">Chủ cửa hàng *</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" id="r-chu" placeholder="Chị Lan"></div>
+      <div class="fg"><label class="fl">Số điện thoại *</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" type="tel" id="r-phone" placeholder="Số điện thoại" inputmode="numeric"></div>
+      <div class="fg"><label class="fl">Địa chỉ</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" id="r-addr" placeholder="12 Trần Phú, Phú Bài"></div>
+      <div class="fg"><label class="fl">Mật khẩu *</label><input style="font-family:'Nunito',Arial,sans-serif;" class="fi" type="password" id="r-pw" placeholder="Tối thiểu 6 ký tự"></div>
       <button class="btn-auth" onclick="doRegister()">Đăng ký — Mua ngay</button>
     </div>
     <div class="auth-err" id="auth-err"></div>
@@ -529,6 +544,52 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
   <div class="pg" id="pg-loyalty" style="display:none"></div>
   <div class="pg" id="pg-notif" style="display:none"></div>
   <div class="pg" id="pg-chat" style="display:flex;flex-direction:column;display:none"></div>
+  <div class="pg" id="pg-return">
+  <div style="padding:16px 16px 80px;">
+    <div style="background:#FEF3C7;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#B45309;font-weight:600;">
+      ⚠️ Yêu cầu đổi/trả sẽ được xử lý trong 1-2 ngày làm việc
+    </div>
+    <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:800;margin-bottom:12px;">Tạo yêu cầu đổi/trả hàng</div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chọn đơn hàng</label>
+        <select style="font-family:'Nunito',Arial,sans-serif;" id="ret-order-sel" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:'Nunito',Arial,sans-serif;" onchange="fillReturnOrder(this.value)">
+          <option value="">-- Chọn đơn hàng --</option>
+        </select>
+      </div>
+      <div id="ret-order-detail" style="display:none;background:#F9FAFB;border-radius:10px;padding:12px;margin-bottom:10px;font-size:12px;color:#374151;line-height:1.8;"></div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px;">Lý do đổi/trả</label>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;">
+            <input style="font-family:'Nunito',Arial,sans-serif;" type="radio" name="ret-reason" value="Hàng bị hư hỏng"> <span style="font-size:13px;">📦 Hàng bị hư hỏng khi nhận</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;">
+            <input style="font-family:'Nunito',Arial,sans-serif;" type="radio" name="ret-reason" value="Giao thiếu hàng"> <span style="font-size:13px;">⚖️ Giao thiếu số lượng</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;">
+            <input style="font-family:'Nunito',Arial,sans-serif;" type="radio" name="ret-reason" value="Sản phẩm sai mô tả"> <span style="font-size:13px;">❌ Sản phẩm không đúng mô tả</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;">
+            <input style="font-family:'Nunito',Arial,sans-serif;" type="radio" name="ret-reason" value="Hàng hết hạn sử dụng"> <span style="font-size:13px;">⏰ Hàng gần/hết hạn sử dụng</span>
+          </label>
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Ghi chú thêm</label>
+        <textarea style="font-family:'Nunito',Arial,sans-serif;" id="ret-note-kiosk" rows="3" placeholder="Mô tả chi tiết tình trạng hàng..." style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:13px;font-family:'Nunito',Arial,sans-serif;resize:none;"></textarea>
+      </div>
+      <button onclick="submitKioskReturn()" style="width:100%;padding:13px;background:linear-gradient(135deg,#EF4444,#DC2626);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
+        📤 Gửi yêu cầu đổi/trả
+      </button>
+    </div>
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Lịch sử yêu cầu</div>
+    <div id="return-history">
+      <div style="text-align:center;padding:32px;color:#9CA3AF;font-size:13px;">Chưa có yêu cầu đổi/trả nào</div>
+    </div>
+  </div>
+</div>
+  <div class="pg" id="pg-storeinfo"></div>
   <div class="pg" id="pg-account" style="display:none"></div>
   <div class="pg" id="pg-success" style="display:none">
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px;text-align:center">
@@ -539,6 +600,27 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
       <button onclick="goTab('home')" style="padding:12px 32px;background:transparent;color:var(--muted);border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;cursor:pointer;width:100%">Về trang chủ</button>
     </div>
   </div>
+
+
+  <!-- PERIODIC ORDER PAGE -->
+  <div class="pg" id="pg-invoice" style="display:none"></div>
+  <div class="pg" id="pg-import" style="display:none"></div>
+  <div class="pg" id="pg-periodic" style="display:none"></div>
+
+  <!-- SPENDING HISTORY PAGE -->
+  <div class="pg" id="pg-spending" style="display:none"></div>
+
+  <!-- WISHLIST PAGE -->
+  <div class="pg" id="pg-wishlist" style="display:none"></div>
+
+  <!-- DEBT & CREDIT PAGE -->
+  <div class="pg" id="pg-debt" style="display:none"></div>
+
+  <!-- REPORT ERROR PAGE -->
+  <div class="pg" id="pg-report-error" style="display:none"></div>
+
+  <!-- DRIVER TRACKING PAGE -->
+  <div class="pg" id="pg-driver" style="display:none"></div>
 
   <!-- FLOATING CART -->
   <div class="fcart" id="fcart" style="display:none" onclick="openCart()">
@@ -559,7 +641,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFo
 
   <!-- CHAT INPUT (chat only) -->
   <div class="chat-input-wrap" id="chat-input-wrap" style="display:none">
-    <input class="chat-input" id="chat-input" placeholder="Nhắn tin cho Sale phụ trách..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <input style="font-family:'Nunito',Arial,sans-serif;" class="chat-input" id="chat-input" placeholder="Nhắn tin cho Sale phụ trách..." onkeydown="if(event.key==='Enter')sendMsg()">
     <button class="chat-send" onclick="sendMsg()">➤</button>
   </div>
 
@@ -687,30 +769,171 @@ function switchAuth(m){
   document.getElementById('at-reg').classList.toggle('on',m==='reg');
   document.getElementById('auth-err').textContent='';
 }
-function doLogin(){
-  const p=document.getElementById('lp').value.trim(),w=document.getElementById('lw').value;
+async function doLogin(){
+  const p=document.getElementById('lp').value.trim();
+  const w=document.getElementById('lw').value;
   const err=document.getElementById('auth-err');
+  const btn=document.getElementById('btn-login');
   if(!p||!w){err.textContent='Vui lòng nhập đầy đủ';return;}
-  STORE_USER=DEMO_STORE;
-  startApp();
+  err.textContent='';
+  if(btn){btn.textContent='Đang đăng nhập...';btn.disabled=true;}
+
+  // Try Supabase real auth
+  if(_sbClient){
+    try{
+      const email=p.replace(/^0/,'84')+'@smone.vn';
+      const {data,error}=await _sbClient.auth.signInWithPassword({email,password:w});
+      if(!error&&data.user){
+        _authUID=data.user.id;
+        const {data:prof}=await _sbClient.from('kiosk_users').select('*,tap_hoa(ten,sales_users(ho_ten,so_dien_thoai))').eq('auth_id',data.user.id).single();
+        if(prof){
+          STORE_USER={
+            id:prof.id, ten:prof.ten_cua_hang||prof.ho_ten,
+            chu:prof.ho_ten, phone:prof.so_dien_thoai,
+            addr:prof.dia_chi||'', sale:prof.tap_hoa?.sales_users?.ho_ten||'',
+            sale_phone:prof.tap_hoa?.sales_users?.so_dien_thoai||'',
+            points:prof.diem_tich_luy||0, tier:prof.tier||'Đồng'
+          };
+          startApp(); return;
+        }
+      }
+      if(error) err.textContent='Số điện thoại hoặc mật khẩu không đúng';
+    }catch(e){console.warn('SB auth:',e);}
+  }
+
+  // Demo fallback - dùng SĐT và bất kỳ mật khẩu nào
+  const demoUsers={'0901111111':'ku1','0902222222':'ku2'};
+  if(demoUsers[p]){
+    STORE_USER=DEMO_STORE;
+    if(p==='0902222222') STORE_USER={...DEMO_STORE,id:'st2',ten:'Tạp hóa Minh',chu:'Anh Minh',phone:'0902222222',points:120,tier:'Đồng'};
+    startApp();
+  } else {
+    err.textContent='Số điện thoại chưa đăng ký';
+  }
+  if(btn){btn.textContent='Đăng nhập';btn.disabled=false;}
 }
-function doRegister(){
-  const ten=document.getElementById('r-ten').value.trim();
-  const chu=document.getElementById('r-chu').value.trim();
-  const phone=document.getElementById('r-phone').value.trim();
-  const pw=document.getElementById('r-pw').value;
-  const err=document.getElementById('auth-err');
-  if(!ten||!chu||!phone||!pw){err.textContent='Vui lòng điền đầy đủ thông tin bắt buộc';return;}
-  if(pw.length<6){err.textContent='Mật khẩu tối thiểu 6 ký tự';return;}
-  STORE_USER={...DEMO_STORE,ten,chu,phone,addr:document.getElementById('r-addr').value,points:0,tier:'Đồng'};
-  toast('Đăng ký thành công! Chào mừng '+ten);
-  startApp();
+async function doRegister(){
+  const ten  = document.getElementById('r-ten').value.trim();
+  const chu  = document.getElementById('r-chu').value.trim();
+  const phone= document.getElementById('r-phone').value.trim();
+  const pw   = document.getElementById('r-pw').value;
+  const addr = (document.getElementById('r-addr')||{}).value||'';
+  const err  = document.getElementById('auth-err');
+
+  if(!ten||!chu||!phone||!pw){ err.textContent='Vui lòng điền đầy đủ'; return; }
+  if(pw.length<6){ err.textContent='Mật khẩu tối thiểu 6 ký tự'; return; }
+  if(!/^0\d{9}$/.test(phone)){ err.textContent='SĐT không hợp lệ (10 số, bắt đầu bằng 0)'; return; }
+
+  err.textContent = 'Đang tạo tài khoản...';
+
+  // Try Supabase real registration
+  if(typeof _sbClient !== 'undefined' && _sbClient){
+    try{
+      const email = phone.replace(/^0/,'84') + '@smone.vn';
+      const {data, error} = await _sbClient.auth.signUp({email, password:pw});
+      if(error) throw error;
+
+      // Create kiosk_users profile
+      const {error:pe} = await _sbClient.from('kiosk_users').insert({
+        auth_id: data.user?.id || null,
+        ten_cua_hang: ten, ho_ten: chu,
+        so_dien_thoai: phone, dia_chi: addr,
+        diem_tich_luy: 0, tier: 'Đồng',
+        trang_thai: 'active',
+      });
+      if(pe) console.warn('Profile insert:', pe.message);
+
+      // Load profile back
+      const {data:profile} = await _sbClient.from('kiosk_users')
+        .select('*').eq('so_dien_thoai', phone).single();
+      if(profile){
+        STORE_USER = {
+          id: profile.id, auth_id: data.user?.id,
+          ten: profile.ten_cua_hang, chu: profile.ho_ten,
+          phone: profile.so_dien_thoai, addr: profile.dia_chi||'',
+          points: profile.diem_tich_luy||0, tier: profile.tier||'Đồng',
+          tap_hoa_id: profile.tap_hoa_id||null,
+        };
+        toast('🎉 Đăng ký thành công! Chào mừng ' + ten);
+        loginSuccess();
+        return;
+      }
+    }catch(e){
+      console.warn('SB register:', e.message);
+      // Nếu email đã tồn tại → hướng dẫn đăng nhập
+      if(e.message.includes('already') || e.message.includes('registered')){
+        err.textContent = 'SĐT đã được đăng ký. Vui lòng đăng nhập.';
+        return;
+      }
+    }
+  }
+
+  // Demo fallback
+  STORE_USER = {
+    id: 'ku_'+Date.now(), auth_id: null,
+    ten, chu, phone, addr, points: 0, tier: 'Đồng', tap_hoa_id: null,
+  };
+  toast('🎉 Đăng ký thành công (demo mode) — ' + ten);
+  loginSuccess();
 }
-function startApp(){
+
+async function startApp(){
   document.getElementById('s-auth').classList.remove('on');
   document.getElementById('s-app').classList.add('on');
   updateNotifBadge();
   goTab('home');
+  // Load data từ Supabase
+  await loadCloudData();
+  setTimeout(pushSmartNotifs, 1500);
+}
+
+async function loadCloudData(){
+  if(!_sbClient) return;
+  try{
+    // Load products
+    const {data:prods} = await _sbClient
+      .from('products').select('*').eq('active',true).order('ten');
+    if(prods && prods.length){
+      _PRODS.length = 0;
+      prods.forEach(p => _PRODS.push(p));
+      console.log('✅ Loaded', prods.length, 'products from cloud');
+    }
+  }catch(e){ console.warn('Load products:', e.message); }
+  
+  try{
+    // Load orders của kiosk này
+    if(_authUID){
+      const {data:kiosk} = await _sbClient
+        .from('kiosk_users').select('id').eq('auth_id',_authUID).single();
+      if(kiosk){
+        const {data:ords} = await _sbClient
+          .from('orders')
+          .select('*')
+          .eq('kiosk_user_id', kiosk.id)
+          .order('ngay_dat',{ascending:false})
+          .limit(50);
+        if(ords && ords.length){
+          MY_ORDERS.length = 0;
+          ords.forEach(o => MY_ORDERS.push({
+            id: o.id,
+            items: Array.isArray(o.chi_tiet_sp) ? o.chi_tiet_sp : [],
+            tong: o.tong_tien,
+            ts: o.trang_thai,
+            trang_thai: o.trang_thai,
+            ngay: new Date(o.ngay_dat).toLocaleDateString('vi-VN'),
+            gio: new Date(o.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+            slot: o.ghi_chu || 'Ngày mai',
+            coupon: o.coupon_code || null,
+            rated: false
+          }));
+          console.log('✅ Loaded', ords.length, 'orders from cloud');
+        }
+      }
+    }
+  }catch(e){ console.warn('Load orders:', e.message); }
+  
+  // Realtime subscription
+  startKioskRealtime(_authUID || 'demo');
 }
 
 // ════════════════════════════════════════════
@@ -720,7 +943,7 @@ const MAIN_TABS=['home','catalog','orders','loyalty','account'];
 function goTab(tab,fromBack=false){
   currentTab=tab;
   if(!fromBack){tabHistory.push(tab);if(tabHistory.length>15)tabHistory.shift();}
-  ['home','catalog','cart','orders','track','loyalty','notif','chat','account','success'].forEach(t=>{
+  ['home','catalog','cart','orders','track','loyalty','notif','chat','account','success','return','storeinfo','periodic','spending','wishlist','debt','report-error','driver','invoice','import'].forEach(t=>{
     const el=document.getElementById('pg-'+t);
     if(el)el.style.display='none';
   });
@@ -738,7 +961,7 @@ function goTab(tab,fromBack=false){
   MAIN_TABS.forEach(t=>{const el=document.getElementById('bi-'+t);if(el)el.classList.toggle('on',t===tab);});
   updateCartUI();
 
-  const renders={home:renderHome,catalog:renderCatalog,cart:renderCart,orders:renderOrders,track:renderTrack,loyalty:renderLoyalty,notif:renderNotif,chat:renderChat,account:renderAccount};
+  const renders={home:renderHome,catalog:renderCatalog,cart:renderCart,orders:renderOrders,track:renderTrack,loyalty:renderLoyalty,notif:renderNotif,chat:renderChat,account:renderAccount,return:renderReturn,storeinfo:renderStoreInfo,'periodic':renderPeriodic,'spending':renderSpending,'wishlist':renderWishlist,'debt':renderDebt,'report-error':renderReportError,'driver':renderDriverTracking,'invoice':renderInvoicePage,'import':renderImportPage};
   if(renders[tab])renders[tab]();
 }
 function navBack(){
@@ -751,6 +974,7 @@ function openCart(){goTab('cart');}
 // HOME
 // ════════════════════════════════════════════
 function renderHome(){
+  if(!STORE_USER){ setTimeout(renderHome,300); return; }
   const pg=document.getElementById('pg-home');
   const todayRev=MY_ORDERS.filter(o=>o.ngay===dateStr(0)).reduce((s,o)=>s+o.tong,0);
   const totalOrders=MY_ORDERS.length;
@@ -796,6 +1020,104 @@ function renderHome(){
       <span>📦</span><span>${pending.length} đơn đang xử lý — Bấm để theo dõi ›</span>
     </div>`;
   }
+
+    // ── TỔNG QUAN ĐƠN HÀNG ────────────────────────────────────
+  const todayOrders  = MY_ORDERS.filter(o => o.ngay === dateStr(0));
+  const todayRevReal = todayOrders.reduce((s,o) => s+o.tong, 0);
+  const todayCount   = todayOrders.length;
+
+  const incomingOrders = MY_ORDERS.filter(o =>
+    o.ts === 'cho_giao' || o.ts === 'dang_giao' || o.ts === 'cho_xac_nhan'
+  );
+  const incomingRev   = incomingOrders.reduce((s,o) => s+o.tong, 0);
+  const incomingCount = incomingOrders.length;
+
+  // ── OVERVIEW DASHBOARD ─────────────────────────────────────
+  const now2 = new Date();
+  const monthStr = `${now2.getMonth()+1}/${now2.getFullYear()}`;
+  const monthOrders = MY_ORDERS.filter(o => {
+    try { const d=o.ngay?o.ngay.split('/'):null; if(!d) return false;
+      const od=new Date(d[2],d[1]-1,d[0]);
+      return od.getMonth()===now2.getMonth()&&od.getFullYear()===now2.getFullYear();
+    } catch(e){ return true; }
+  });
+  const monthSpend = monthOrders.reduce((s,o)=>s+o.tong,0);
+  const monthCount = monthOrders.length;
+  const pts     = STORE_USER?.points || 0;
+  const curTier = STORE_USER?.tier||'Đồng';
+  const TIER_MAP={
+    'Đồng'    :{color:'#B45309',bg2:'#FEF9C3',bg3:'#FEF3C7',borderColor:'#FDE68A',pts:0,   nextPts:500, next:'Bạc',       icon:'🥉'},
+    'Bạc'     :{color:'#374151',bg2:'#F9FAFB',bg3:'#F3F4F6',borderColor:'#D1D5DB',pts:500, nextPts:1500,next:'Vàng',      icon:'🥈'},
+    'Vàng'    :{color:'#92400E',bg2:'#FFFBEB',bg3:'#FEF3C7',borderColor:'#FCD34D',pts:1500,nextPts:3000,next:'Kim Cương', icon:'🥇'},
+    'Kim Cương':{color:'#1D4ED8',bg2:'#EFF6FF',bg3:'#DBEAFE',borderColor:'#BFDBFE',pts:3000,nextPts:null,next:null,       icon:'💎'},
+  };
+  const tier = TIER_MAP[curTier]||TIER_MAP['Đồng'];
+  const ptsToNext = tier.nextPts?Math.max(0,tier.nextPts-pts):0;
+  const tierPct = tier.nextPts?Math.min(100,Math.round((pts-tier.pts)/(tier.nextPts-tier.pts)*100)):100;
+  const spendPct = Math.min(100,Math.round(monthSpend/10000000*100));
+
+  html += `
+  <div style="margin:10px 14px 6px;display:flex;flex-direction:column;gap:8px;">
+
+    <!-- ROW 1: Giao hôm nay + Sắp giao -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div onclick="goTab('orders')" style="background:linear-gradient(135deg,#1FAB73,#0B6E3F);border-radius:14px;padding:14px;cursor:pointer;">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Giao hôm nay</div>
+        <div style="font-size:32px;font-weight:900;color:#fff;line-height:1;margin-bottom:4px;">${todayCount} <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,.7);">đơn</span></div>
+        <div style="font-size:15px;font-weight:800;color:#FCD34D;">${fmtFull(todayRevReal)}đ</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">Giá trị nhận hôm nay</div>
+      </div>
+      <div onclick="goTab('orders')" style="background:linear-gradient(135deg,#F59E0B,#B45309);border-radius:14px;padding:14px;cursor:pointer;">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.75);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Sắp giao</div>
+        <div style="font-size:32px;font-weight:900;color:#fff;line-height:1;margin-bottom:4px;">${incomingOrders.length} <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,.7);">đơn</span></div>
+        <div style="font-size:15px;font-weight:800;color:#FEF9C3;">${fmtFull(incomingRev)}đ</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.6);margin-top:2px;">Đang chờ xử lý</div>
+      </div>
+    </div>
+
+    ${incomingOrders.length>0?`
+    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:10px 12px;">
+      <div style="font-size:11px;font-weight:800;color:#B45309;margin-bottom:6px;">📦 Đơn sắp đến</div>
+      ${incomingOrders.slice(0,2).map(o=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid #FEF3C7;">
+          <span style="font-size:12px;font-weight:700;color:#374151;">${o.id}</span>
+          <span style="font-size:11px;color:#B45309;">${o.ts==='dang_giao'?'🚚 Đang giao':'⏳ Chờ giao'} · ${fmtM(o.tong)}đ</span>
+        </div>`).join('')}
+      ${incomingOrders.length>2?`<div style="font-size:10px;color:#9CA3AF;margin-top:3px;text-align:right;">+${incomingOrders.length-2} đơn nữa ›</div>`:''}
+    </div>`:``}
+
+    <!-- ROW 2: Chi tiêu + Điểm thưởng -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div onclick="goTab('orders')" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border:1px solid #BFDBFE;border-radius:14px;padding:14px;cursor:pointer;">
+        <div style="font-size:10px;font-weight:700;color:#3B82F6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Chi tiêu tháng ${monthStr}</div>
+        <div style="font-size:20px;font-weight:900;color:#1E40AF;line-height:1.2;margin-bottom:4px;">${fmtM(monthSpend)}<span style="font-size:11px;font-weight:500;color:#3B82F6;">đ</span></div>
+        <div style="font-size:11px;color:#3B82F6;margin-bottom:6px;">${monthCount} đơn trong tháng</div>
+        <div style="height:5px;background:rgba(59,130,246,.2);border-radius:3px;">
+          <div style="height:100%;width:${spendPct}%;background:#2563EB;border-radius:3px;transition:width .6s;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#3B82F6;margin-top:3px;">
+          <span>${spendPct}%</span><span>Mục tiêu 10trđ</span>
+        </div>
+      </div>
+      <div onclick="goTab('loyalty')" style="background:linear-gradient(135deg,${tier.bg2||'#F5F3FF'},${tier.bg3||'#EDE9FE'});border:1px solid ${tier.borderColor||'#DDD6FE'};border-radius:14px;padding:14px;cursor:pointer;">
+        <div style="font-size:10px;font-weight:700;color:${tier.color};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Điểm tích lũy</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+          <span style="font-size:18px;">${tier.icon}</span>
+          <span style="font-size:20px;font-weight:900;color:${tier.color};line-height:1;">${pts}</span>
+          <span style="font-size:10px;color:${tier.color};">điểm</span>
+        </div>
+        <div style="font-size:11px;font-weight:800;color:${tier.color};margin-bottom:6px;">Hạng ${curTier}</div>
+        ${tier.next?`
+        <div style="height:5px;background:rgba(0,0,0,.1);border-radius:3px;margin-bottom:3px;">
+          <div style="height:100%;width:${tierPct}%;background:${tier.color};border-radius:3px;transition:width .6s;"></div>
+        </div>
+        <div style="font-size:9px;color:${tier.color};font-weight:700;">+${ptsToNext}đ → ${tier.next}</div>`
+        :`<div style="font-size:9px;font-weight:800;color:#2563EB;margin-top:4px;">💎 Hạng cao nhất!</div>`}
+      </div>
+    </div>
+
+  </div>
+  `;
 
   // Buy Again
   const seen=new Set();const baItems=[];
@@ -850,6 +1172,29 @@ function renderHome(){
       </div>`;
     });
     html+='</div>';
+  }
+
+
+  // Hot products section
+  const hotProds = _PRODS.filter(p=>p.is_hot).slice(0,4);
+  if(hotProds.length){
+    html += '<div style="padding:0 14px 6px;"><div style="font-size:15px;font-weight:800;margin-bottom:10px;">🔥 Sản phẩm bán chạy</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    hotProds.forEach(p=>{
+      const disc = p.gia_goc>p.don_gia ? Math.round((1-p.don_gia/p.gia_goc)*100) : 0;
+      html += `<div onclick="addToCart('${p.ma}')" style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;cursor:pointer;">
+        <div style="background:#F9FAFB;padding:12px;text-align:center;font-size:32px;">${p.icon}</div>
+        <div style="padding:10px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:2px;">${p.ten}</div>
+          <div style="font-size:10px;color:#6B7280;margin-bottom:6px;">${p.spec}</div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <div style="font-size:13px;font-weight:800;color:#1FAB73;">${(p.don_gia/1000).toFixed(0)}k</div>
+            ${disc>0?`<div style="font-size:9px;background:#FEE2E2;color:#DC2626;padding:1px 5px;border-radius:4px;">-${disc}%</div>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div></div>';
   }
 
   html+='<div style="height:80px"></div>';
@@ -1060,20 +1405,6 @@ function placeOrder(){
 // ════════════════════════════════════════════
 // ORDERS + TRACKING
 // ════════════════════════════════════════════
-function reorder(orderId){
-  // Find order and add items to cart
-  const order = _ORDERS.filter(o=>o.id===orderId)[0];
-  if(!order||!order.chi_tiet_sp) { showToast('Không tìm thấy đơn hàng'); return; }
-  order.chi_tiet_sp.forEach(item=>{
-    const existing = _CART.find(c=>c.ma===item.ma);
-    if(existing) existing.qty += item.qty||1;
-    else _CART.push({...item, qty: item.qty||1});
-  });
-  saveCart();
-  showToast('🛒 Đã thêm '+order.chi_tiet_sp.length+' sản phẩm vào giỏ hàng');
-  goTab('cart');
-}
-
 function renderOrders(){
   const pg=document.getElementById('pg-orders');
   let html='<div style="padding:10px 0">';
@@ -1086,7 +1417,7 @@ function renderOrders(){
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${tsB}${o.coupon?`<span class="badge by">🎟 ${o.coupon}</span>`:''}</div>
       </div>
       <div class="hist-items">
-        ${o.items.slice(0,3).map(i=>`<div class="hi-row"><div class="hi-img">${i.icon}</div><div class="hi-name">${i.ten} × ${i.sl}</div><div class="hi-price">${fmtM(i.gia*i.sl)}</div></div>`).join('')}
+        ${o.items.slice(0,3).map(i=>`<div class="hi-row"><div class="hi-img">${i.icon}</div><div style="flex:1"><div class="hi-name">${i.ten} × ${i.sl}</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">${i.ma||''}</div></div><div class="hi-price">${fmtM(i.gia*i.sl)}</div></div>`).join('')}
         ${o.items.length>3?`<div style="font-size:11px;color:var(--muted);padding:3px 0">+${o.items.length-3} sản phẩm khác</div>`:''}
       </div>
       <div class="hist-footer">
@@ -1138,16 +1469,88 @@ function showOrderTrack(id){
   openSheet('sh-track-detail');
 }
 
-function renderTrack(){renderOrders();}
-
-
+function renderTrack(){
+  const pg=document.getElementById('pg-track');
+  if(!pg)return;
+  const active=MY_ORDERS.filter(o=>o.ts==='dang_giao');
+  const o=active[0]||MY_ORDERS[0];
+  
+  if(!o){
+    pg.innerHTML='';
+    const d=document.createElement('div');
+    d.style.cssText='text-align:center;padding:60px 20px;';
+    d.innerHTML='<div style="font-size:48px;">📦</div><div style="font-size:16px;font-weight:800;margin-top:12px;">Không có đơn đang giao</div>';
+    const btn=document.createElement('button');
+    btn.textContent='Đặt hàng ngay';
+    btn.style.cssText='margin-top:20px;padding:12px 28px;background:#1FAB73;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;';
+    btn.onclick=function(){goTab('catalog');};
+    d.appendChild(btn);
+    pg.appendChild(d);
+    return;
+  }
+  
+  const SL={'cho_xac_nhan':'Chờ xác nhận','da_xac_nhan':'Đã xác nhận','dang_chuan_bi':'Đang chuẩn bị','dang_giao':'Đang giao','da_giao':'Đã giao'};
+  const SS=['cho_xac_nhan','da_xac_nhan','dang_chuan_bi','dang_giao','da_giao'];
+  const cur=o.ts||o.trang_thai||'dang_giao';
+  const curIdx=Math.max(0,SS.indexOf(cur));
+  
+  let tl='';
+  SS.forEach(function(s,i){
+    const done=i<=curIdx, active2=i===curIdx;
+    tl+='<div style="display:flex;gap:12px;margin-bottom:14px;">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;">'
+      +'<div style="width:24px;height:24px;border-radius:50%;background:'+(done?'#1FAB73':'#E5E7EB')+';display:flex;align-items:center;justify-content:center;font-size:11px;color:'+(done?'#fff':'#9CA3AF')+';font-weight:800;">'+(done?'✓':'')+'</div>'
+      +(i<SS.length-1?'<div style="width:2px;flex:1;min-height:14px;background:'+(done?'#1FAB73':'#E5E7EB')+';margin-top:3px;"></div>':'')
+      +'</div><div><div style="font-size:13px;font-weight:'+(active2?800:600)+';color:'+(active2?'#1FAB73':done?'#374151':'#9CA3AF')+'">'+(SL[s])+'</div></div></div>';
+  });
+  
+  let items='';
+  o.items.forEach(function(it){
+    items+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;">'
+      +'<div style="font-size:22px;">'+(it.icon||'📦')+'</div>'
+      +'<div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+it.ten+'</div><div style="font-size:11px;color:#6B7280;">x'+(it.sl||1)+'</div></div>'
+      +'<div style="font-size:13px;font-weight:700;">'+formatMoney((it.gia||0)*(it.sl||1))+'đ</div></div>';
+  });
+  
+  pg.innerHTML='<div style="padding:16px 16px 80px;">'
+    +'<div style="background:linear-gradient(135deg,#1FAB73,#178A5A);border-radius:16px;padding:20px;color:#fff;margin-bottom:16px;">'
+    +'<div style="font-size:11px;opacity:.75;">Theo dõi đơn hàng</div>'
+    +'<div style="font-size:20px;font-weight:900;margin-top:4px;">'+o.id+'</div>'
+    +'<div style="margin-top:10px;background:rgba(255,255,255,.2);border-radius:100px;display:inline-block;padding:4px 14px;font-size:12px;font-weight:700;">'+(SL[cur]||'Đang xử lý')+'</div>'
+    +'</div>'
+    +'<div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;padding:16px;margin-bottom:14px;">'
+    +'<div style="font-size:13px;font-weight:800;margin-bottom:14px;">📍 Trạng thái</div>'+tl+'</div>'
+    +'<div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;padding:16px;margin-bottom:14px;">'
+    +'<div style="font-size:13px;font-weight:800;margin-bottom:10px;">🛒 Sản phẩm</div>'+items
+    +'<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1.5px solid #F3F4F6;">'
+    +'<div style="font-size:13px;font-weight:700;">Tổng</div>'
+    +'<div style="font-size:16px;font-weight:900;color:#1FAB73;">'+formatMoney(o.tong||o.total||0)+'đ</div></div></div>'
+    +'<div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;padding:16px;">'
+    +'<div style="font-size:13px;font-weight:800;margin-bottom:12px;">🚚 Tài xế giao hàng</div>'
+    +'<div style="display:flex;align-items:center;gap:12px;">'
+    +'<div style="width:44px;height:44px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:22px;">🚚</div>'
+    +'<div style="flex:1;"><div style="font-size:14px;font-weight:700;">Tài xế Nam</div>'
+    +'<div style="font-size:11px;color:#6B7280;">0922000001</div></div>'
+    +'<a href="tel:0922000001" style="padding:8px 14px;background:#DBEAFE;color:#2563EB;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;">📞 Gọi</a>'
+    +'</div>'
+    +'<div style="margin-top:10px;background:#F0FDF4;border-radius:10px;padding:10px 12px;font-size:12px;color:#166534;font-weight:600;">'
+    +'🕐 Dự kiến: '+(o.slot||'Hôm nay 14:00–16:00')+'</div></div></div>';
+}
+function reorder(id){
+  const o=MY_ORDERS.find(x=>x.id===id);if(!o)return;
+  CART={items:{},coupon:null,slot:'Ngày mai'};
+  o.items.forEach(i=>{CART.items[i.ma]=i.sl;});
+  toast('Đã thêm lại toàn bộ vào giỏ!');
+  updateCartUI();goTab('cart');
+}
 
 // ════════════════════════════════════════════
 // LOYALTY
 // ════════════════════════════════════════════
 function renderLoyalty(){
   const pg=document.getElementById('pg-loyalty');
-  const pts=STORE_USER.points;
+  if(!STORE_USER) return;
+  const pts=STORE_USER?.points||0;
   const nextTier={Đồng:{label:'Bạc',pts:500},Bạc:{label:'Vàng',pts:2000},Vàng:{label:'Kim Cương',pts:5000}}[STORE_USER.tier]||{label:'Kim Cương',pts:5000};
   const pct2tier=Math.min(100,Math.round(pts/nextTier.pts*100));
   let html=`
@@ -1178,6 +1581,20 @@ function renderLoyalty(){
     ${[['🛒','Mua hàng','1 điểm / 10.000đ mua hàng'],['⭐','Đánh giá','50 điểm / 1 đánh giá sản phẩm'],['👥','Giới thiệu','200 điểm khi giới thiệu tạp hóa mới'],['📅','Mua đều','100 điểm bonus khi mua đủ 4 tuần liên tiếp']].map(([ic,t,d])=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)"><div style="font-size:22px">${ic}</div><div><div style="font-size:13px;font-weight:600">${t}</div><div style="font-size:11px;color:var(--muted)">${d}</div></div></div>`).join('')}
   </div>
   <div style="height:20px"></div>`;
+  
+  // Lịch sử điểm
+  const POINT_HIST=[
+    {date:dateStr(-1),desc:'Đặt đơn '+( MY_ORDERS[0]?MY_ORDERS[0].id:'O-K001'),pts:'+52',type:'earn'},
+    {date:dateStr(-3),desc:'Đặt đơn '+( MY_ORDERS[1]?MY_ORDERS[1].id:'O-K002'),pts:'+135',type:'earn'},
+    {date:dateStr(-7),desc:'Đổi điểm ưu đãi',pts:'-100',type:'redeem'},
+    {date:dateStr(-10),desc:'Bonus mua đều',pts:'+100',type:'earn'},
+  ];
+  html+='<div style="padding:0 14px;margin-bottom:80px;"><div style="font-size:15px;font-weight:800;margin-bottom:10px;">📋 Lịch sử tích lũy</div><div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;overflow:hidden;">';
+  POINT_HIST.forEach((h,i)=>{
+    html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;'+(i<POINT_HIST.length-1?'border-bottom:1px solid #F3F4F6;':'')+'"><div style="font-size:20px;">'+(h.type==='earn'?'⬆️':'⬇️')+'</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+h.desc+'</div><div style="font-size:11px;color:#9CA3AF;margin-top:2px;">'+h.date+'</div></div><div style="font-size:14px;font-weight:800;color:'+(h.type==='earn'?'#1FAB73':'#EF4444')+';">'+h.pts+' điểm</div></div>';
+  });
+  html+='</div></div>';
+
   pg.innerHTML=html;
 }
 function redeemPoints(pts,title){
@@ -1252,32 +1669,146 @@ function sendMsg(){
 // ACCOUNT
 // ════════════════════════════════════════════
 function renderAccount(){
-  const pg=document.getElementById('pg-account');
-  pg.innerHTML=`
-  <div class="acc-header">
-    <div class="acc-avatar">${STORE_USER.ten.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}</div>
-    <div class="acc-name">${STORE_USER.ten}</div>
-    <div class="acc-meta">${STORE_USER.chu} · ${STORE_USER.phone}</div>
-    <div style="margin-top:6px"><span class="badge by">Hạng ${STORE_USER.tier} ★</span></div>
-  </div>
-  <div class="acc-section">
-    ${[['🏪','var(--Gl)','Thông tin cửa hàng',STORE_USER.addr||'Chưa cập nhật'],['💬','var(--Gl)','Chat với Sale',STORE_USER.sale||'Nguyễn Nam','goTab("chat")'],['⭐','var(--Al)','Điểm tích lũy',STORE_USER.points+' điểm','goTab("loyalty")'],['📦','var(--Bl)','Lịch sử đơn hàng',MY_ORDERS.length+' đơn','goTab("orders")']].map(([ic,bg,l,v,onclick])=>`
-      <div class="acc-row" onclick="${onclick||''}">
-        <div class="acc-row-left">
-          <div class="acc-row-icon" style="background:${bg}">${ic}</div>
-          <div class="acc-row-label">${l}</div>
+  const pg = document.getElementById('pg-account');
+  if(!pg) return;
+  const u = STORE_USER;
+  const doneOrders = MY_ORDERS.filter(o=>o.ts==='da_giao');
+  const totalSpend = doneOrders.reduce((s,o)=>s+o.tong,0);
+  const pendingOrders = MY_ORDERS.filter(o=>o.ts==='cho_xac_nhan'||o.ts==='cho_giao');
+
+  pg.innerHTML = `
+  <div style="overflow-y:auto;height:calc(100vh - 120px);padding-bottom:80px;">
+    <!-- HEADER -->
+    <div style="background:linear-gradient(135deg,var(--Gd),var(--G));padding:20px 16px 16px;">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;">
+          ${u.ten.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
         </div>
-        <div class="acc-row-val">${v} ›</div>
-      </div>`).join('')}
-  </div>
-  <div class="acc-section">
-    <div class="acc-row"><div class="acc-row-left"><div class="acc-row-icon" style="background:#F1EFE8">🔔</div><div class="acc-row-label">Thông báo</div></div><div class="acc-row-val">Bật ›</div></div>
-    <div class="acc-row"><div class="acc-row-left"><div class="acc-row-icon" style="background:#F1EFE8">🔒</div><div class="acc-row-label">Đổi mật khẩu</div></div><div class="acc-row-val">›</div></div>
-  </div>
-  <div style="margin:12px 14px">
-    <button onclick="doLogout()" style="width:100%;padding:13px;background:#fff;color:var(--R);border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer">Đăng xuất</button>
-  </div>
-  <div style="text-align:center;font-size:11px;color:var(--hint);margin:12px 0 20px">SM ONE Kiosk v2.0 · Đặt hàng FMCG trực tuyến</div>`;
+        <div>
+          <div style="font-size:18px;font-weight:900;color:#fff;">${u.ten}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.75);margin-top:2px;">${u.chu} · ${u.phone}</div>
+          <span style="font-size:11px;font-weight:700;background:rgba(255,255,255,.2);color:#fff;padding:2px 10px;border-radius:100px;margin-top:4px;display:inline-block;">Hạng ${u.tier} ★</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#FCD34D;">${u.points||0}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;">Điểm thưởng</div>
+        </div>
+        <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#fff;">${MY_ORDERS.length}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;">Tổng đơn</div>
+        </div>
+        <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#fff;">${fmtM(totalSpend)}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:2px;">Tổng chi</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- PENDING ALERT -->
+    ${pendingOrders.length > 0 ? `
+    <div onclick="goTab('orders')" style="background:#FEF3C7;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+      <span style="font-size:12px;font-weight:700;color:#B45309;">⏳ ${pendingOrders.length} đơn đang chờ xử lý</span>
+      <span style="font-size:12px;color:#B45309;">Xem ›</span>
+    </div>` : ''}
+    
+    <!-- QUICK ACTIONS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 14px;">
+      ${[
+        ['📦','Đơn hàng','orders','#EFF6FF','#1D4ED8'],
+        ['⭐','Điểm thưởng','loyalty','#FEF3C7','#B45309'],
+        ['💬','Chat Sale','chat','#F0FDF4','#059669'],
+        ['🔁','Định kỳ','periodic','#F5F3FF','#6D28D9'],
+      ].map(([ic,lb,tab,bg,tc])=>`
+        <div onclick="goTab('${tab}')" style="background:${bg};border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;">
+          <div style="font-size:22px;">${ic}</div>
+          <div style="font-size:10px;font-weight:700;color:${tc};margin-top:4px;">${lb}</div>
+        </div>`).join('')}
+    </div>
+    
+    <!-- SECTION: Quản lý đơn hàng -->
+    <div style="padding:0 14px;margin-bottom:6px;font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Quản lý đơn hàng</div>
+    <div style="margin:0 14px 14px;background:#fff;border-radius:14px;border:1px solid var(--bdr);overflow:hidden;">
+      <div onclick="goTab('orders')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">📋</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Lịch sử đơn hàng</div></div>
+        <div style="font-size:12px;color:var(--muted);">${MY_ORDERS.length} đơn ›</div>
+      </div>
+      <div onclick="renderImportReport()" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">📊</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Báo cáo nhập hàng</div></div>
+        <div style="font-size:12px;color:var(--muted);">Thống kê ›</div>
+      </div>
+      <div onclick="goTab('invoice')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🧾</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Hóa đơn điện tử</div></div>
+        <div style="font-size:12px;color:var(--muted);">Tải PDF ›</div>
+      </div>
+      <div onclick="goTab('spending')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">💳</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Chi tiêu tháng này</div></div>
+        <div style="font-size:12px;color:var(--muted);">${fmtM(totalSpend)}đ ›</div>
+      </div>
+      <div onclick="goTab('debt')" style="display:flex;align-items:center;padding:13px 16px;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">💰</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Hạn mức & công nợ</div></div>
+        <div style="font-size:12px;color:var(--muted);">Kiểm tra ›</div>
+      </div>
+    </div>
+    
+    <!-- SECTION: Tiện ích -->
+    <div style="padding:0 14px;margin-bottom:6px;font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Tiện ích</div>
+    <div style="margin:0 14px 14px;background:#fff;border-radius:14px;border:1px solid var(--bdr);overflow:hidden;">
+      <div onclick="goTab('wishlist')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">❤️</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Sản phẩm yêu thích</div></div>
+        <div style="font-size:12px;color:var(--muted);">Danh sách ›</div>
+      </div>
+      <div onclick="goTab('periodic')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🔁</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Đặt hàng định kỳ</div></div>
+        <div style="font-size:12px;color:var(--muted);">Tự động ›</div>
+      </div>
+      <div onclick="goTab('driver')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🚚</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Theo dõi tài xế</div></div>
+        <div style="font-size:12px;color:var(--muted);">Realtime ›</div>
+      </div>
+      <div onclick="goTab('return')" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">↩️</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Đổi / Trả hàng</div></div>
+        <div style="font-size:12px;color:var(--muted);">Gửi yêu cầu ›</div>
+      </div>
+      <div onclick="goTab('report-error')" style="display:flex;align-items:center;padding:13px 16px;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">⚠️</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Báo lỗi hàng hóa</div></div>
+        <div style="font-size:12px;color:var(--muted);">Khiếu nại ›</div>
+      </div>
+    </div>
+    
+    <!-- SECTION: Tài khoản -->
+    <div style="padding:0 14px;margin-bottom:6px;font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:1.5px;">Tài khoản</div>
+    <div style="margin:0 14px 14px;background:#fff;border-radius:14px;border:1px solid var(--bdr);overflow:hidden;">
+      <div onclick="showStoreInfo()" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🏪</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Thông tin cửa hàng</div></div>
+        <div style="font-size:12px;color:var(--muted);">Chỉnh sửa ›</div>
+      </div>
+      <div onclick="showChangePassword()" style="display:flex;align-items:center;padding:13px 16px;border-bottom:1px solid #F3F4F6;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🔒</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Đổi mật khẩu</div></div>
+        <div style="font-size:12px;color:var(--muted);">›</div>
+      </div>
+      <div onclick="doLogout()" style="display:flex;align-items:center;padding:13px 16px;cursor:pointer;">
+        <div style="font-size:20px;margin-right:12px;">🚪</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;color:#DC2626;">Đăng xuất</div></div>
+        <div style="font-size:12px;color:#DC2626;">›</div>
+      </div>
+    </div>
+    
+    <div style="text-align:center;font-size:11px;color:#9CA3AF;padding:8px 0;">SM ONE Kiosk v2.1 · FMCG Toàn Quốc</div>
+  </div>`;
 }
 
 // ════════════════════════════════════════════
@@ -1295,7 +1826,7 @@ function openReview(orderId){
       </div>
     </div>
     <div style="margin-bottom:12px">
-      <textarea placeholder="Chia sẻ cảm nhận để giúp cải thiện dịch vụ..." id="review-text" style="width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;outline:none;resize:none;height:90px;font-family:inherit"></textarea>
+      <textarea style="font-family:'Nunito',Arial,sans-serif;" placeholder="Chia sẻ cảm nhận để giúp cải thiện dịch vụ..." id="review-text" style="width:100%;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:var(--rs);font-size:14px;outline:none;resize:none;height:90px;font-family:'Nunito',Arial,sans-serif"></textarea>
     </div>
     <button onclick="submitReview()" style="width:100%;padding:13px;background:var(--G);color:#fff;border:none;border-radius:var(--rs);font-size:15px;font-weight:800;cursor:pointer">Gửi đánh giá (+50 điểm)</button>`;
   openSheet('sh-review');
@@ -1323,75 +1854,963 @@ function doLogout(){
     document.getElementById('lp').value='';document.getElementById('lw').value='';
   }
 }
-</script>
 
-<!-- PAGE: TRẢ HÀNG -->
-<div id="pg-return" style="display:none;padding:16px;">
-  <div style="background:#FEF3C7;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#B45309;font-weight:600;">
-    Yêu cầu trả hàng sẽ được xử lý trong 1-2 ngày làm việc.
-  </div>
-
-  <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:13px;font-weight:800;margin-bottom:12px;">Tạo yêu cầu trả hàng</div>
-
-    <div style="margin-bottom:10px;">
-      <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Chọn đơn hàng</label>
-      <select id="ret-order" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;">
-        <option>O-260322-0001 · 1.920.000đ</option>
-        <option>O-260320-0008 · 650.000đ</option>
-        <option>O-260318-0005 · 2.100.000đ</option>
-      </select>
+function renderStoreInfo(){
+  _doStoreInfo(false);
+}
+function showStoreInfo(){
+  _doStoreInfo(true);
+}
+function _doStoreInfo(navigate){
+  const u = STORE_USER;
+  const pg = document.getElementById('pg-storeinfo');
+  if(!pg) return;
+  pg.innerHTML = `
+  <div style="padding:16px 16px 80px;">
+    <div style="background:linear-gradient(135deg,#1FAB73,#178A5A);border-radius:16px;padding:20px;color:#fff;margin-bottom:16px;">
+      <div style="font-size:32px;margin-bottom:8px;">🏪</div>
+      <div style="font-size:20px;font-weight:900;">${u.ten}</div>
+      <div style="font-size:13px;opacity:.8;margin-top:4px;">${u.chu} · ${u.phone}</div>
+      <div style="margin-top:8px;background:rgba(255,255,255,.2);border-radius:100px;display:inline-block;padding:3px 12px;font-size:11px;font-weight:700;">Hạng ${u.tier} ★</div>
     </div>
 
-    <div style="margin-bottom:10px;">
-      <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Lý do trả hàng</label>
-      <div style="display:flex;flex-direction:column;gap:6px;" id="ret-reasons">
-        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;">
-          <input type="radio" name="ret-reason" value="Hàng bị hư hỏng"> <span style="font-size:13px;">📦 Hàng bị hư hỏng</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;">
-          <input type="radio" name="ret-reason" value="Hàng không đúng mô tả"> <span style="font-size:13px;">❌ Không đúng mô tả</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;">
-          <input type="radio" name="ret-reason" value="Thiếu hàng"> <span style="font-size:13px;">⚖️ Giao thiếu hàng</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;">
-          <input type="radio" name="ret-reason" value="Hàng hết hạn"> <span style="font-size:13px;">⏰ Hàng gần/hết hạn</span>
-        </label>
+    <!-- THÔNG TIN CÓ THỂ CHỈNH SỬA -->
+    <div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;overflow:hidden;margin-bottom:12px;">
+      <div style="padding:12px 16px;background:#F9FAFB;border-bottom:1px solid #F3F4F6;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:12px;font-weight:800;color:#374151;">Thông tin cửa hàng</span>
+        <button onclick="toggleEditStore()" id="btn-edit-store" style="font-size:11px;font-weight:700;color:#1FAB73;background:none;border:none;cursor:pointer;padding:4px 10px;background:#F0FDF4;border-radius:6px;">✏️ Chỉnh sửa</button>
+      </div>
+
+      <!-- VIEW MODE -->
+      <div id="store-view-mode">
+        <div style="padding:14px 16px;border-bottom:1px solid #F3F4F6;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:20px;">📍</div>
+          <div><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Địa chỉ</div>
+          <div style="font-size:14px;font-weight:600;margin-top:2px;" id="view-addr">${u.addr||'Chưa cập nhật'}</div></div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid #F3F4F6;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:20px;">📱</div>
+          <div><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Số điện thoại</div>
+          <div style="font-size:14px;font-weight:600;margin-top:2px;" id="view-phone">${u.phone}</div></div>
+        </div>
+        <div style="padding:14px 16px;border-bottom:1px solid #F3F4F6;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:20px;">👤</div>
+          <div><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Chủ cửa hàng</div>
+          <div style="font-size:14px;font-weight:600;margin-top:2px;" id="view-chu">${u.chu}</div></div>
+        </div>
+        <div style="padding:14px 16px;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:20px;">🤝</div>
+          <div><div style="font-size:11px;color:#6B7280;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Sale phụ trách</div>
+          <div style="font-size:14px;font-weight:600;margin-top:2px;">${u.sale||'Nguyễn Nam'} · ${u.sale_phone||'0901234567'}</div></div>
+        </div>
+      </div>
+
+      <!-- EDIT MODE -->
+      <div id="store-edit-mode" style="display:none;padding:14px 16px;">
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Tên cửa hàng</label>
+          <input style="font-family:'Nunito',Arial,sans-serif;" id="edit-ten" value="${u.ten}" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:'Nunito',Arial,sans-serif;">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Chủ cửa hàng</label>
+          <input style="font-family:'Nunito',Arial,sans-serif;" id="edit-chu" value="${u.chu}" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:'Nunito',Arial,sans-serif;">
+        </div>
+        <div style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Số điện thoại</label>
+          <input style="font-family:'Nunito',Arial,sans-serif;" id="edit-phone" value="${u.phone}" type="tel" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:'Nunito',Arial,sans-serif;">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px;">Địa chỉ</label>
+          <input style="font-family:'Nunito',Arial,sans-serif;" id="edit-addr" value="${u.addr||''}" style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:'Nunito',Arial,sans-serif;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="cancelEditStore()" style="padding:11px;border:1.5px solid #E5E7EB;border-radius:8px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#6B7280;">Hủy</button>
+          <button onclick="saveStoreInfo()" style="padding:11px;border:none;border-radius:8px;background:#1FAB73;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✓ Lưu thay đổi</button>
+        </div>
       </div>
     </div>
 
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:5px;">Ghi chú thêm</label>
-      <textarea id="ret-note" rows="2" placeholder="Mô tả chi tiết tình trạng hàng..." style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:inherit;resize:none;"></textarea>
+    <div style="background:#fff;border-radius:14px;border:1px solid #E5E7EB;padding:14px 16px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">⭐ Điểm tích lũy</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:36px;font-weight:900;color:#1FAB73;">${u.points||0}</div>
+        <div><div style="font-size:13px;font-weight:700;">điểm</div>
+        <div style="font-size:11px;color:#6B7280;">Hạng ${u.tier}</div></div>
+      </div>
     </div>
+  </div>`;
+  if(navigate) goTab('storeinfo');
+}
 
-    <button onclick="submitReturn()" style="width:100%;padding:12px;background:linear-gradient(135deg,#EF4444,#DC2626);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;">
-      📤 Gửi yêu cầu trả hàng
-    </button>
-  </div>
+function toggleEditStore(){
+  const view = document.getElementById('store-view-mode');
+  const edit = document.getElementById('store-edit-mode');
+  const btn  = document.getElementById('btn-edit-store');
+  if(!view || !edit) return;
+  view.style.display = 'none';
+  edit.style.display = 'block';
+  btn.style.display  = 'none';
+}
 
-  <div style="font-size:13px;font-weight:800;margin-bottom:10px;">Yêu cầu đang xử lý</div>
-  <div id="return-list">
-    <div style="text-align:center;padding:24px;color:#9CA3AF;font-size:13px;">Chưa có yêu cầu trả hàng nào</div>
-  </div>
-</div>
-<script>
-function submitReturn(){
-  const order = document.getElementById('ret-order')?.value?.split(' ')[0];
-  const reason = document.querySelector('input[name="ret-reason"]:checked')?.value;
-  const note = document.getElementById('ret-note')?.value;
-  if(!reason){ showToast('⚠️ Chọn lý do trả hàng'); return; }
-  const list = document.getElementById('return-list');
+function cancelEditStore(){
+  const view = document.getElementById('store-view-mode');
+  const edit = document.getElementById('store-edit-mode');
+  const btn  = document.getElementById('btn-edit-store');
+  if(!view || !edit) return;
+  view.style.display = 'block';
+  edit.style.display = 'none';
+  btn.style.display  = 'block';
+}
+
+async function saveStoreInfo(){
+  const ten   = document.getElementById('edit-ten')?.value?.trim();
+  const chu   = document.getElementById('edit-chu')?.value?.trim();
+  const phone = document.getElementById('edit-phone')?.value?.trim();
+  const addr  = document.getElementById('edit-addr')?.value?.trim();
+  if(!ten || !chu || !phone){ showToast('⚠️ Điền đầy đủ thông tin'); return; }
+
+  // Update local
+  STORE_USER.ten   = ten;
+  STORE_USER.chu   = chu;
+  STORE_USER.phone = phone;
+  STORE_USER.addr  = addr;
+
+  // Save to Supabase
+  if(_sbClient && _authUID){
+    try{
+      const {data:ki} = await _sbClient.from('kiosk_users').select('id').eq('auth_id',_authUID).single();
+      if(ki){
+        await _sbClient.from('kiosk_users').update({
+          ten_cua_hang: ten,
+          chu_so_huu:   chu,
+          so_dien_thoai: phone,
+          dia_chi:      addr
+        }).eq('id', ki.id);
+      }
+    }catch(e){ console.warn('Save store:', e.message); }
+  }
+
+  showToast('✅ Đã cập nhật thông tin cửa hàng');
+  _doStoreInfo(false);
+}
+
+function toggleNotif(){
+  const el = document.getElementById('notif-toggle');
+  const isOn = el && el.textContent.includes('Bật');
+  if(el) el.textContent = isOn ? 'Tắt ›' : 'Bật ›';
+  showToast(isOn ? '🔕 Đã tắt thông báo' : '🔔 Đã bật thông báo');
+}
+function showChangePassword(){
+  const newpw = prompt('Nhập mật khẩu mới (tối thiểu 6 ký tự):');
+  if(!newpw || newpw.length < 6){ alert('Mật khẩu quá ngắn'); return; }
+  if(_sbClient){
+    _sbClient.auth.updateUser({password: newpw})
+      .then(({error}) => {
+        if(error) showToast('❌ Lỗi: ' + error.message);
+        else showToast('✅ Đã đổi mật khẩu thành công');
+      });
+  } else {
+    showToast('✅ Đã đổi mật khẩu (demo)');
+  }
+}
+
+
+// AUTO LOGIN for preview mode
+(function(){
+  const p = new URLSearchParams(window.location.search);
+  if(p.get('preview')==='1'){
+    function _tryPreviewLogin(){ if(typeof startApp==='undefined'||typeof DEMO_STORE==='undefined'){setTimeout(_tryPreviewLogin,100);return;} STORE_USER=DEMO_STORE; startApp(); } setTimeout(_tryPreviewLogin,200);
+  }
+})();
+
+
+function renderReturn(){
+  // Fill order select
+  const sel = document.getElementById('ret-order-sel');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Chọn đơn hàng --</option>' +
+    MY_ORDERS.filter(o=>o.status==='delivered'||o.trang_thai==='da_giao').map(o=>
+      '<option value="'+o.id+'">'+o.id+' · '+formatMoney(o.total||o.tong)+'đ ('+o.date+')</option>'
+    ).join('');
+  if(sel.options.length===1){
+    sel.innerHTML += '<option value="O-K001">O-K001 · 700.000đ (hôm qua)</option>';
+    sel.innerHTML += '<option value="O-K002">O-K002 · 1.350.000đ (tuần trước)</option>';
+  }
+}
+
+function fillReturnOrder(id){
+  const detail = document.getElementById('ret-order-detail');
+  if(!id){ if(detail) detail.style.display='none'; return; }
+  const o = MY_ORDERS.find(x=>x.id===id);
+  if(detail){
+    detail.style.display='block';
+    if(o){
+      detail.innerHTML = '<b>Đơn:</b> '+o.id+'<br><b>Ngày:</b> '+o.date+'<br><b>Tổng:</b> '+formatMoney(o.total||o.tong)+'đ';
+    } else {
+      detail.innerHTML = '<b>Đơn:</b> '+id+'<br>Gạo ST25 ×1, Hữu cơ ×1';
+    }
+  }
+}
+
+function submitKioskReturn(){
+  const sel = document.getElementById('ret-order-sel');
+  const reason = document.querySelector('input[name="ret-reason"]:checked');
+  const note = document.getElementById('ret-note-kiosk');
+  if(!sel||!sel.value){ showToast('⚠️ Chọn đơn hàng'); return; }
+  if(!reason){ showToast('⚠️ Chọn lý do đổi/trả'); return; }
+  
+  const hist = document.getElementById('return-history');
   const now = new Date().toLocaleDateString('vi-VN');
   const div = document.createElement('div');
-  div.style.cssText = 'background:#fff;border:1.5px solid #FED7AA;border-radius:12px;padding:14px;margin-bottom:8px;';
-  div.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div style="font-size:13px;font-weight:700;">'+order+' · '+reason+'</div><div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;background:#FEF3C7;color:#B45309;">Đang xử lý</div></div><div style="font-size:11px;color:#6B7280;">'+now+(note?' · '+note:'')+'</div>';
-  list.prepend(div);
-  document.getElementById('ret-note').value = '';
+  div.style.cssText='background:#fff;border:1.5px solid #FED7AA;border-radius:12px;padding:14px;margin-bottom:8px;';
+  div.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+    +'<div style="font-size:13px;font-weight:700;">'+sel.value+' · '+reason.value+'</div>'
+    +'<div style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;background:#FEF3C7;color:#B45309;">Đang xử lý</div></div>'
+    +'<div style="font-size:11px;color:#6B7280;">'+now+(note&&note.value?' · '+note.value:'')+'</div>';
+  if(hist.querySelector('[style*="text-align:center"]')) hist.innerHTML='';
+  hist.prepend(div);
+  
+  if(note) note.value='';
   document.querySelectorAll('input[name="ret-reason"]').forEach(r=>r.checked=false);
-  showToast('✅ Đã gửi yêu cầu trả hàng');
+  sel.value='';
+  document.getElementById('ret-order-detail').style.display='none';
+  showToast('✅ Đã gửi yêu cầu đổi/trả');
 }
+
+function sendChat(){
+  const input=document.getElementById('chat-input');
+  if(!input||!input.value.trim())return;
+  const text=input.value.trim();
+  const now=new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+  chatMsgs.push({from:'me',text,time:now});
+  input.value='';
+  renderChat();
+  setTimeout(()=>{
+    const r=['Dạ em xác nhận ngay!','Chị ơi em đang kiểm tra!','Cảm ơn chị, em hỗ trợ ngay!','Đơn đang xử lý ạ!'];
+    chatMsgs.push({from:'sale',text:r[Math.floor(Math.random()*r.length)],time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})});
+    renderChat();
+  },1500);
+}
+
+// ── KIOSK REALTIME ───────────────────────────────────────────────
+let _rtKioskChannel = null;
+
+function startKioskRealtime(uid){
+  if(!_sbClient || !uid || uid==='demo') return;
+  if(_rtKioskChannel){ try{ _sbClient.removeChannel(_rtKioskChannel); }catch(e){} }
+  _rtKioskChannel = _sbClient.channel('kiosk-' + uid)
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'orders'},
+      p => {
+        MY_ORDERS.unshift({
+          id: p.new.id,
+          items: p.new.chi_tiet_sp || [],
+          tong: p.new.tong_tien,
+          ts: p.new.trang_thai,
+          trang_thai: p.new.trang_thai,
+          ngay: new Date(p.new.ngay_dat).toLocaleDateString('vi-VN'),
+          gio: new Date(p.new.ngay_dat).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),
+          slot: p.new.ghi_chu || 'Ngày mai',
+          coupon: p.new.coupon_code,
+          rated: false
+        });
+        showToast('🛒 Đơn hàng mới được xác nhận!');
+        updateNotifBadge();
+      }
+    )
+    .on('postgres_changes', {event:'UPDATE', schema:'public', table:'orders'},
+      p => {
+        const idx = MY_ORDERS.findIndex(o => o.id === p.new.id);
+        if(idx >= 0){ MY_ORDERS[idx].ts = p.new.trang_thai; MY_ORDERS[idx].trang_thai = p.new.trang_thai; }
+        if(p.new.trang_thai === 'dang_giao') showToast('🚚 Đơn ' + p.new.id + ' đang được giao!');
+        if(p.new.trang_thai === 'da_giao')   showToast('✅ Đơn ' + p.new.id + ' đã giao thành công!');
+      }
+    )
+    .on('postgres_changes', {event:'*', schema:'public', table:'products'},
+      () => { if(typeof loadCloudData === 'function') loadCloudData(); }
+    )
+    .subscribe(status => console.log('Kiosk RT:', status));
+}
+
+
+// ════════════════════════════════════════════
+// NEW FEATURE DATA
+// ════════════════════════════════════════════
+let WISHLIST = ['ST25-50','HUU-25'];
+
+const DEBT_INFO = {
+  han_muc: 5000000,
+  da_su_dung: 2350000,
+  ky_thanh_toan: '05 hàng tháng',
+  du_no: [
+    {id:'O-K001', tong:1535000, han:'05/04/2026', status:'chua_tt'},
+    {id:'O-K003', tong:1040000, han:'05/04/2026', status:'chua_tt'},
+  ]
+};
+
+const PERIODIC_ORDERS = [
+  {id:'PO-001', name:'Gạo tuần cố định', items:[{ma:'ST25-50',ten:'Gạo ST25',icon:'🌾',sl:2,gia:700000}], freq:'weekly', next:new Date(Date.now()+3*86400000).toLocaleDateString('vi-VN'), active:true},
+];
+
+// ════════════════════════════════════════════
+// 1. ĐẶT HÀNG ĐỊNH KỲ
+// ════════════════════════════════════════════
+function renderPeriodic(){
+  const pg = document.getElementById('pg-periodic');
+  if(!pg) return;
+  
+  let listHtml = '';
+  PERIODIC_ORDERS.forEach(po => {
+    const total = po.items.reduce((s,i)=>s+i.gia*i.sl, 0);
+    listHtml += `<div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:14px;font-weight:800;">${po.name}</div>
+          <div style="font-size:11px;color:#6B7280;margin-top:2px;">📅 Tiếp theo: ${po.next}</div>
+          <div style="font-size:11px;color:#6B7280;">🔁 ${po.freq==='weekly'?'Hàng tuần':'Hàng tháng'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <div style="font-size:15px;font-weight:900;color:#1FAB73;">${fmtFull(total)}</div>
+          <button onclick="togglePeriodic('${po.id}')" style="padding:4px 12px;background:${po.active?'#FEE2E2':'#D1FAE5'};color:${po.active?'#DC2626':'#065F46'};border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+            ${po.active?'Tạm dừng':'Kích hoạt'}
+          </button>
+        </div>
+      </div>
+      <div style="background:#F9FAFB;border-radius:10px;padding:10px 12px;font-size:12px;color:#374151;">
+        ${po.items.map(i=>`${i.icon} ${i.ten} ×${i.sl}`).join(' · ')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+        <button onclick="orderNow('${po.id}')" style="padding:9px;background:#1FAB73;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📦 Đặt ngay</button>
+        <button onclick="editPeriodic('${po.id}')" style="padding:9px;background:#EFF6FF;color:#2563EB;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✏️ Chỉnh sửa</button>
+      </div>
+    </div>`;
+  });
+
+  pg.innerHTML = `<div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:12px;">🔁 Đặt hàng định kỳ</div>
+    <div style="background:#EFF6FF;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#1D4ED8;font-weight:600;">
+      💡 Tự động đặt lại giỏ hàng cũ theo lịch — không cần nhớ, không bỏ lỡ
+    </div>
+    ${listHtml || '<div style="text-align:center;padding:32px;color:#9CA3AF;">Chưa có đơn định kỳ nào</div>'}
+    <button onclick="createPeriodic()" style="width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;">
+      + Tạo đơn định kỳ mới
+    </button>
+  </div>`;
+}
+
+function togglePeriodic(id){
+  const po = PERIODIC_ORDERS.find(x=>x.id===id);
+  if(po){ po.active=!po.active; renderPeriodic(); toast(po.active?'✅ Đã kích hoạt':'⏸ Đã tạm dừng'); }
+}
+function orderNow(id){
+  const po = PERIODIC_ORDERS.find(x=>x.id===id);
+  if(!po) return;
+  CART = {items:{}, coupon:null, slot:'Ngày mai'};
+  po.items.forEach(i=>{ CART.items[i.ma] = i.sl; });
+  updateCartUI(); goTab('cart');
+  toast('✅ Đã thêm vào giỏ: '+po.name);
+}
+function editPeriodic(id){ toast('⚙️ Chức năng chỉnh sửa đang phát triển'); }
+function createPeriodic(){
+  if(cartCount()===0){ toast('⚠️ Thêm sản phẩm vào giỏ hàng trước'); goTab('catalog'); return; }
+  const name = prompt('Tên đơn định kỳ:', 'Gạo hàng tuần');
+  if(!name) return;
+  const items = Object.entries(CART.items).map(([ma,sl])=>{
+    const p = PRODUCTS.find(x=>x.ma===ma);
+    return {ma, ten:p?.ten||ma, icon:p?.icon||'📦', sl, gia:p?.gia||0};
+  });
+  const nextDate = new Date(Date.now()+7*86400000).toLocaleDateString('vi-VN');
+  PERIODIC_ORDERS.push({id:'PO-'+Date.now(), name, items, freq:'weekly', next:nextDate, active:true});
+  toast('✅ Đã tạo đơn định kỳ: '+name);
+  renderPeriodic();
+}
+
+// ════════════════════════════════════════════
+// 2. LỊCH SỬ CHI TIÊU
+// ════════════════════════════════════════════
+function renderSpending(){
+  const pg = document.getElementById('pg-spending');
+  if(!pg) return;
+  
+  const now = new Date();
+  const thisMonth = MY_ORDERS.filter(o=>{
+    const d = new Date(o.ngay.split('/').reverse().join('-')||Date.now());
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  });
+  const lastMonth = MY_ORDERS.filter(o=>{
+    const d = new Date(o.ngay.split('/').reverse().join('-')||Date.now());
+    const lm = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    return d.getMonth()===lm.getMonth() && d.getFullYear()===lm.getFullYear();
+  });
+  
+  const thisTotal = MY_ORDERS.reduce((s,o)=>s+o.tong,0);
+  const lastTotal = lastMonth.reduce((s,o)=>s+o.tong,0);
+  const diff = thisTotal - lastTotal;
+  
+  // Top sản phẩm
+  const skuMap = {};
+  MY_ORDERS.forEach(o=>o.items.forEach(i=>{
+    if(!skuMap[i.ma]) skuMap[i.ma]={ma:i.ma,ten:i.ten,icon:i.icon,qty:0,total:0};
+    skuMap[i.ma].qty += i.sl;
+    skuMap[i.ma].total += i.gia*i.sl;
+  }));
+  const topSkus = Object.values(skuMap).sort((a,b)=>b.total-a.total).slice(0,5);
+  
+  pg.innerHTML = `<div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px;">💳 Lịch sử chi tiêu</div>
+    
+    <!-- Tháng này -->
+    <div style="background:linear-gradient(135deg,#1FAB73,#178A5A);border-radius:16px;padding:20px;color:#fff;margin-bottom:14px;">
+      <div style="font-size:11px;opacity:.75;">Tổng chi tiêu</div>
+      <div style="font-size:32px;font-weight:900;margin-top:4px;">${fmtFull(thisTotal)}</div>
+      <div style="font-size:12px;opacity:.8;margin-top:6px;">${MY_ORDERS.length} đơn hàng</div>
+      ${diff!==0?`<div style="margin-top:8px;background:rgba(255,255,255,.2);border-radius:100px;display:inline-block;padding:3px 12px;font-size:11px;font-weight:700;">
+        ${diff>0?'↑':'↓'} ${fmtM(Math.abs(diff))} so với tháng trước
+      </div>`:''}
+    </div>
+    
+    <!-- Stats grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;">Đơn TB</div>
+        <div style="font-size:20px;font-weight:900;color:#2563EB;margin-top:4px;">${MY_ORDERS.length?fmtM(Math.round(thisTotal/MY_ORDERS.length)):'-'}</div>
+      </div>
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:11px;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;">Tiết kiệm</div>
+        <div style="font-size:20px;font-weight:900;color:#1FAB73;margin-top:4px;">${fmtM(Math.round(thisTotal*0.08))}</div>
+      </div>
+    </div>
+    
+    <!-- Top sản phẩm -->
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📦 Sản phẩm hay mua nhất</div>
+      ${topSkus.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i<topSkus.length-1?'border-bottom:1px solid #F3F4F6':''}">
+        <div style="width:24px;height:24px;border-radius:50%;background:#F0FDF4;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#1FAB73;">${i+1}</div>
+        <div style="font-size:20px;">${p.icon}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:700;">${p.ten}</div>
+          <div style="font-size:11px;color:#6B7280;">Đã mua ${p.qty} lần</div></div>
+        <div style="font-size:13px;font-weight:800;color:#1FAB73;">${fmtM(p.total)}</div>
+      </div>`).join('')}
+    </div>
+    
+    <!-- Lịch sử đơn -->
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📋 Lịch sử đơn hàng</div>
+      ${MY_ORDERS.slice(0,10).map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F9FAFB;">
+        <div><div style="font-size:13px;font-weight:700;">${o.id}</div>
+          <div style="font-size:11px;color:#9CA3AF;">${o.ngay} · ${o.items.length} sản phẩm</div></div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:800;color:#1FAB73;">${fmtM(o.tong)}</div>
+          <div style="font-size:10px;color:#9CA3AF;">${{da_giao:'✅ Đã giao',cho_giao:'🚚 Đang giao',cho_xac_nhan:'⏳ Chờ TT'}[o.ts]||o.ts}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// 3. DANH SÁCH YÊU THÍCH
+// ════════════════════════════════════════════
+function renderWishlist(){
+  const pg = document.getElementById('pg-wishlist');
+  if(!pg) return;
+  
+  const items = WISHLIST.map(ma => PRODUCTS.find(p=>p.ma===ma)).filter(Boolean);
+  
+  pg.innerHTML = `<div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:8px;">🔖 Sản phẩm yêu thích (${items.length})</div>
+    <div style="font-size:12px;color:#6B7280;margin-bottom:14px;">Ghim sản phẩm hay mua để tìm nhanh hơn</div>
+    ${items.length===0?'<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Chưa có sản phẩm yêu thích<br>Bấm 🔖 trên sản phẩm để ghim</div>':''}
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${items.map(p=>{
+        const qty = CART.items[p.ma]||0;
+        const disc = p.mrp>p.gia ? Math.round((1-p.gia/p.mrp)*100) : 0;
+        return `<div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:center;">
+          <div style="font-size:32px;">${p.icon}</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:800;">${p.ten}</div>
+            <div style="font-size:11px;color:#6B7280;">${p.spec}</div>
+            <div style="font-size:14px;font-weight:900;color:#1FAB73;margin-top:4px;">${fmtFull(p.gia)}${disc>0?` <span style="font-size:10px;background:#FEE2E2;color:#DC2626;padding:1px 5px;border-radius:4px;">-${disc}%</span>`:''}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+            <button onclick="removeWishlist('${p.ma}')" style="background:none;border:none;font-size:16px;cursor:pointer;color:#9CA3AF;">🗑</button>
+            ${qty===0
+              ?`<button onclick="addToCart('${p.ma}')" style="padding:7px 12px;background:#1FAB73;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;">+ Thêm</button>`
+              :`<div style="display:flex;align-items:center;gap:6px;">
+                <button onclick="addToCart('${p.ma}',-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid #E5E7EB;background:#fff;cursor:pointer;">−</button>
+                <span style="font-size:13px;font-weight:800;">${qty}</span>
+                <button onclick="addToCart('${p.ma}',1)" style="width:26px;height:26px;border-radius:50%;border:none;background:#1FAB73;color:#fff;cursor:pointer;">+</button>
+              </div>`}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    ${items.length>0?`<button onclick="addAllWishlistToCart()" style="width:100%;padding:13px;background:linear-gradient(135deg,#1FAB73,#178A5A);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;margin-top:14px;">🛒 Thêm tất cả vào giỏ</button>`:''}
+    <button onclick="goTab('catalog')" style="width:100%;padding:12px;background:#F0FDF4;color:#1FAB73;border:1px solid #BBF7D0;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;">+ Thêm sản phẩm từ danh mục</button>
+  </div>`;
+}
+
+function addToWishlist(ma){
+  if(!WISHLIST.includes(ma)){ WISHLIST.push(ma); toast('✅ Đã thêm vào yêu thích'); }
+  else { WISHLIST=WISHLIST.filter(x=>x!==ma); toast('Đã bỏ yêu thích'); }
+}
+function removeWishlist(ma){ WISHLIST=WISHLIST.filter(x=>x!==ma); renderWishlist(); toast('Đã xóa khỏi yêu thích'); }
+function addAllWishlistToCart(){
+  WISHLIST.forEach(ma=>{ if(!CART.items[ma]) CART.items[ma]=1; });
+  updateCartUI(); toast('✅ Đã thêm tất cả vào giỏ!'); goTab('cart');
+}
+
+// ════════════════════════════════════════════
+// 4. HẠN MỨC & CÔNG NỢ
+// ════════════════════════════════════════════
+function renderDebt(){
+  const pg = document.getElementById('pg-debt');
+  if(!pg) return;
+  const d = DEBT_INFO;
+  const used = MY_ORDERS.filter(o=>o.ts!=='da_giao').reduce((s,o)=>s+o.tong, 0) || d.da_su_dung;
+  const remain = d.han_muc - used;
+  const pct = Math.min(100, Math.round(used/d.han_muc*100));
+  const barColor = pct>80?'#EF4444':pct>60?'#F59E0B':'#1FAB73';
+  
+  pg.innerHTML = `<div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:14px;">💰 Hạn mức & Công nợ</div>
+    
+    <div style="background:linear-gradient(135deg,#1E40AF,#2563EB);border-radius:16px;padding:20px;color:#fff;margin-bottom:14px;">
+      <div style="font-size:11px;opacity:.75;">Hạn mức tín dụng</div>
+      <div style="font-size:32px;font-weight:900;margin-top:4px;">${fmtFull(d.han_muc)}</div>
+      <div style="background:rgba(255,255,255,.2);border-radius:100px;height:8px;margin:12px 0 6px;">
+        <div style="height:100%;width:${pct}%;background:${pct>80?'#FCA5A5':pct>60?'#FCD34D':'#6EE7B7'};border-radius:100px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.8;">
+        <span>Đã dùng: ${fmtM(used)} (${pct}%)</span>
+        <span>Còn lại: ${fmtM(remain)}</span>
+      </div>
+    </div>
+    
+    ${pct>80?`<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#DC2626;font-weight:600;">
+      ⚠️ Đã dùng ${pct}% hạn mức — Hãy thanh toán để tiếp tục đặt hàng
+    </div>`:''}
+    
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📋 Dư nợ chưa thanh toán</div>
+      ${d.du_no.map(n=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6;">
+        <div><div style="font-size:13px;font-weight:700;">${n.id}</div>
+          <div style="font-size:11px;color:#6B7280;">Hạn: ${n.han}</div></div>
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:800;color:#DC2626;">${fmtFull(n.tong)}</div>
+          <div style="font-size:10px;background:#FEF3C7;color:#B45309;padding:1px 8px;border-radius:100px;margin-top:2px;">Chưa TT</div>
+        </div>
+      </div>`).join('')}
+      <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;font-size:14px;font-weight:800;">
+        <span>Tổng dư nợ</span>
+        <span style="color:#DC2626;">${fmtFull(d.du_no.reduce((s,n)=>s+n.tong,0))}</span>
+      </div>
+    </div>
+    
+    <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px;">🏦 Thanh toán công nợ</div>
+      <div style="font-size:12px;color:#374151;line-height:1.8;">
+        Ngân hàng: <b>Techcombank</b><br>
+        Số TK: <b>9876543210</b><br>
+        Tên TK: <b>SM ONE FMCG</b><br>
+        Nội dung: <b>[Tên tiệm] Thanh toán nợ</b>
+      </div>
+      <div style="background:#F0FDF4;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:12px;color:#166534;font-weight:600;">
+        📅 Kỳ thanh toán: ${d.ky_thanh_toan}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// 5. BÁO LỖI HÀNG HÓA
+// ════════════════════════════════════════════
+function renderReportError(){
+  const pg = document.getElementById('pg-report-error');
+  if(!pg) return;
+  
+  pg.innerHTML = `<div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:800;margin-bottom:8px;">📸 Báo lỗi hàng hóa</div>
+    <div style="font-size:12px;color:#6B7280;margin-bottom:14px;">Chụp ảnh sản phẩm lỗi/hỏng để yêu cầu đổi/trả</div>
+    
+    <div style="background:#fff;border:1.5px solid #E5E7EB;border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Chọn đơn hàng</label>
+        <select style="font-family:'Nunito',Arial,sans-serif;" id="err-order" style="width:100%;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:'Nunito',Arial,sans-serif;">
+          <option value="">-- Chọn đơn --</option>
+          ${MY_ORDERS.map(o=>`<option value="${o.id}">${o.id} · ${o.ngay}</option>`).join('')}
+        </select>
+      </div>
+      
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Loại vấn đề</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;" id="err-types">
+          ${['Hàng bị hỏng','Thiếu hàng','Sai hàng','Hàng bị ướt','Hạn sử dụng','Khác'].map(t=>`
+            <div class="err-type" onclick="selectErrType(this,'${t}')" style="padding:9px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;">${t}</div>
+          `).join('')}
+        </div>
+      </div>
+      
+      <!-- Ảnh bằng chứng -->
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Ảnh bằng chứng</label>
+        <div onclick="fakePhotoUpload()" id="photo-upload-zone" style="border:2px dashed #E5E7EB;border-radius:12px;padding:20px;text-align:center;cursor:pointer;background:#F9FAFB;">
+          <div style="font-size:32px;margin-bottom:8px;">📷</div>
+          <div style="font-size:13px;color:#6B7280;font-weight:600;">Bấm để chụp ảnh</div>
+          <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">JPG, PNG tối đa 5MB</div>
+        </div>
+        <div id="photo-preview-err" style="display:none;margin-top:8px;text-align:center;">
+          <div style="font-size:40px;">📸</div>
+          <div style="font-size:12px;color:#1FAB73;font-weight:700;">✅ Đã chụp ảnh</div>
+        </div>
+      </div>
+      
+      <div style="margin-bottom:14px;">
+        <label style="font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px;">Mô tả chi tiết</label>
+        <textarea style="font-family:'Nunito',Arial,sans-serif;" id="err-note" rows="3" placeholder="Mô tả rõ vấn đề, số lượng bị lỗi..." style="width:100%;padding:10px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:13px;font-family:'Nunito',Arial,sans-serif;resize:none;"></textarea>
+      </div>
+      
+      <button onclick="submitErrorReport()" style="width:100%;padding:13px;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;">
+        📋 Gửi báo cáo lỗi hàng
+      </button>
+    </div>
+    
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px;">📜 Báo cáo đã gửi</div>
+    <div id="error-reports-list">
+      <div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px;">Chưa có báo cáo nào</div>
+    </div>
+  </div>`;
+}
+
+let _errType = '';
+function selectErrType(el, type){
+  _errType = type;
+  document.querySelectorAll('.err-type').forEach(e=>{
+    e.style.borderColor='#E5E7EB'; e.style.background='#fff'; e.style.color='#374151';
+  });
+  el.style.borderColor='#1FAB73'; el.style.background='#F0FDF4'; el.style.color='#1FAB73';
+}
+function fakePhotoUpload(){
+  document.getElementById('photo-upload-zone').style.display='none';
+  document.getElementById('photo-preview-err').style.display='block';
+  toast('📷 Đã chụp ảnh bằng chứng');
+}
+function submitErrorReport(){
+  const order = document.getElementById('err-order')?.value;
+  const note  = document.getElementById('err-note')?.value;
+  if(!order){ toast('⚠️ Chọn đơn hàng'); return; }
+  if(!_errType){ toast('⚠️ Chọn loại vấn đề'); return; }
+  
+  const list = document.getElementById('error-reports-list');
+  const now = new Date().toLocaleDateString('vi-VN');
+  list.innerHTML = `<div style="background:#FFF7ED;border:1.5px solid #FED7AA;border-radius:12px;padding:14px;margin-bottom:8px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:13px;font-weight:800;">${order} · ${_errType}</div>
+        <div style="font-size:11px;color:#6B7280;margin-top:2px;">${now}${note?' · '+note:''}</div>
+      </div>
+      <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;background:#FEF3C7;color:#B45309;">Đang xử lý</span>
+    </div>
+  </div>` + list.innerHTML.replace('<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px;">Chưa có báo cáo nào</div>','');
+  
+  _errType='';
+  if(document.getElementById('err-note')) document.getElementById('err-note').value='';
+  document.getElementById('err-order').value='';
+  document.getElementById('photo-preview-err').style.display='none';
+  document.getElementById('photo-upload-zone').style.display='block';
+  document.querySelectorAll('.err-type').forEach(e=>{e.style.borderColor='#E5E7EB';e.style.background='#fff';e.style.color='#374151';});
+  toast('✅ Đã gửi báo cáo lỗi hàng!');
+}
+
+// ════════════════════════════════════════════
+// 6. THEO DÕI TÀI XẾ (Google Maps free embed)
+// ════════════════════════════════════════════
+function renderDriverTracking(){
+  const pg = document.getElementById('pg-driver');
+  if(!pg) return;
+  
+  const activeOrder = MY_ORDERS.find(o=>o.ts==='cho_giao'||o.ts==='dang_giao');
+  
+  if(!activeOrder){
+    pg.innerHTML = `<div style="padding:32px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:12px;">🚚</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:8px;">Không có đơn đang giao</div>
+      <div style="font-size:13px;color:#6B7280;margin-bottom:20px;">Theo dõi tài xế xuất hiện khi có đơn đang giao</div>
+      <button onclick="goTab('catalog')" style="padding:12px 24px;background:#1FAB73;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Đặt hàng ngay</button>
+    </div>`;
+    return;
+  }
+  
+  // Tọa độ Phú Bài, Thừa Thiên Huế làm demo
+  const driverLat = 16.4047;
+  const driverLng = 107.6953;
+  const mapUrl = `https://maps.google.com/maps?q=${driverLat},${driverLng}&z=15&output=embed`;
+  
+  pg.innerHTML = `<div style="padding:0 0 80px;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1FAB73,#178A5A);padding:16px 16px 14px;color:#fff;">
+      <div style="font-size:11px;opacity:.75;">Đơn hàng đang giao</div>
+      <div style="font-size:18px;font-weight:900;margin-top:2px;">${activeOrder.id}</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;">🚚</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;">Tài xế Nam · 0922000001</div>
+          <div style="font-size:11px;opacity:.8;">Dự kiến đến: ${activeOrder.slot}</div>
+        </div>
+        <a href="tel:0922000001" style="margin-left:auto;padding:6px 14px;background:rgba(255,255,255,.2);color:#fff;border-radius:100px;font-size:12px;font-weight:700;text-decoration:none;">📞 Gọi</a>
+      </div>
+    </div>
+    
+    <!-- Map -->
+    <div style="position:relative;">
+      <iframe 
+        src="${mapUrl}"
+        style="width:100%;height:280px;border:none;"
+        allowfullscreen
+        loading="lazy">
+      </iframe>
+      <div style="position:absolute;top:10px;right:10px;background:#fff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:#1FAB73;box-shadow:0 2px 8px rgba(0,0,0,.15);">
+        🔴 Live
+      </div>
+    </div>
+    
+    <!-- Status timeline -->
+    <div style="padding:14px 16px;">
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:14px;padding:14px;">
+        <div style="font-size:13px;font-weight:800;margin-bottom:12px;">📍 Trạng thái giao hàng</div>
+        ${[
+          {icon:'✅',label:'Đã xác nhận đơn',done:true},
+          {icon:'📦',label:'Đang chuẩn bị hàng',done:true},
+          {icon:'🚚',label:'Tài xế đã lấy hàng',done:activeOrder.ts==='dang_giao'},
+          {icon:'🏪',label:'Sắp đến nơi',done:false},
+        ].map((s,i)=>`<div style="display:flex;gap:12px;align-items:center;padding:6px 0;${i<3?'border-bottom:1px solid #F9FAFB':''}">
+          <div style="font-size:18px;opacity:${s.done?1:0.35};">${s.icon}</div>
+          <div style="font-size:13px;font-weight:600;color:${s.done?'#1FAB73':'#9CA3AF'};">${s.label}</div>
+          ${s.done?'<div style="margin-left:auto;font-size:10px;font-weight:700;color:#1FAB73;">✓</div>':''}
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+
+// ── XUẤT HÓA ĐƠN PDF ──────────────────────────────────────────
+function exportInvoice(orderId){
+  const o = MY_ORDERS.find(x=>x.id===orderId) || MY_ORDERS[0];
+  if(!o){ showToast('❌ Không tìm thấy đơn hàng'); return; }
+  
+  const now = new Date();
+  const itemRows = (o.items||[]).map((i,idx) =>
+    `<tr style="border-bottom:1px solid #f0f0f0;">
+      <td style="padding:8px 4px;">${idx+1}</td>
+      <td style="padding:8px 4px;">${i.ma||''}</td>
+      <td style="padding:8px 4px;">${i.ten}</td>
+      <td style="padding:8px 4px;text-align:center;">${i.sl}</td>
+      <td style="padding:8px 4px;text-align:right;">${(i.gia||0).toLocaleString('vi-VN')}đ</td>
+      <td style="padding:8px 4px;text-align:right;font-weight:700;">${((i.gia||0)*(i.sl||1)).toLocaleString('vi-VN')}đ</td>
+    </tr>`
+  ).join('');
+  
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Hóa đơn ${o.id}</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;color:#333;}
+  .header{text-align:center;border-bottom:2px solid #1FAB73;padding-bottom:14px;margin-bottom:16px;}
+  .logo{font-size:24px;font-weight:900;color:#1FAB73;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:#1FAB73;color:#fff;padding:10px 4px;text-align:left;}
+  .total{background:#F0FDF4;font-weight:900;font-size:15px;}
+  .info{display:flex;gap:30px;margin-bottom:14px;font-size:13px;}
+  .info div{flex:1;}</style>
+  </head><body>
+  <div class="header">
+    <div class="logo">SM ONE</div>
+    <div style="font-size:12px;color:#6B7280;margin-top:4px;">Hệ thống phân phối FMCG · smone.oji.vn</div>
+    <div style="font-size:18px;font-weight:900;margin-top:8px;">HÓA ĐƠN MUA HÀNG</div>
+    <div style="font-size:13px;color:#6B7280;">Số: ${o.id} · Ngày: ${o.ngay||now.toLocaleDateString('vi-VN')}</div>
+  </div>
+  <div class="info">
+    <div><b>Người mua:</b><br>${STORE_USER.ten}<br>${STORE_USER.chu}<br>${STORE_USER.phone}<br>${STORE_USER.addr||''}</div>
+    <div><b>Người bán:</b><br>SM ONE FMCG<br>Sale: ${STORE_USER.sale||'Nguyễn Nam'}<br>ĐT: ${STORE_USER.sale_phone||'0901234567'}</div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Mã hàng</th><th>Tên sản phẩm</th><th style="text-align:center;">SL</th><th style="text-align:right;">Đơn giá</th><th style="text-align:right;">Thành tiền</th></tr></thead>
+    <tbody>${itemRows}</tbody>
+    <tfoot>
+      <tr class="total"><td colspan="5" style="padding:10px 4px;text-align:right;">TỔNG CỘNG:</td>
+        <td style="padding:10px 4px;text-align:right;color:#1FAB73;">${(o.tong||0).toLocaleString('vi-VN')}đ</td>
+      </tr>
+    </tfoot>
+  </table>
+  <div style="margin-top:16px;font-size:12px;color:#6B7280;border-top:1px solid #eee;padding-top:10px;">
+    Trạng thái: ${{'cho_xac_nhan':'Chờ xác nhận','cho_giao':'Đã xác nhận, chờ giao','da_giao':'Đã giao thành công','huy':'Đã hủy'}[o.ts]||o.ts}
+    · In lúc: ${now.toLocaleString('vi-VN')}
+  </div>
+  </body></html>`;
+  
+  const blob = new Blob([html], {type:'text/html;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'HoaDon_' + o.id + '.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ Đã xuất hóa đơn: ' + o.id);
+}
+
+// ── BÁO CÁO NHẬP HÀNG ──────────────────────────────────────────
+function renderImportReport(){ goTab('import'); }
+function renderImportPage(){
+  const pg = document.getElementById('pg-import');
+  if(!pg) return;
+  
+  const now = new Date();
+  const thisMonth = MY_ORDERS.filter(o => {
+    try{ return true; }catch(e){ return true; }
+  });
+  const lastMonthOrders = MY_ORDERS.slice(0, Math.floor(MY_ORDERS.length * 0.4));
+  
+  // Group by product
+  const prodMap = {};
+  MY_ORDERS.forEach(o => {
+    (o.items||[]).forEach(i => {
+      if(!prodMap[i.ma]) prodMap[i.ma] = {ten:i.ten, ma:i.ma, icon:i.icon||'📦', sl:0, total:0};
+      prodMap[i.ma].sl += (i.sl||1);
+      prodMap[i.ma].total += (i.gia||0)*(i.sl||1);
+    });
+  });
+  const topProds = Object.values(prodMap).sort((a,b)=>b.total-a.total).slice(0,8);
+  const totalSpend = MY_ORDERS.reduce((s,o)=>s+o.tong,0);
+  
+  const modal = document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;';
+  modal.innerHTML = `
+  <div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-height:85vh;overflow-y:auto;">
+    <div style="font-size:15px;font-weight:800;margin-bottom:14px;">📊 Báo cáo nhập hàng tháng ${now.getMonth()+1}</div>
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:#F0FDF4;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:18px;font-weight:900;color:#1FAB73;">${MY_ORDERS.length}</div>
+        <div style="font-size:10px;color:#6B7280;margin-top:2px;">Đơn nhập</div>
+      </div>
+      <div style="background:#EFF6FF;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:18px;font-weight:900;color:#2563EB;">${fmtM(totalSpend)}đ</div>
+        <div style="font-size:10px;color:#6B7280;margin-top:2px;">Tổng tiền</div>
+      </div>
+      <div style="background:#FEF3C7;border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:18px;font-weight:900;color:#D97706;">${topProds.length}</div>
+        <div style="font-size:10px;color:#6B7280;margin-top:2px;">Loại SP</div>
+      </div>
+    </div>
+    
+    <div style="font-size:13px;font-weight:800;margin-bottom:8px;">Top sản phẩm nhập nhiều nhất</div>
+    ${topProds.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;">
+        <div style="font-size:20px;">${p.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;">${p.ten}</div>
+          <div style="font-size:11px;color:#6B7280;">${p.ma} · ${p.sl} ${['túi','thùng','chai','hũ'][i%4]}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:800;color:#1FAB73;">${fmtM(p.total)}đ</div>
+          <div style="font-size:10px;color:#9CA3AF;">${Math.round(p.total/totalSpend*100)}%</div>
+        </div>
+      </div>`).join('')}
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;">
+      <button onclick="this.closest('[style*=fixed]').remove()" 
+        style="padding:12px;border:1px solid #E5E7EB;border-radius:10px;background:#fff;font-size:13px;font-weight:700;cursor:pointer;">Đóng</button>
+      <button onclick="exportImportReport()" 
+        style="padding:12px;background:#1FAB73;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">📥 Xuất file</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function exportImportReport(){
+  const rows = [['Mã hàng','Tên sản phẩm','Số lượng','Tổng tiền'].join(',')];
+  const prodMap = {};
+  MY_ORDERS.forEach(o=>(o.items||[]).forEach(i=>{
+    if(!prodMap[i.ma]) prodMap[i.ma]={ten:i.ten,sl:0,total:0};
+    prodMap[i.ma].sl+=(i.sl||1);
+    prodMap[i.ma].total+=(i.gia||0)*(i.sl||1);
+  }));
+  Object.entries(prodMap).forEach(([ma,v])=>{
+    rows.push([ma,'"'+v.ten+'"',v.sl,v.total].join(','));
+  });
+  const blob = new Blob(['\ufeff'+rows.join('\n')],{type:'text/csv;charset=utf-8;'});
+  // fixed
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'NhapHang_'+new Date().toLocaleDateString('vi-VN').split('/').join('-')+'.csv';
+  a.click();
+  showToast('✅ Đã xuất báo cáo nhập hàng');
+}
+
+// ── SMART NOTIFICATIONS ──────────────────────────────────────────
+function pushSmartNotifs(){
+  const now = new Date();
+  const pending = MY_ORDERS.filter(o=>o.ts==='cho_xac_nhan');
+  const delivering = MY_ORDERS.filter(o=>o.ts==='cho_giao');
+  const pts = STORE_USER.points || 0;
+  
+  const newNotifs = [];
+  
+  if(pending.length > 0)
+    newNotifs.push({type:'order',title:'Đơn chờ xác nhận thanh toán',body:pending.length+' đơn đang chờ. Vui lòng chuyển khoản sớm.',time:'Vừa xong',read:false});
+  
+  if(delivering.length > 0)
+    newNotifs.push({type:'order',title:'Đơn hàng đang trên đường',body:delivering.length+' đơn đang được giao hôm nay.',time:'Hôm nay',read:false});
+  
+  if(pts > 500 && pts < 1000)
+    newNotifs.push({type:'points',title:'Sắp đủ điểm đổi quà!',body:'Bạn có '+pts+' điểm. Cần thêm '+(1000-pts)+' điểm nữa để đổi quà.',time:'Hôm nay',read:false});
+  
+  // Add new notifs to front
+  newNotifs.forEach(n => {
+    if(!NOTIFS.find(x=>x.title===n.title)) NOTIFS.unshift(n);
+  });
+  
+  updateNotifBadge();
+}
+
+// Call on app start
+if(typeof MY_ORDERS !== 'undefined') setTimeout(pushSmartNotifs, 1000);
+
+
+function renderInvoicePage(){
+  const pg = document.getElementById('pg-invoice');
+  if(!pg) return;
+  
+  const orders = MY_ORDERS.filter(o=>o.ts==='da_giao').slice(0,10);
+  
+  pg.innerHTML = `
+  <div style="padding:16px 16px 80px;">
+    <div style="font-size:14px;font-weight:900;margin-bottom:14px;">🧾 Hóa đơn điện tử</div>
+    ${orders.length === 0 
+      ? '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Chưa có đơn đã giao</div>'
+      : orders.map(o=>{
+        const dateStr3 = o.ngay || new Date().toLocaleDateString('vi-VN');
+        return `<div style="background:#fff;border:1px solid var(--bdr);border-radius:14px;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+            <div>
+              <div style="font-size:13px;font-weight:800;">${o.id}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">${dateStr3} · ${o.gio||''}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:15px;font-weight:900;color:var(--G);">${fmtFull(o.tong)}đ</div>
+              <span style="font-size:10px;font-weight:700;background:#D1FAE5;color:#065F46;padding:2px 7px;border-radius:100px;">Đã giao</span>
+            </div>
+          </div>
+          <div style="background:#F9FAFB;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:var(--muted);">
+            ${(o.items||[]).map(i=>`${i.ten||i.ma} ×${i.sl} — ${fmtM(i.gia*i.sl)}`).join(' | ')}
+          </div>
+          <button onclick="exportInvoice('${o.id}')" 
+            style="width:100%;padding:9px;background:var(--Bl);color:#1D4ED8;border:1px solid #BFDBFE;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+            ⬇️ Tải hóa đơn PDF
+          </button>
+        </div>`;
+      }).join('')}
+  </div>`;
+}
+
 </script>
 </body>
 </html>
