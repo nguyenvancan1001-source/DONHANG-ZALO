@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.8.4">
+<meta name="version" content="3.8.5">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.4</title>
-<!-- v3.8.4 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.5</title>
+<!-- v3.8.5 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -3553,7 +3553,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.4';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.8.5';
   }catch(e){}
 }
 function showOrderAlert(count){
@@ -3622,8 +3622,12 @@ let _fakeToastTimer = null;
 let _fakeCounterTimer = null;
 
 function _getFakeProduct(){
-  // Lấy từ danh sách sản phẩm thật của app
-  const prods = (allProds&&allProds.length) ? allProds : (DEMO_PRODUCTS||[]);
+  // Chỉ lấy SP đang bán: active + còn hàng (stock >= 999 hoặc stock > 0)
+  const src = (allProds&&allProds.length) ? allProds : (DEMO_PRODUCTS||[]);
+  const prods = src.filter(p =>
+    p.is_active !== false &&
+    (p.stock_qty === undefined || p.stock_qty >= 999 || p.stock_qty > 0)
+  );
   if(!prods.length) return {name:'Sản phẩm Vicomart',image_url:'',category:'Thực phẩm'};
   return prods[Math.floor(Math.random()*prods.length)];
 }
