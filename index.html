@@ -10,10 +10,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="data:application/json,{%22name%22:%22Vicomart%22,%22short_name%22:%22Vicomart%22,%22start_url%22:%22/%22,%22display%22:%22standalone%22,%22background_color%22:%22%231565C0%22,%22theme_color%22:%22%231565C0%22}">
 <meta name="description" content="🛒 Vicomart – Siêu thị tiện lợi · Flash Sale mỗi ngày · Đặt hàng online · Giao tận nhà · Thanh toán khi nhận">
-<meta name="version" content="3.7.3">
+<meta name="version" content="3.7.4">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.3</title>
-<!-- v3.7.3 -->
+<title>Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.4</title>
+<!-- v3.7.4 -->
 
 <!-- ═══ OPEN GRAPH — Zalo / Facebook / Messenger preview ═══ -->
 <!-- Thay YOUR_DOMAIN bằng domain Vercel thật, VD: vicomart-order.vercel.app -->
@@ -2320,20 +2320,18 @@ function renderPromoAdminCard(p){
 }
 
 async function togPromoActive(id,cur){
-  if(db&&!IS_DEMO){
-    try{
-      const {error}=await db.from('promotions').update({is_active:!cur}).eq('id',id);
-      if(error) throw error;
-      await _syncPromosFromCloud();
-      _syncPromosToBuildState();
-      try{admLoadPromos();}catch(e){}
-      toast(cur?'⏹ Đã tắt KM':'▶ Đã bật KM · Hiển thị trang chính');
-      return;
-    }catch(e){ console.warn('togPromo cloud error:',e.message); }
+  if(!db||IS_DEMO){ toast('❌ Cần kết nối Supabase'); return; }
+  try{
+    const {error}=await db.from('promotions').update({is_active:!cur}).eq('id',id);
+    if(error) throw error;
+    await _syncPromosFromCloud();
+    _syncPromosToBuildState();
+    admLoadPromos();
+    toast(cur?'✅ Đã tắt KM':'✅ Đã bật KM');
+  }catch(e){
+    toast('❌ Lỗi lưu Supabase: '+e.message);
+    console.warn('togPromo:',e.message);
   }
-  const p=_promoStore.find(x=>x.id===id);
-  if(p){ p.is_active=!cur; _syncPromosToBuildState(); admLoadPromos();
-    toast(cur?'Đã tắt KM':'Đã bật KM'); }
 }
 async function delPromo(id){
   if(!confirm('Xoá chương trình này?')) return;
@@ -3457,7 +3455,7 @@ async function checkNewOrders(){
     _lastOrderCount = pending;
     // Cập nhật badge trên tab title
     if(pending>0) document.title = `(${pending} đơn mới) Vicomart Flash Sale`;
-    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.3';
+    else document.title = 'Vicomart – Flash Sale Mỗi Ngày | Đặt hàng siêu thị v3.7.4';
   }catch(e){}
 }
 function showOrderAlert(count){
